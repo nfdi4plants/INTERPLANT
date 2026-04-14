@@ -1,7 +1,7 @@
 # INTERPLANT
 
 ## Project timeline
-![Timeline](pictures/Gantt_Chart_INTERPLANT.png)
+![Timeline](proposal/Gantt_Chart_INTERPLANT.png)
 
 ## [Project Board](https://gitlab.fz-juelich.de/ibg-3/data-management/projects/interplant/-/boards)
 
