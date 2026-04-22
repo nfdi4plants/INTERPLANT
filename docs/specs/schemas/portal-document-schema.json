@@ -1,0 +1,406 @@
+{
+  "$defs": {
+    "identifier": {
+      "$id": "/schemas/identifier",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "id": {
+          "description": "The value of the identifier.",
+          "type": "string"
+        },
+        "type": {
+          "description": "The type or key of the identifier.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://awi.de/schemas/IndexDocument",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "A document contains relevant content for directed full-text search.",
+  "properties": {
+    "date": {
+      "description": "The publication date and time of this object.",
+      "format": "date-time",
+      "type": "string"
+    },
+    "description": {
+      "description": "A description or abstract for this object.",
+      "type": "string"
+    },
+    "devices": {
+      "description": "A collection of devices associated with this object.",
+      "items": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "events": {
+      "description": "A collection of events for this object.",
+      "items": {
+        "properties": {
+          "begin": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "end": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "geometry": {
+            "$ref": "https://geojson.org/schema/Geometry.json"
+          },
+          "id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "expeditions": {
+      "description": "A collection of expedition identifiers.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "genericType": {
+      "description": "The generic type of this object.",
+      "enum": [
+        "data",
+        "device",
+        "event",
+        "expedition",
+        "gis",
+        "publication",
+        "report"
+      ],
+      "type": "string"
+    },
+    "geometry": {
+      "$ref": "https://geojson.org/schema/Geometry.json",
+      "description": "A geometry describing the objects geographical extent."
+    },
+    "id": {
+      "description": "A unique id unique for a selected context or index.",
+      "type": "string"
+    },
+    "identifiers": {
+      "description": "A list of key-value pairs defining identifiers.",
+      "items": {
+        "$ref": "#/$defs/identifier"
+      },
+      "type": "array"
+    },
+    "keywords": {
+      "additionalProperties": {
+        "items": {
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "description": "A collection of typed keywords for this object, e.g. projects.",
+      "type": "object"
+    },
+    "metadata": {
+      "description": "A collection of additional metadata.",
+      "type": "object"
+    },
+    "order": {
+      "description": "A numeric value defining the order of objects.",
+      "type": "number"
+    },
+    "organisations": {
+      "additionalProperties": {
+        "items": {
+          "properties": {
+            "abbreviation": {
+              "type": "string"
+            },
+            "identifiers": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "metadata": {
+              "type": "object"
+            },
+            "name": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "url": {
+              "format": "url",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "description": "A typed collection of organisations.",
+      "type": "object"
+    },
+    "parameters": {
+      "description": "A collection of parameters and measurement properties.",
+      "items": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "identifiers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "properties": {
+            "description": "A collection of properties applying to this parameter.",
+            "items": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "range": {
+                  "description": "The time range covered by this object, e.g. observation dates.",
+                  "properties": {
+                    "lower": {
+                      "type": "number"
+                    },
+                    "upper": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "lower",
+                    "upper"
+                  ],
+                  "type": "object"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "unit": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "type": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "persons": {
+      "additionalProperties": {
+        "items": {
+          "properties": {
+            "firstname": {
+              "type": "string"
+            },
+            "fullname": {
+              "type": "string"
+            },
+            "identifiers": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "lastname": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object"
+            },
+            "organisation": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "description": "A typed collection of persons relevant for this object.",
+      "type": "object"
+    },
+    "platforms": {
+      "description": "A collection of platforms associated with this object.",
+      "items": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "resources": {
+      "description": "A collection of ressources associated with this object.",
+      "items": {
+        "properties": {
+          "access": {
+            "type": "string"
+          },
+          "fileType": {
+            "type": "string"
+          },
+          "fulltext": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "serviceType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "uri": {
+            "format": "url",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "source": {
+      "description": "The original metadata document.",
+      "type": "string"
+    },
+    "states": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description": "A collection of states of this object, e.g. 'under construction'.",
+      "type": "object"
+    },
+    "temporalCoverage": {
+      "description": "The time range covered by this object, e.g. observation dates.",
+      "properties": {
+        "lower": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "upper": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "type": "object"
+    },
+    "title": {
+      "description": "A title for this object.",
+      "type": "string"
+    },
+    "uniqueId": {
+      "description": "A global unique id for this document.",
+      "type": "string"
+    },
+    "version": {
+      "description": "A version of this object. Think about relation to uniqueId and id fields.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "uniqueId",
+    "id"
+  ],
+  "title": "Index Document",
+  "type": "object"
+}
