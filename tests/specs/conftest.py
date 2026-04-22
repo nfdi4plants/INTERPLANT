@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
@@ -14,16 +15,16 @@ EXAMPLES_DIR = SPECS_ROOT / "examples"
 
 @pytest.fixture
 def load_json():
-    def _load(relative: str) -> dict:
-        return json.loads((SPECS_ROOT / relative).read_text())
+    def _load(relative: str) -> Any:
+        return json.loads((SPECS_ROOT / relative).read_text(encoding="utf-8"))
 
     return _load
 
 
 @pytest.fixture
 def load_yaml():
-    def _load(relative: str) -> dict:
-        return yaml.safe_load((SPECS_ROOT / relative).read_text())
+    def _load(relative: str) -> Any:
+        return yaml.safe_load((SPECS_ROOT / relative).read_text(encoding="utf-8"))
 
     return _load
 
