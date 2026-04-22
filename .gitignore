@@ -1,3 +1,11 @@
 .superpowers/
 docs/superpowers/
 .remember/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.uv-cache/
+dist/
+*.egg-info/
