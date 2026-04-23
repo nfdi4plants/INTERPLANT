@@ -15,7 +15,7 @@ A record is a GeoJSON Feature with OGC API Records extensions. Required top-leve
 | `id`         | string | Slug unique within the catalog. `^[a-z0-9][a-z0-9-]*$`. Generated from ARC path. |
 | `type`       | string | Always `"Feature"`. |
 | `conformsTo` | array  | OGC API Records conformance URIs. |
-| `time`       | object | `{ "interval": [start, end] }` — ISO 8601. Either bound may be `null`. |
+| `time`       | object | `{ "interval": [start, end] }` - ISO 8601. Either bound may be `null`. |
 | `geometry`   | object or `null` | GeoJSON geometry. `null` for lab-based ARCs and field/greenhouse ARCs with no ISA geometry. |
 | `properties` | object | Record-level metadata (section 2). |
 | `links`      | array  | OGC API Records links (section 4). |
@@ -29,7 +29,7 @@ Optional: `doi`, `language`.
 Notable structural choices:
 
 - **`uniqueId` is a UUIDv5** derived from `arc_source_uri` by the harvester. Stable across harvests.
-- **`doi` is optional** but strongly preferred — its absence causes `record_quality: "partial"`.
+- **`doi` is optional** but strongly preferred - its absence causes `record_quality: "partial"`.
 - **`license` is required.** If the ARC provides none, the harvester sets `"unknown"` and raises to `record_quality: "partial"`.
 - **`keywords` is always present**, possibly empty.
 
@@ -50,7 +50,7 @@ Required `rel` values: `self`, `canonical`. Optional and expected: `cite-as` (DO
 
 ## 5. Studies
 
-An array of study objects. Each study has `id`, `title`, optional `design_type`, optional `factors`. Study metadata in ARCs lives in `isa.study.xlsx`; cross-assay study metadata is aggregated here (see design doc § 4).
+An array of study objects. Each study has `id`, `title`, optional `design_type`, optional `factors`. Study metadata in ARCs lives in `isa.study.xlsx`; cross-assay study metadata is aggregated here.
 
 ## 6. Assays
 
@@ -83,7 +83,7 @@ Per-domain required fields:
 | `phenotyping`                 | `trait_category` |
 | `imaging`                     | `image_format` |
 | `microbiome`                  | `target_gene` |
-| `other`                       | — (domain only) |
+| `other`                       | - (domain only) |
 
 ## 7. Provenance
 
