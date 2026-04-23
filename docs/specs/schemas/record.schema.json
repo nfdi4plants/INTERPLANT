@@ -67,7 +67,8 @@
         "keywords", "license",
         "arc_source_uri", "uniqueId",
         "record_quality", "harvested_at", "harvester_version",
-        "contacts", "creators", "publications"
+        "contacts", "creators", "publications",
+        "omics_domains", "experiment_context", "organism", "project"
       ],
       "additionalProperties": true,
       "properties": {
@@ -86,7 +87,21 @@
         "harvester_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+" },
         "contacts":          { "type": "array", "items": { "$ref": "#/$defs/Person" } },
         "creators":          { "type": "array", "items": { "$ref": "#/$defs/Person" } },
-        "publications":      { "type": "array", "items": { "$ref": "#/$defs/Publication" } }
+        "publications":      { "type": "array", "items": { "$ref": "#/$defs/Publication" } },
+        "omics_domains": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "transcriptomics", "genomics", "proteomics", "metabolomics",
+              "phenotyping", "imaging", "microbiome", "other"
+            ]
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "experiment_context": { "enum": ["field", "greenhouse", "lab", "mixed"] },
+        "organism":           { "type": "array", "items": { "type": "string" } },
+        "project":            { "type": "array", "items": { "type": "string" } }
       }
     }
   }
