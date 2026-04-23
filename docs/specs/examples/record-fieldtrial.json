@@ -1,0 +1,59 @@
+{
+  "id": "jhi-barley-trial",
+  "type": "Feature",
+  "conformsTo": ["http://www.opengis.net/spec/ogcapi-records-1/1.0/conf/core"],
+  "time": { "interval": ["2020-04-01T00:00:00Z", "2024-09-30T00:00:00Z"] },
+  "geometry": {
+    "type": "Point",
+    "coordinates": [-3.2147, 56.4577]
+  },
+  "properties": {
+    "title": "JHI Barley Field Trial",
+    "description": "MIAPPE-structured multi-year observation-unit trial at the James Hutton Institute.",
+    "created": "2021-01-15T00:00:00Z",
+    "updated": "2024-11-02T00:00:00Z",
+    "keywords": ["barley", "MIAPPE", "field trial"],
+    "language": "en",
+    "license": "CC-BY-4.0",
+
+    "doi": "10.5281/zenodo.0000001",
+    "arc_source_uri": "https://git.nfdi4plants.org/feser/jhi-barley",
+    "uniqueId": "0bf1e5a0-0000-5000-8000-000000000003",
+
+    "contacts": [
+      { "name": "Example Contact", "role": "pointOfContact", "orcid": "0000-0002-0000-0001" }
+    ],
+    "creators": [
+      { "name": "Example Contact", "orcid": "0000-0002-0000-0001" }
+    ],
+    "publications": [],
+
+    "omics_domains": ["phenotyping"],
+    "experiment_context": "field",
+    "organism": ["Hordeum vulgare"],
+    "project": ["BreedingValue"],
+
+    "studies": [
+      { "id": "jhi-2020", "title": "JHI 2020 field", "design_type": "observation unit", "factors": ["genotype", "year"] }
+    ],
+    "assays": [
+      {
+        "id": "phenotyping",
+        "domain": "phenotyping",
+        "technology_type": "phenotyping platform",
+        "measurement_type": "plant growth",
+        "trait_category": "morphological",
+        "file_counts": { "raw": 48, "derived": 4 }
+      }
+    ],
+
+    "record_quality": "complete",
+    "harvested_at": "2026-05-14T03:00:00Z",
+    "harvester_version": "0.3.0"
+  },
+  "links": [
+    { "rel": "self", "href": "https://interplant.example.org/collections/dataplant-field-trials/items/jhi-barley-trial" },
+    { "rel": "canonical", "href": "https://git.nfdi4plants.org/feser/jhi-barley" },
+    { "rel": "cite-as", "href": "https://doi.org/10.5281/zenodo.0000001" }
+  ]
+}
