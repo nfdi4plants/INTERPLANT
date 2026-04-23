@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://interplant.org/schemas/record.schema.json",
+  "title": "INTERPLANT L2 record (one ARC)",
+  "type": "object",
+  "required": ["id", "type", "properties", "links"],
+  "additionalProperties": false,
+  "properties": {
+    "id":         { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "type":       { "const": "Feature" },
+    "conformsTo": { "type": "array", "items": { "type": "string", "format": "uri" } },
+    "time": {
+      "type": "object",
+      "required": ["interval"],
+      "properties": {
+        "interval": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "geometry":   { "type": ["object", "null"] },
+    "properties": { "$ref": "#/$defs/Properties" },
+    "links": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Link" }
+    }
+  },
+  "$defs": {
+    "Link": {
+      "type": "object",
+      "required": ["rel", "href"],
+      "properties": {
+        "rel":   { "type": "string" },
+        "href":  { "type": "string", "format": "uri" },
+        "title": { "type": "string" },
+        "type":  { "type": "string" }
+      }
+    },
+    "Properties": {
+      "type": "object",
+      "required": ["title", "record_quality"],
+      "additionalProperties": true,
+      "properties": {
+        "title":          { "type": "string", "minLength": 1 },
+        "record_quality": { "enum": ["complete", "partial"] }
+      }
+    }
+  }
+}
