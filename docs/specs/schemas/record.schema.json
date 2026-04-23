@@ -3,7 +3,7 @@
   "$id": "https://interplant.org/schemas/record.schema.json",
   "title": "INTERPLANT L2 record (one ARC)",
   "type": "object",
-  "required": ["id", "type", "properties", "links"],
+  "required": ["id", "type", "conformsTo", "time", "geometry", "properties", "links"],
   "additionalProperties": false,
   "properties": {
     "id":         { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
