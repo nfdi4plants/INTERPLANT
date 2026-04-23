@@ -31,7 +31,15 @@ def load_yaml():
 
 @pytest.fixture
 def schema_record(load_json):
-    return load_json("schemas/record.schema.json")
+    from referencing import Registry, Resource
+
+    record = load_json("schemas/record.schema.json")
+    extensions = load_json("schemas/assay-extensions.schema.json")
+    registry: Registry = Registry().with_resource(
+        "https://interplant.org/schemas/assay-extensions.schema.json",
+        Resource.from_contents(extensions),
+    )
+    return record, registry
 
 
 @pytest.fixture

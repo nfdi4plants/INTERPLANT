@@ -7,18 +7,22 @@ import pytest
 
 def test_complete_example_validates(schema_record, load_json):
     instance = load_json("examples/record-complete.json")
-    jsonschema.Draft202012Validator(schema_record).validate(instance)
+    schema, registry = schema_record
+    jsonschema.Draft202012Validator(schema, registry=registry).validate(instance)
 
 
 def test_partial_example_validates(schema_record, load_json):
     instance = load_json("examples/record-partial.json")
-    jsonschema.Draft202012Validator(schema_record).validate(instance)
+    schema, registry = schema_record
+    jsonschema.Draft202012Validator(schema, registry=registry).validate(instance)
 
 
 def test_fieldtrial_example_validates(schema_record, load_json):
     instance = load_json("examples/record-fieldtrial.json")
-    jsonschema.Draft202012Validator(schema_record).validate(instance)
+    schema, registry = schema_record
+    jsonschema.Draft202012Validator(schema, registry=registry).validate(instance)
 
 
 def test_schema_is_valid_jsonschema(schema_record):
-    jsonschema.Draft202012Validator.check_schema(schema_record)
+    schema, _registry = schema_record
+    jsonschema.Draft202012Validator.check_schema(schema)
