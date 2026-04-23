@@ -41,11 +41,27 @@
     },
     "Properties": {
       "type": "object",
-      "required": ["title", "record_quality"],
+      "required": [
+        "title", "description", "created", "updated",
+        "keywords", "license",
+        "arc_source_uri", "uniqueId",
+        "record_quality", "harvested_at", "harvester_version"
+      ],
       "additionalProperties": true,
       "properties": {
         "title":          { "type": "string", "minLength": 1 },
-        "record_quality": { "enum": ["complete", "partial"] }
+        "description":    { "type": "string" },
+        "created":        { "type": "string", "format": "date-time" },
+        "updated":        { "type": "string", "format": "date-time" },
+        "keywords":       { "type": "array", "items": { "type": "string" } },
+        "language":       { "type": "string", "minLength": 2 },
+        "license":        { "type": "string" },
+        "doi":            { "type": "string", "pattern": "^10\\." },
+        "arc_source_uri": { "type": "string", "format": "uri" },
+        "uniqueId":       { "type": "string", "format": "uuid" },
+        "record_quality":    { "enum": ["complete", "partial"] },
+        "harvested_at":      { "type": "string", "format": "date-time" },
+        "harvester_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+" }
       }
     }
   }
