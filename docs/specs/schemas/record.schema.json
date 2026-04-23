@@ -60,6 +60,40 @@
         "year":  { "type": "integer", "minimum": 1900, "maximum": 2100 }
       }
     },
+    "Study": {
+      "type": "object",
+      "required": ["id", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "id":          { "type": "string", "minLength": 1 },
+        "title":       { "type": "string", "minLength": 1 },
+        "design_type": { "type": "string" },
+        "factors":     { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "AssayCore": {
+      "type": "object",
+      "required": ["id", "domain", "technology_type", "measurement_type", "file_counts"],
+      "properties": {
+        "id":               { "type": "string", "minLength": 1 },
+        "domain": {
+          "enum": [
+            "transcriptomics", "genomics", "proteomics", "metabolomics",
+            "phenotyping", "imaging", "microbiome", "other"
+          ]
+        },
+        "technology_type":  { "type": "string" },
+        "measurement_type": { "type": "string" },
+        "file_counts": {
+          "type": "object",
+          "required": ["raw", "derived"],
+          "properties": {
+            "raw":     { "type": "integer", "minimum": 0 },
+            "derived": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
     "Properties": {
       "type": "object",
       "required": [
@@ -68,7 +102,8 @@
         "arc_source_uri", "uniqueId",
         "record_quality", "harvested_at", "harvester_version",
         "contacts", "creators", "publications",
-        "omics_domains", "experiment_context", "organism", "project"
+        "omics_domains", "experiment_context", "organism", "project",
+        "studies", "assays"
       ],
       "additionalProperties": true,
       "properties": {
@@ -101,7 +136,9 @@
         },
         "experiment_context": { "enum": ["field", "greenhouse", "lab", "mixed"] },
         "organism":           { "type": "array", "items": { "type": "string" } },
-        "project":            { "type": "array", "items": { "type": "string" } }
+        "project":            { "type": "array", "items": { "type": "string" } },
+        "studies": { "type": "array", "items": { "$ref": "#/$defs/Study" } },
+        "assays":  { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/AssayCore" } }
       }
     }
   }
