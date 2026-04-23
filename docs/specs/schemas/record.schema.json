@@ -39,13 +39,35 @@
         "type":  { "type": "string" }
       }
     },
+    "Person": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name":        { "type": "string", "minLength": 1 },
+        "role":        { "enum": ["pointOfContact", "author", "contributor", "custodian"] },
+        "orcid":       { "type": "string", "pattern": "^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9X]{3}[0-9X]$" },
+        "affiliation": { "type": "string" }
+      }
+    },
+    "Publication": {
+      "type": "object",
+      "required": ["title"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "doi":   { "type": "string", "pattern": "^10\\." },
+        "year":  { "type": "integer", "minimum": 1900, "maximum": 2100 }
+      }
+    },
     "Properties": {
       "type": "object",
       "required": [
         "title", "description", "created", "updated",
         "keywords", "license",
         "arc_source_uri", "uniqueId",
-        "record_quality", "harvested_at", "harvester_version"
+        "record_quality", "harvested_at", "harvester_version",
+        "contacts", "creators", "publications"
       ],
       "additionalProperties": true,
       "properties": {
@@ -61,7 +83,10 @@
         "uniqueId":       { "type": "string", "format": "uuid" },
         "record_quality":    { "enum": ["complete", "partial"] },
         "harvested_at":      { "type": "string", "format": "date-time" },
-        "harvester_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+" }
+        "harvester_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+" },
+        "contacts":          { "type": "array", "items": { "$ref": "#/$defs/Person" } },
+        "creators":          { "type": "array", "items": { "$ref": "#/$defs/Person" } },
+        "publications":      { "type": "array", "items": { "$ref": "#/$defs/Publication" } }
       }
     }
   }
