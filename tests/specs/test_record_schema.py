@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import jsonschema
-import pytest
 
 
 def test_complete_example_validates(schema_record, load_json):

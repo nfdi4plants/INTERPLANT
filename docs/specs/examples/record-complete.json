@@ -14,14 +14,14 @@
     "license": "CC-BY-4.0",
 
     "doi": "10.5281/zenodo.0000000",
-    "arc_source_uri": "https://git.nfdi4plants.org/thomas.naegele/Ru_ChlamyHeatstress",
+    "arc_source_uri": "https://git.nfdi4plants.org/example/Ru_ChlamyHeatstress",
     "uniqueId": "0bf1e5a0-0000-5000-8000-000000000001",
 
     "contacts": [
-      { "name": "Thomas Nägele", "role": "pointOfContact", "orcid": "0000-0002-0000-0000" }
+      { "name": "Example Contact", "role": "pointOfContact", "orcid": "0000-0002-1825-0097" }
     ],
     "creators": [
-      { "name": "Thomas Nägele", "orcid": "0000-0002-0000-0000" }
+      { "name": "Example Contact", "orcid": "0000-0002-1825-0097" }
     ],
     "publications": [
       { "title": "Heat acclimation in Chlamydomonas", "doi": "10.1111/tpj.00000", "year": 2023 }
@@ -85,7 +85,7 @@
   },
   "links": [
     { "rel": "self", "href": "https://interplant.example.org/collections/dataplant-multi-omics/items/ru-chlamy-heatstress" },
-    { "rel": "canonical", "href": "https://git.nfdi4plants.org/thomas.naegele/Ru_ChlamyHeatstress" },
+    { "rel": "canonical", "href": "https://git.nfdi4plants.org/example/Ru_ChlamyHeatstress" },
     { "rel": "cite-as", "href": "https://doi.org/10.5281/zenodo.0000000" }
   ]
 }

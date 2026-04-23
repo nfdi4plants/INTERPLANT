@@ -17,14 +17,14 @@
     "license": "CC-BY-4.0",
 
     "doi": "10.5281/zenodo.0000001",
-    "arc_source_uri": "https://git.nfdi4plants.org/feser/jhi-barley",
+    "arc_source_uri": "https://git.nfdi4plants.org/example/jhi-barley",
     "uniqueId": "0bf1e5a0-0000-5000-8000-000000000003",
 
     "contacts": [
-      { "name": "Example Contact", "role": "pointOfContact", "orcid": "0000-0002-0000-0001" }
+      { "name": "Example Contact", "role": "pointOfContact", "orcid": "0000-0002-1825-0097" }
     ],
     "creators": [
-      { "name": "Example Contact", "orcid": "0000-0002-0000-0001" }
+      { "name": "Example Contact", "orcid": "0000-0002-1825-0097" }
     ],
     "publications": [],
 
@@ -53,7 +53,7 @@
   },
   "links": [
     { "rel": "self", "href": "https://interplant.example.org/collections/dataplant-field-trials/items/jhi-barley-trial" },
-    { "rel": "canonical", "href": "https://git.nfdi4plants.org/feser/jhi-barley" },
+    { "rel": "canonical", "href": "https://git.nfdi4plants.org/example/jhi-barley" },
     { "rel": "cite-as", "href": "https://doi.org/10.5281/zenodo.0000001" }
   ]
 }
