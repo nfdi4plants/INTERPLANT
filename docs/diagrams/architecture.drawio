@@ -1,0 +1,119 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="MBxsxjnbj1lB-p1uNgAC" name="Page-1">
+    <mxGraphModel dx="1586" dy="933" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fillColor=none;strokeColor=none;" value="INTERPLANT - System Architecture (WP1 + WP2)" vertex="1">
+          <mxGeometry height="40" width="1200" x="100" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fontColor=#555555;fillColor=none;strokeColor=none;" value="Read-only flow from DataPLANT Data Hubs into the Earth Data Portal via a rebuildable Postgres catalog." vertex="1">
+          <mxGeometry height="24" width="1200" x="100" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="src" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=middle;" value="DataPLANT Data Hubs&lt;br&gt;(GitLab / nfdi4plants)&lt;br&gt;&lt;br&gt;Storage of ARCs&lt;br&gt;ISA investigation/study/assay (XLSX)" vertex="1">
+          <mxGeometry height="160" width="220" x="60" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="srcNote" parent="1" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#777777;fillColor=none;strokeColor=none;" value="never written from INTERPLANT" vertex="1">
+          <mxGeometry height="20" width="220" x="60" y="525" as="geometry" />
+        </mxCell>
+        <mxCell id="harv" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;spacingLeft=10;spacingTop=6;" value="Harvester (Python, nightly GitLab CI)&#xa;&#xa;1. Enumerate public ARCs (GitLab REST)&#xa;2. Quality filter + dedup (~150 ARCs)&#xa;3. Parse ISA via arctrl&#xa;4. Classify omics &amp; experiment context&#xa;5. Build L2 record (one per ARC)&#xa;6. Idempotent UPSERT" vertex="1">
+          <mxGeometry height="200" width="290" x="340" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="pg" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=left;spacingLeft=14;verticalAlign=middle;" value="Postgres + PostGIS (catalog store)&lt;br&gt;&lt;br&gt;arc_records  (one row per ARC, JSONB body)&lt;br&gt;collections  (L1 descriptors loaded from YAML)&lt;br&gt;11 SQL views (one per collection - membership rule)&lt;br&gt;&lt;br&gt;Single source of truth - rebuildable from scratch" vertex="1">
+          <mxGeometry height="240" width="320" x="690" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="pyg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=left;spacingLeft=10;spacingTop=6;" value="pygeoapi (off-the-shelf)&lt;br&gt;&lt;br&gt;OGC API Records 1.0 + CQL2&lt;br&gt;/collections - L1&lt;br&gt;/items - L2&lt;br&gt;/queryables - L3" vertex="1">
+          <mxGeometry height="170" width="270" x="1090" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="oai" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=left;spacingLeft=10;spacingTop=6;" value="OAI-PMH endpoint (small Python wrapper)&#xa;&#xa;ListRecords / GetRecord&#xa;Mapper emits DocumentSchema.json&#xa;Same Postgres backing store" vertex="1">
+          <mxGeometry height="150" width="270" x="1090" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="portal" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=left;spacingLeft=10;spacingTop=6;" value="Earth Data Portal&#xa;(earth-data.de)&#xa;&#xa;Harvests OAI-PMH nightly&#xa;Renders DataPLANT collections&#xa;via WP2 overview-page plugin" vertex="1">
+          <mxGeometry height="160" width="270" x="1090" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="future" parent="1" style="text;html=1;align=center;fontSize=11;fontStyle=2;fontColor=#555555;fillColor=none;strokeColor=#999999;dashed=1;rounded=1;" value="Future-facing clients&#xa;(any OGC API Records consumer)" vertex="1">
+          <mxGeometry height="50" width="270" x="1090" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l1src" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff4e6;strokeColor=#d79b00;fontSize=11;align=center;dashed=1;" value="L1 collection descriptors&lt;br&gt;(git-tracked YAML - hand-curated)" vertex="1">
+          <mxGeometry height="60" width="290" x="340" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="src" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#333333;endArrow=block;endFill=1;fontSize=11;" target="harv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1lbl" connectable="0" parent="e1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fillColor=#ffffff;" value="GitLab REST API" vertex="1">
+          <mxGeometry relative="1" x="-0.1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="harv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#333333;endArrow=block;endFill=1;fontSize=11;" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2lbl" connectable="0" parent="e2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fillColor=#ffffff;" value="UPSERT (idempotent)" vertex="1">
+          <mxGeometry relative="1" x="-0.1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="pg" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.25;entryX=0;entryY=0.5;strokeColor=#333333;endArrow=block;endFill=1;fontSize=11;" target="pyg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="pg" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1.002;exitY=0.559;entryX=0;entryY=0.5;strokeColor=#333333;endArrow=block;endFill=1;fontSize=11;exitDx=0;exitDy=0;exitPerimeter=0;" target="oai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="oai" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#b85450;endArrow=block;endFill=1;fontSize=11;dashed=0;" target="portal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5lbl" connectable="0" parent="e5" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fillColor=#ffffff;" value="nightly OAI-PMH harvest" vertex="1">
+          <mxGeometry relative="1" x="0.1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="pyg" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;strokeColor=#999999;endArrow=open;endFill=0;dashed=1;fontSize=11;" target="future">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="l1src" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;strokeColor=#d79b00;endArrow=block;endFill=1;dashed=1;fontSize=11;" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7lbl" connectable="0" parent="e7" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fillColor=#ffffff;" value="loaded into&#xa;collections table" vertex="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="propPlugin" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;dashed=1;" value="WP2 portal plugin&#xa;Renders overview page per collection&#xa;= L1 narrative + live pygeoapi queries" vertex="1">
+          <mxGeometry height="60" width="320" x="690" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="portal" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;strokeColor=#666666;endArrow=block;endFill=1;dashed=1;fontSize=11;" target="propPlugin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="propPlugin" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;strokeColor=#9673a6;endArrow=open;endFill=0;dashed=1;fontSize=11;" target="pyg">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="850" y="520" />
+              <mxPoint x="1225" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9lbl" connectable="0" parent="e9" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fillColor=#ffffff;" value="live L1/L2/L3 queries" vertex="1">
+          <mxGeometry relative="1" x="0.2" as="geometry">
+            <mxPoint x="-59" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legendBox" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cccccc;" value="" vertex="1">
+          <mxGeometry height="90" width="600" x="60" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="legendTitle" parent="1" style="text;html=1;align=left;fontSize=11;fontStyle=1;fillColor=none;strokeColor=none;" value="Legend" vertex="1">
+          <mxGeometry height="20" width="100" x="72" y="785" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="source (read-only)" vertex="1">
+          <mxGeometry height="22" width="130" x="78" y="810" as="geometry" />
+        </mxCell>
+        <mxCell id="lg2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="harvester job" vertex="1">
+          <mxGeometry height="22" width="110" x="220" y="810" as="geometry" />
+        </mxCell>
+        <mxCell id="lg3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="catalog store" vertex="1">
+          <mxGeometry height="22" width="110" x="340" y="810" as="geometry" />
+        </mxCell>
+        <mxCell id="lg4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" value="API endpoint" vertex="1">
+          <mxGeometry height="22" width="100" x="460" y="810" as="geometry" />
+        </mxCell>
+        <mxCell id="lg5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" value="consumer" vertex="1">
+          <mxGeometry height="22" width="80" x="570" y="810" as="geometry" />
+        </mxCell>
+        <mxCell id="lg6" parent="1" style="text;html=1;align=left;fontSize=10;fontStyle=2;fontColor=#555555;fillColor=none;strokeColor=none;" value="solid arrow = data flow. dashed arrow = configuration / read path" vertex="1">
+          <mxGeometry height="20" width="560" x="78" y="838" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
