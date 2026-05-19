@@ -2,6 +2,8 @@
 # Update only via PR. The harvester validates known terms and logs unknowns.
 
 # Referenced by: schemas/record.schema.json (Properties.omics_domains and AssayCore.domain).
+# The `other` key is the implicit fallback bucket — assays whose folder name matches
+# no keyword in any list above are classified as `domain: other` by the harvester.
 omics_domain_keywords:
   transcriptomics:   [rna-seq, rnaseq, transcriptomics, miRNA, scRNA, isoseq]
   genomics:          [wgs, chip-seq, dap-seq, atac-seq, hi-c, genome-assembly, annotation, gwas]
@@ -10,8 +12,11 @@ omics_domain_keywords:
   phenotyping:       [phenotyping, field-trial, growth, miappe, observation-unit]
   imaging:           [clsm, microscopy, light-sheet, mri, drone, ir-imaging, spinning-disk]
   microbiome:        [16s, 18s, metabarcoding, metagenomics, phage]
+  other:             []
 
-library_strategy:    [RNA-Seq, miRNA-Seq, scRNA-Seq, WGS, ChIP-Seq, DAP-Seq, Hi-C, ATAC-Seq, AMPLICON, Other]
+# library_strategy is enforced per-domain by assay-extensions.schema.json (see
+# Transcriptomics and Genomics $defs there). Authoritative values live in the schema;
+# this file does not re-list them to avoid drift.
 platform:            [ILLUMINA, OXFORD_NANOPORE, PACBIO_SMRT, OTHER]
 acquisition_mode:    [DDA, DIA, SRM, PRM, other]
 chromatography:      [GC, LC-RP, LC-HILIC, other]

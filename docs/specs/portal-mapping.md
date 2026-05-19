@@ -84,3 +84,5 @@ Both must pass in CI.
 - `states[]` — no ARC-side signal to drive this; omitted.
 - `order` — no cross-record ordering; omitted.
 - `source` — fulltext pass-through; deferred.
+- `organisations` — requires ROR-resolved affiliations; deferred to v2 (see § 3 and open question #5).
+- Per-study event geometry — `events[]` carries record-level geometry only. Field-trial ARCs with multiple studies at different sites collapse to one geometry in v1; per-study geometry is a v2 enhancement.

@@ -111,6 +111,7 @@ Apply the priority rules from `collection-schema.md` § 3.2. Emit:
 A `ClassifiedARC`.
 
 ### Behavior
+- Compute `uniqueId` as `UUIDv5(arc_source_uri)` (DNS namespace) — stable, derivable.
 - Build the L2 record per `record-schema.md`, including provenance fields (`record_quality`, `harvested_at`, `harvester_version`).
 - Serialize to JSON, upsert into `arc_records`:
   ```sql
