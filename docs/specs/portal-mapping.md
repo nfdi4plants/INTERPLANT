@@ -29,8 +29,8 @@
 | `properties.creators` | `persons.author[]` | append to the `author` bucket |
 | `properties.assays[]` | `devices[]` | each assay → `{id, name: instrument_name || domain, type:"instrument", metadata:{domain}}` |
 | `properties.studies[]` | `events[]` | each study → `{id, type:"study", begin, end, geometry}` (geometry only when record-level geometry exists) |
-| `properties.arc_source_uri` | `resources[]` | `{type:"relation", uri, metadata:{relationType:"source"}}` |
-| `properties.publications[]` | `resources[]` | `{type:"relation", uri:"https://doi.org/<doi>", metadata:{relationType:"isDocumentedBy"}}` |
+| `properties.arc_source_uri` | `resources[]` | `{title:"ARC source", type:"relation", uri, metadata:{relationType:"source"}}` |
+| `properties.publications[]` | `resources[]` | `{title: pub.title, type:"relation", uri:"https://doi.org/<doi>", metadata:{relationType:"isDocumentedBy"}}` |
 | constant | `genericType` | `"data"` |
 | constant | `platforms[]` | always `[]` — plant ARCs are not on research vessels |
 | constant | `expeditions[]` | always `[]` |
