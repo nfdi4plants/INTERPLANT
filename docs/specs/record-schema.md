@@ -17,8 +17,8 @@ A record is a GeoJSON Feature with OGC API Records extensions. Required top-leve
 | `conformsTo` | array  | OGC API Records conformance URIs. |
 | `time`       | object | `{ "interval": [start, end] }` - ISO 8601. Either bound may be `null`. |
 | `geometry`   | object or `null` | GeoJSON geometry. `null` for lab-based ARCs and field/greenhouse ARCs with no ISA geometry. |
-| `properties` | object | Record-level metadata (section 2). |
-| `links`      | array  | OGC API Records links (section 4). |
+| `properties` | object | Record-level metadata (§ 2). |
+| `links`      | array  | OGC API Records links (§ 4). |
 
 ## 2. Properties
 

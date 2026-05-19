@@ -72,13 +72,15 @@ An ARC record. The stage retrieves:
 ParsedARC(
     investigation=Investigation(title, description, created, updated, doi, license, contacts, publications, ...),
     studies=[Study(id, title, design_type, factors)],
-    assays=[ParsedAssay(id, domain_raw, technology_type, measurement_type, **domain_fields)],
+    assays=[ParsedAssay(id, domain_raw, technology_type, measurement_type, file_counts, **domain_fields)],
 )
 ```
 
+`file_counts` is derived from a tree listing of each assay folder (counts of files under `dataset/` vs `protocols/derived/`) — set here so Upsert (§ 6) doesn't have to re-walk the tree.
+
 ### Contract
 - Missing required ISA fields are replaced with `None` and flagged in the quality audit; the stage does not raise.
-- Per-assay fields unknown to the schema (beyond core) are retained in a `raw` blob — never dropped.
+- Per-assay fields unknown to the schema (beyond core) are retained in a `raw_extras` blob — never dropped. (Named `raw_extras` rather than `raw` to avoid overload with `file_counts.raw`.)
 - Encoding edge cases (BOM, UTF-16) are handled.
 
 ## 5. Stage 4 — Classify
@@ -124,7 +126,7 @@ A `ClassifiedARC`.
   ```
 
 ### Quality determination
-- `record_quality = complete` when: DOI present, license present, ≥ 1 assay with core fields complete, ≥ 1 study, at least one contact with ORCID.
+- `record_quality = complete` when: DOI present, license present, ≥ 1 assay with core fields complete (`id`, `domain`, `technology_type`, `measurement_type`, `file_counts` — see `record-schema.md` § 2.5 `AssayCore`), ≥ 1 study, at least one contact with ORCID.
 - Otherwise `record_quality = partial`.
 
 ### Contract

@@ -61,7 +61,7 @@
 
 The reference mapper is deterministic: identical input produces byte-identical output. Sort orders are stable:
 
-- `identifiers[]` in DOI-then-other insertion order.
+- `identifiers[]` with DOI first when present. v1 emits only DOI; future identifier types (ROR, etc.) will append after the DOI entry.
 - `keywords.*[]` in source-list order.
 - `persons.<role>[]` in source-list order.
 - `devices[]` in `assays[]` order.
