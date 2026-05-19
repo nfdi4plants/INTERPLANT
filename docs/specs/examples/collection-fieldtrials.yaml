@@ -1,0 +1,32 @@
+id: dataplant-field-trials
+title: DataPLANT Field Trials
+description: |
+  ARCs whose data was generated in open-field experiments. Includes multi-year
+  breeding trials, MIAPPE observation-unit studies, and plant-pathogen field
+  assays. Excludes lab-based and greenhouse-only ARCs.
+keywords: [field trial, phenotyping, MIAPPE, breeding, agronomy]
+license: CC-BY-4.0
+axis: experiment_context
+provider:
+  name: DataPLANT
+  url: https://nfdi4plants.org
+extent:
+  spatial:
+    bbox: [[-25.0, 30.0, 45.0, 70.0]]
+  temporal:
+    interval: [["2015-01-01T00:00:00Z", null]]
+links:
+  - rel: describedby
+    href: /schemas/record.schema.json
+    title: L2 record schema
+  - rel: items
+    href: /collections/dataplant-field-trials/items
+    title: Records in this collection
+featured:
+  - jhi-barley-trial
+query_rule: "experiment_context IN ('field','mixed')"
+narrative: |
+  ## About this collection
+
+  ARCs generated in open-field settings. Ideal starting point for agronomists,
+  breeders, and Earth-system modelers looking for georeferenced plant data.
