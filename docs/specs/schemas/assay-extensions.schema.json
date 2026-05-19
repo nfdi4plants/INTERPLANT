@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://interplant.org/schemas/assay-extensions.schema.json",
   "title": "Per-domain assay extensions",
+  "$comment": "Source vocabulary: docs/specs/schemas/vocabularies.yaml (omics_domain_keywords keys).",
   "oneOf": [
     { "$ref": "#/$defs/Transcriptomics" },
     { "$ref": "#/$defs/Genomics" },

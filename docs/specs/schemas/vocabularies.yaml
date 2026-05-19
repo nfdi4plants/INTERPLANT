@@ -1,6 +1,7 @@
 # Controlled vocabularies referenced by the record and collection schemas.
 # Update only via PR. The harvester validates known terms and logs unknowns.
 
+# Referenced by: schemas/record.schema.json (Properties.omics_domains) and schemas/assay-extensions.schema.json (AssayCore.domain).
 omics_domain_keywords:
   transcriptomics:   [rna-seq, rnaseq, transcriptomics, miRNA, scRNA, isoseq]
   genomics:          [wgs, chip-seq, dap-seq, atac-seq, hi-c, genome-assembly, annotation, gwas]

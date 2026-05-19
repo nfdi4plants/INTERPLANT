@@ -77,6 +77,7 @@
       "properties": {
         "id":               { "type": "string", "minLength": 1 },
         "domain": {
+          "$comment": "Source vocabulary: docs/specs/schemas/vocabularies.yaml (omics_domain_keywords keys).",
           "enum": [
             "transcriptomics", "genomics", "proteomics", "metabolomics",
             "phenotyping", "imaging", "microbiome", "other"
@@ -126,6 +127,7 @@
         "omics_domains": {
           "type": "array",
           "items": {
+            "$comment": "Source vocabulary: docs/specs/schemas/vocabularies.yaml (omics_domain_keywords keys).",
             "enum": [
               "transcriptomics", "genomics", "proteomics", "metabolomics",
               "phenotyping", "imaging", "microbiome", "other"
