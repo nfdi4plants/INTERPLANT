@@ -16,7 +16,7 @@ def _markdown_files() -> list[Path]:
 
 @pytest.mark.parametrize("md", _markdown_files(), ids=lambda p: p.name)
 def test_markdown_links_resolve(md):
-    content = md.read_text()
+    content = md.read_text(encoding="utf-8")
     broken: list[str] = []
     for match in LINK_RE.finditer(content):
         href = match.group(1)
