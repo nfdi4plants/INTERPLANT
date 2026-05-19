@@ -1,13 +1,14 @@
 """Mapper output must validate against the pinned portal DocumentSchema.json."""
 from __future__ import annotations
 
-import jsonschema
-import pytest  # noqa: F401
+from jsonschema import Draft202012Validator
+
+_FC = Draft202012Validator.FORMAT_CHECKER
 
 
 def test_mapped_example_validates_against_portal_schema(schema_portal, load_json):
     mapped = load_json("examples/portal-document-chlamy.json")
-    jsonschema.Draft202012Validator(schema_portal).validate(mapped)
+    Draft202012Validator(schema_portal, format_checker=_FC).validate(mapped)
 
 
 def test_mapper_reference_impl_matches_fixture(load_json):
@@ -21,4 +22,4 @@ def test_mapper_reference_impl_matches_fixture(load_json):
 
 
 def test_portal_schema_is_valid(schema_portal):
-    jsonschema.Draft202012Validator.check_schema(schema_portal)
+    Draft202012Validator.check_schema(schema_portal)

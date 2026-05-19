@@ -120,7 +120,7 @@
         "uniqueId":       { "type": "string", "format": "uuid" },
         "record_quality":    { "enum": ["complete", "partial"] },
         "harvested_at":      { "type": "string", "format": "date-time" },
-        "harvester_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+" },
+        "harvester_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$" },
         "contacts":          { "type": "array", "items": { "$ref": "#/$defs/Person" } },
         "creators":          { "type": "array", "items": { "$ref": "#/$defs/Person" } },
         "publications":      { "type": "array", "items": { "$ref": "#/$defs/Publication" } },
