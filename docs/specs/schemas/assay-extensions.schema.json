@@ -13,12 +13,15 @@
     { "$ref": "#/$defs/Other" }
   ],
   "$defs": {
+    "SequencingPlatform": {
+      "enum": ["ILLUMINA", "OXFORD_NANOPORE", "PACBIO_SMRT", "OTHER"]
+    },
     "Transcriptomics": {
       "type": "object",
       "properties": {
         "domain":            { "const": "transcriptomics" },
         "library_strategy":  { "enum": ["RNA-Seq", "miRNA-Seq", "scRNA-Seq", "other"] },
-        "platform":          { "enum": ["ILLUMINA", "OXFORD_NANOPORE", "PACBIO_SMRT", "OTHER"] }
+        "platform":          { "$ref": "#/$defs/SequencingPlatform" }
       },
       "required": ["domain", "library_strategy", "platform"]
     },
@@ -27,7 +30,7 @@
       "properties": {
         "domain":           { "const": "genomics" },
         "library_strategy": { "enum": ["WGS", "ChIP-Seq", "DAP-Seq", "Hi-C", "ATAC-Seq", "other"] },
-        "platform":         { "enum": ["ILLUMINA", "OXFORD_NANOPORE", "PACBIO_SMRT", "OTHER"] }
+        "platform":         { "$ref": "#/$defs/SequencingPlatform" }
       },
       "required": ["domain", "library_strategy", "platform"]
     },

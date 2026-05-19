@@ -29,6 +29,17 @@
     }
   },
   "$defs": {
+    "DoiString": {
+      "type": "string",
+      "pattern": "^10\\."
+    },
+    "OmicsDomain": {
+      "$comment": "Source vocabulary: docs/specs/schemas/vocabularies.yaml (omics_domain_keywords keys).",
+      "enum": [
+        "transcriptomics", "genomics", "proteomics", "metabolomics",
+        "phenotyping", "imaging", "microbiome", "other"
+      ]
+    },
     "Link": {
       "type": "object",
       "required": ["rel", "href"],
@@ -56,7 +67,7 @@
       "additionalProperties": false,
       "properties": {
         "title": { "type": "string", "minLength": 1 },
-        "doi":   { "type": "string", "pattern": "^10\\." },
+        "doi":   { "$ref": "#/$defs/DoiString" },
         "year":  { "type": "integer", "minimum": 1900, "maximum": 2100 }
       }
     },
@@ -76,13 +87,7 @@
       "required": ["id", "domain", "technology_type", "measurement_type", "file_counts"],
       "properties": {
         "id":               { "type": "string", "minLength": 1 },
-        "domain": {
-          "$comment": "Source vocabulary: docs/specs/schemas/vocabularies.yaml (omics_domain_keywords keys).",
-          "enum": [
-            "transcriptomics", "genomics", "proteomics", "metabolomics",
-            "phenotyping", "imaging", "microbiome", "other"
-          ]
-        },
+        "domain":           { "$ref": "#/$defs/OmicsDomain" },
         "technology_type":  { "type": "string" },
         "measurement_type": { "type": "string" },
         "file_counts": {
@@ -115,7 +120,7 @@
         "keywords":       { "type": "array", "items": { "type": "string" } },
         "language":       { "type": "string", "minLength": 2 },
         "license":        { "type": "string" },
-        "doi":            { "type": "string", "pattern": "^10\\." },
+        "doi":            { "$ref": "#/$defs/DoiString" },
         "arc_source_uri": { "type": "string", "format": "uri" },
         "uniqueId":       { "type": "string", "format": "uuid" },
         "record_quality":    { "enum": ["complete", "partial"] },
@@ -126,13 +131,7 @@
         "publications":      { "type": "array", "items": { "$ref": "#/$defs/Publication" } },
         "omics_domains": {
           "type": "array",
-          "items": {
-            "$comment": "Source vocabulary: docs/specs/schemas/vocabularies.yaml (omics_domain_keywords keys).",
-            "enum": [
-              "transcriptomics", "genomics", "proteomics", "metabolomics",
-              "phenotyping", "imaging", "microbiome", "other"
-            ]
-          },
+          "items": { "$ref": "#/$defs/OmicsDomain" },
           "uniqueItems": true,
           "minItems": 1
         },
