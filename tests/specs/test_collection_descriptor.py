@@ -4,13 +4,11 @@ from __future__ import annotations
 import pytest
 from jsonschema import Draft202012Validator
 
-_FC = Draft202012Validator.FORMAT_CHECKER
-
 
 @pytest.mark.parametrize("name", ["collection-proteomics.yaml", "collection-fieldtrials.yaml"])
-def test_example_validates(schema_collection, load_yaml, name):
+def test_example_validates(schema_collection, load_yaml, validate_against, name):
     instance = load_yaml(f"examples/{name}")
-    Draft202012Validator(schema_collection, format_checker=_FC).validate(instance)
+    validate_against(schema_collection, instance)
 
 
 def test_schema_is_valid_jsonschema(schema_collection):
