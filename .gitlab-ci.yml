@@ -1,0 +1,28 @@
+default:
+  image: python:3.12-slim
+  before_script:
+    - pip install --quiet uv
+    - uv sync --dev --frozen
+
+stages:
+  - lint
+  - test
+
+lint:
+  stage: lint
+  script:
+    - uv run ruff check .
+
+test:
+  stage: test
+  services:
+    - name: postgis/postgis:17-3.6-alpine
+      alias: db
+  variables:
+    POSTGRES_USER: interplant
+    POSTGRES_PASSWORD: interplant
+    POSTGRES_DB: interplant
+    INTERPLANT_PG_DSN: "postgresql://interplant:interplant@db:5432/interplant"
+    INTERPLANT_STACK_TESTS: "1"
+  script:
+    - uv run pytest -v
