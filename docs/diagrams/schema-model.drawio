@@ -1,0 +1,94 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="86TMdTSCVrtmGv49R68w" name="Page-1">
+    <mxGraphModel dx="907" dy="453" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1000" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fillColor=none;strokeColor=none;" value="INTERPLANT - Three-Layer Schema Model" vertex="1">
+          <mxGeometry height="40" width="1300" x="100" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fontColor=#555555;fillColor=none;strokeColor=none;" value="L1 (catalog descriptors) · L2 (harvested records) · L3 (queryables) - backed by JSON Schema specs on feat/interplant-specs" vertex="1">
+          <mxGeometry height="24" width="1300" x="100" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="l1box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff4e6;strokeColor=#d79b00;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="640" width="420" x="60" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="l1h" parent="1" style="text;html=1;align=center;fontSize=14;fontStyle=1;fillColor=none;strokeColor=none;" value="L1 - Collection descriptors&lt;br&gt;(hand-curated YAML, git-tracked)" vertex="1">
+          <mxGeometry height="40" width="420" x="60" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="l1schema" parent="1" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#666666;fillColor=none;strokeColor=none;" value="schemas/collection-descriptor.schema.json" vertex="1">
+          <mxGeometry height="20" width="420" x="60" y="158" as="geometry" />
+        </mxCell>
+        <mxCell id="l1fields" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=10;spacingTop=8;" value="&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;id&lt;/span&gt;&lt;/div&gt;title&lt;br&gt;description / narrative (Markdown)&lt;br&gt;keywords[]&lt;br&gt;license&lt;br&gt;provider { name, url }&lt;br&gt;extent { spatial.bbox, temporal.interval }&lt;br&gt;links[] (describedby, items, related)&lt;br&gt;featured: [arc_id, …]&lt;br&gt;query_rule -&amp;gt; SQL expression&lt;br&gt;defining the membership view" vertex="1">
+          <mxGeometry height="240" width="380" x="80" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="cols11h" parent="1" style="text;html=1;align=center;fontSize=12;fontStyle=1;fillColor=none;strokeColor=none;" value="11 collections (2 axes - cross-membership)" vertex="1">
+          <mxGeometry height="24" width="420" x="60" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="omicsBox" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;" value="Axis 1 - omics domain (8)&lt;br&gt;&lt;br&gt;(transcriptomics - genomics - proteomics - metabolomics - phenotyping - imaging - microbiome - multi-omics)" vertex="1">
+          <mxGeometry height="135" width="380" x="80" y="475" as="geometry" />
+        </mxCell>
+        <mxCell id="ctxBox" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacingLeft=10;spacingTop=6;" value="Axis 2 - experiment context (3)&lt;br&gt;&lt;br&gt;field-trials or greenhouse      lab&lt;br&gt;( + mixed allowed on records )" vertex="1">
+          <mxGeometry height="100" width="380" x="80" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="l2box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f0fe;strokeColor=#3367d6;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="640" width="500" x="540" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="l2h" parent="1" style="text;html=1;align=center;fontSize=14;fontStyle=1;fillColor=none;strokeColor=none;" value="L2 - Records (one per ARC, harvested)" vertex="1">
+          <mxGeometry height="40" width="500" x="540" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="l2schema" parent="1" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#666666;fillColor=none;strokeColor=none;" value="schemas/record.schema.json  +  assay-extensions.schema.json" vertex="1">
+          <mxGeometry height="20" width="500" x="540" y="158" as="geometry" />
+        </mxCell>
+        <mxCell id="recRoot" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#3367d6;fontSize=11;align=left;spacingLeft=10;spacingTop=6;" value="GeoJSON Feature&#xa;&#xa;id              ARC slug&#xa;type            &#39;Feature&#39;&#xa;conformsTo      [ &#39;…/ogcapi-records-1/core&#39; ]&#xa;time            { interval: [start, end] | null }&#xa;geometry        GeoJSON or null&#xa;properties      ↓&#xa;links[]         self · canonical · cite-as · via" vertex="1">
+          <mxGeometry height="190" width="460" x="560" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="recProps" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#3367d6;fontSize=11;align=left;spacingLeft=10;spacingTop=6;" value="properties (top-level)&#xa;&#xa;title · description · created · updated · keywords[]&#xa;language · license · doi · arc_source_uri&#xa;contacts[] · creators[] · publications[]&#xa;omics_domains[]      ← L3 promoted&#xa;experiment_context   ← L3 promoted&#xa;organism[]           ← L3 promoted&#xa;project[]            ← L3 promoted&#xa;studies[]            { id, title, design_type, factors[] }&#xa;assays[]             { id, domain, technology_type,&#xa;                       measurement_type, file_counts,&#xa;                       …per-domain extension }&#xa;record_quality   complete | partial&#xa;harvested_at · harvester_version" vertex="1">
+          <mxGeometry height="280" width="460" x="560" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="assayNote" parent="1" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#555555;fillColor=none;strokeColor=#cccccc;rounded=1;" value="Per-domain assay extensions ($defs.oneOf):&lt;br&gt;(transcriptomics / genomics / proteomics / metabolomics /&lt;br&gt;phenotyping / imaging / microbiome / other)" vertex="1">
+          <mxGeometry height="50" width="460" x="560" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="l3box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="640" width="360" x="1100" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="l3h" parent="1" style="text;html=1;align=center;fontSize=14;fontStyle=1;fillColor=none;strokeColor=none;" value="L3 - Queryables&lt;br&gt;(promoted subset of L2)" vertex="1">
+          <mxGeometry height="40" width="360" x="1100" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="l3schema" parent="1" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#666666;fillColor=none;strokeColor=none;" value="schemas/vocabularies.yaml (registry)" vertex="1">
+          <mxGeometry height="20" width="360" x="1100" y="158" as="geometry" />
+        </mxCell>
+        <mxCell id="l3shared" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b1fa2;fontSize=11;align=left;spacingLeft=10;spacingTop=6;" value="Shared (top-level)&#xa;&#xa;omics_domains       array&lt;enum&gt;&#xa;experiment_context  enum&#xa;organism            array&lt;string&gt;&#xa;project             array&lt;string&gt;&#xa;keywords            array&lt;string&gt;&#xa;time_interval       datetime range&#xa;bbox                geometry&#xa;doi                 string (exact)&#xa;record_quality      enum" vertex="1">
+          <mxGeometry height="225" width="320" x="1120" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="l3perdom" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b1fa2;fontSize=11;align=left;spacingLeft=10;spacingTop=6;" value="Per-domain (on assays[].*)&#xa;&#xa;library_strategy   transcriptomics, genomics&#xa;platform           transcriptomics, genomics&#xa;acquisition_mode   proteomics, metabolomics&#xa;chromatography     metabolomics&#xa;ion_mode           metabolomics&#xa;trait_category     phenotyping&#xa;image_format       imaging&#xa;target_gene        microbiome" vertex="1">
+          <mxGeometry height="200" width="320" x="1120" y="425" as="geometry" />
+        </mxCell>
+        <mxCell id="l3rule" parent="1" style="text;html=1;align=left;fontSize=10;fontStyle=2;fontColor=#555555;fillColor=none;strokeColor=#cccccc;rounded=1;spacingLeft=8;" value="Promotion criteria - all three must hold:&lt;br&gt;(a) finite value space&lt;br&gt;(b) answers a real user filter&lt;br&gt;(c) ≥ 30 records carry a non-null value" vertex="1">
+          <mxGeometry height="85" width="320" x="1120" y="635" as="geometry" />
+        </mxCell>
+        <mxCell id="arrPL1L2" edge="1" parent="1" source="cols11h" style="endArrow=block;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;dashed=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=11;" target="recProps">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrPL1L2lbl" connectable="0" parent="arrPL1L2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fillColor=#ffffff;" value="query_rule&#xa;=&gt; SQL view&#xa;over L2 records" vertex="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrL2L3" edge="1" parent="1" source="recProps" style="endArrow=block;html=1;rounded=0;strokeColor=#7b1fa2;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=11;" target="l3shared">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrL2L3lbl" connectable="0" parent="arrL2L3" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fillColor=#ffffff;" value="promoted facets&#xa;exposed via CQL2" vertex="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legendBox" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cccccc;" value="" vertex="1">
+          <mxGeometry height="160" width="1400" x="60" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="legendTitle" parent="1" style="text;html=1;align=left;fontSize=12;fontStyle=1;fillColor=none;strokeColor=none;" value="Reading this diagram" vertex="1">
+          <mxGeometry height="24" width="500" x="76" y="786" as="geometry" />
+        </mxCell>
+        <mxCell id="legendBody" parent="1" style="text;html=1;align=left;fontSize=11;fillColor=none;strokeColor=none;spacingLeft=8;" value="• L1 is hand-curated and lives in YAML. Each of the 11 entries carries a query_rule which Postgres materializes as a SQL view over L2.&lt;br&gt;• L2 is the harvested record - one row per ARC. Shared core (GeoJSON Feature + properties) is identical across domains; domain-specific fields live inside the assays[] sub-resources.&lt;br&gt;• L3 is not a separate document - it is a promotion contract. Selected L2 fields become CQL2 queryables (and OAI-PMH facets). Promotion is governed by an explicit rule (right column).&lt;br&gt;• A single ARC can satisfy several membership rules → it appears in multiple collections simultaneously (cross-membership is intrinsic).&lt;br&gt;• Controlled-vocabulary registry (vocabularies.yaml) is the single source of truth for enum value spaces referenced by both L2 schemas and the L3 queryable list." vertex="1">
+          <mxGeometry height="125" width="1380" x="76" y="810" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

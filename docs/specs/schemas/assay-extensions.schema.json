@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://interplant.org/schemas/assay-extensions.schema.json",
+  "title": "Per-domain assay extensions",
+  "oneOf": [
+    { "$ref": "#/$defs/Transcriptomics" },
+    { "$ref": "#/$defs/Genomics" },
+    { "$ref": "#/$defs/Proteomics" },
+    { "$ref": "#/$defs/Metabolomics" },
+    { "$ref": "#/$defs/Phenotyping" },
+    { "$ref": "#/$defs/Imaging" },
+    { "$ref": "#/$defs/Microbiome" },
+    { "$ref": "#/$defs/Other" }
+  ],
+  "$defs": {
+    "SequencingPlatform": {
+      "enum": ["ILLUMINA", "OXFORD_NANOPORE", "PACBIO_SMRT", "OTHER"]
+    },
+    "Transcriptomics": {
+      "type": "object",
+      "properties": {
+        "domain":            { "const": "transcriptomics" },
+        "library_strategy":  { "enum": ["RNA-Seq", "miRNA-Seq", "scRNA-Seq", "other"] },
+        "platform":          { "$ref": "#/$defs/SequencingPlatform" }
+      },
+      "required": ["domain", "library_strategy", "platform"]
+    },
+    "Genomics": {
+      "type": "object",
+      "properties": {
+        "domain":           { "const": "genomics" },
+        "library_strategy": { "enum": ["WGS", "ChIP-Seq", "DAP-Seq", "Hi-C", "ATAC-Seq", "other"] },
+        "platform":         { "$ref": "#/$defs/SequencingPlatform" }
+      },
+      "required": ["domain", "library_strategy", "platform"]
+    },
+    "Proteomics": {
+      "type": "object",
+      "properties": {
+        "domain":           { "const": "proteomics" },
+        "instrument_name":  { "type": "string" },
+        "acquisition_mode": { "enum": ["DDA", "DIA", "SRM", "PRM", "other"] }
+      },
+      "required": ["domain", "acquisition_mode"]
+    },
+    "Metabolomics": {
+      "type": "object",
+      "properties": {
+        "domain":          { "const": "metabolomics" },
+        "chromatography":  { "enum": ["GC", "LC-RP", "LC-HILIC", "other"] },
+        "ion_mode":        { "enum": ["positive", "negative"] }
+      },
+      "required": ["domain", "chromatography", "ion_mode"]
+    },
+    "Phenotyping": {
+      "type": "object",
+      "properties": {
+        "domain":         { "const": "phenotyping" },
+        "trait_category": { "enum": ["morphological", "physiological", "yield", "resistance"] }
+      },
+      "required": ["domain", "trait_category"]
+    },
+    "Imaging": {
+      "type": "object",
+      "properties": {
+        "domain":       { "const": "imaging" },
+        "image_format": { "enum": ["TIFF", "CZI", "LIF", "ND2", "other"] }
+      },
+      "required": ["domain", "image_format"]
+    },
+    "Microbiome": {
+      "type": "object",
+      "properties": {
+        "domain":      { "const": "microbiome" },
+        "target_gene": { "enum": ["16S", "18S", "ITS", "other"] }
+      },
+      "required": ["domain", "target_gene"]
+    },
+    "Other": {
+      "type": "object",
+      "properties": {
+        "domain": { "const": "other" }
+      },
+      "required": ["domain"]
+    }
+  }
+}

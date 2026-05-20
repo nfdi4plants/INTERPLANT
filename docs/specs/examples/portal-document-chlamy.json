@@ -1,0 +1,167 @@
+{
+  "date": "2022-03-14T00:00:00Z",
+  "description": "Multi-omics time course of heat acclimation integrating growth, metabolomic, proteomic, and transcriptomic readouts.",
+  "devices": [
+    {
+      "id": "transcriptomics",
+      "metadata": {
+        "domain": "transcriptomics"
+      },
+      "name": "transcriptomics",
+      "type": "instrument"
+    },
+    {
+      "id": "proteomics",
+      "metadata": {
+        "domain": "proteomics"
+      },
+      "name": "Q Exactive HF",
+      "type": "instrument"
+    },
+    {
+      "id": "metabolomics",
+      "metadata": {
+        "domain": "metabolomics"
+      },
+      "name": "metabolomics",
+      "type": "instrument"
+    },
+    {
+      "id": "growth",
+      "metadata": {
+        "domain": "phenotyping"
+      },
+      "name": "phenotyping",
+      "type": "instrument"
+    }
+  ],
+  "events": [
+    {
+      "begin": "2021-05-01T00:00:00Z",
+      "end": "2022-09-30T00:00:00Z",
+      "id": "chlamy-heatstress",
+      "type": "study"
+    }
+  ],
+  "expeditions": [],
+  "genericType": "data",
+  "id": "ru-chlamy-heatstress",
+  "identifiers": [
+    {
+      "id": "10.5281/zenodo.0000000",
+      "type": "doi"
+    }
+  ],
+  "keywords": {
+    "contexts": [
+      {
+        "description": "",
+        "name": "lab",
+        "type": "context"
+      }
+    ],
+    "omics": [
+      {
+        "description": "",
+        "name": "phenotyping",
+        "type": "omics"
+      },
+      {
+        "description": "",
+        "name": "metabolomics",
+        "type": "omics"
+      },
+      {
+        "description": "",
+        "name": "proteomics",
+        "type": "omics"
+      },
+      {
+        "description": "",
+        "name": "transcriptomics",
+        "type": "omics"
+      }
+    ],
+    "organisms": [
+      {
+        "description": "",
+        "name": "Chlamydomonas reinhardtii",
+        "type": "organism"
+      }
+    ],
+    "projects": [
+      {
+        "description": "",
+        "name": "SFB1535",
+        "type": "project"
+      }
+    ],
+    "topics": [
+      {
+        "description": "",
+        "name": "heat stress",
+        "type": "topic"
+      },
+      {
+        "description": "",
+        "name": "multi-omics",
+        "type": "topic"
+      },
+      {
+        "description": "",
+        "name": "Chlamydomonas",
+        "type": "topic"
+      }
+    ]
+  },
+  "metadata": {
+    "harvested_at": "2026-05-14T03:00:00Z",
+    "record_quality": "complete"
+  },
+  "persons": {
+    "author": [
+      {
+        "fullname": "Example Contact",
+        "identifiers": {
+          "orcid": "0000-0002-1825-0097"
+        },
+        "role": "author"
+      }
+    ],
+    "pointOfContact": [
+      {
+        "fullname": "Example Contact",
+        "identifiers": {
+          "orcid": "0000-0002-1825-0097"
+        },
+        "role": "pointOfContact"
+      }
+    ]
+  },
+  "platforms": [],
+  "resources": [
+    {
+      "metadata": {
+        "relationType": "source"
+      },
+      "title": "ARC source",
+      "type": "relation",
+      "uri": "https://git.nfdi4plants.org/example/Ru_ChlamyHeatstress"
+    },
+    {
+      "metadata": {
+        "relationType": "isDocumentedBy"
+      },
+      "title": "Heat acclimation in Chlamydomonas",
+      "type": "relation",
+      "uri": "https://doi.org/10.1111/tpj.00000"
+    }
+  ],
+  "temporalCoverage": {
+    "lower": "2021-05-01T00:00:00Z",
+    "upper": "2022-09-30T00:00:00Z"
+  },
+  "title": "Heat-stress response in Chlamydomonas reinhardtii",
+  "uniqueId": "0bf1e5a0-0000-5000-8000-000000000001",
+  "version": "0.3.0"
+}

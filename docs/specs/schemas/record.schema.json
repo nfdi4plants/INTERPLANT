@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://interplant.org/schemas/record.schema.json",
+  "title": "INTERPLANT L2 record (one ARC)",
+  "type": "object",
+  "required": ["id", "type", "conformsTo", "time", "geometry", "properties", "links"],
+  "additionalProperties": false,
+  "properties": {
+    "id":         { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "type":       { "const": "Feature" },
+    "conformsTo": { "type": "array", "items": { "type": "string", "format": "uri" } },
+    "time": {
+      "type": "object",
+      "required": ["interval"],
+      "properties": {
+        "interval": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "geometry":   { "type": ["object", "null"] },
+    "properties": { "$ref": "#/$defs/Properties" },
+    "links": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Link" }
+    }
+  },
+  "$defs": {
+    "DoiString": {
+      "type": "string",
+      "pattern": "^10\\."
+    },
+    "OmicsDomain": {
+      "$comment": "Source vocabulary: docs/specs/schemas/vocabularies.yaml (omics_domain_keywords keys).",
+      "enum": [
+        "transcriptomics", "genomics", "proteomics", "metabolomics",
+        "phenotyping", "imaging", "microbiome", "other"
+      ]
+    },
+    "Link": {
+      "type": "object",
+      "required": ["rel", "href"],
+      "properties": {
+        "rel":   { "type": "string" },
+        "href":  { "type": "string", "format": "uri" },
+        "title": { "type": "string" },
+        "type":  { "type": "string" }
+      }
+    },
+    "Person": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name":        { "type": "string", "minLength": 1 },
+        "role":        { "enum": ["pointOfContact", "author", "contributor", "custodian"] },
+        "orcid":       { "type": "string", "pattern": "^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9X]{3}[0-9X]$" },
+        "affiliation": { "type": "string" }
+      }
+    },
+    "Publication": {
+      "type": "object",
+      "required": ["title"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "doi":   { "$ref": "#/$defs/DoiString" },
+        "year":  { "type": "integer", "minimum": 1900, "maximum": 2100 }
+      }
+    },
+    "Study": {
+      "type": "object",
+      "required": ["id", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "id":          { "type": "string", "minLength": 1 },
+        "title":       { "type": "string", "minLength": 1 },
+        "design_type": { "type": "string" },
+        "factors":     { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "AssayCore": {
+      "type": "object",
+      "required": ["id", "domain", "technology_type", "measurement_type", "file_counts"],
+      "properties": {
+        "id":               { "type": "string", "minLength": 1 },
+        "domain":           { "$ref": "#/$defs/OmicsDomain" },
+        "technology_type":  { "type": "string" },
+        "measurement_type": { "type": "string" },
+        "file_counts": {
+          "type": "object",
+          "required": ["raw", "derived"],
+          "properties": {
+            "raw":     { "type": "integer", "minimum": 0 },
+            "derived": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "Properties": {
+      "type": "object",
+      "required": [
+        "title", "description", "created", "updated",
+        "keywords", "license",
+        "arc_source_uri", "uniqueId",
+        "record_quality", "harvested_at", "harvester_version",
+        "contacts", "creators", "publications",
+        "omics_domains", "experiment_context", "organism", "project",
+        "studies", "assays"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "title":          { "type": "string", "minLength": 1 },
+        "description":    { "type": "string" },
+        "created":        { "type": "string", "format": "date-time" },
+        "updated":        { "type": "string", "format": "date-time" },
+        "keywords":       { "type": "array", "items": { "type": "string" } },
+        "language":       { "type": "string", "minLength": 2 },
+        "license":        { "type": "string" },
+        "doi":            { "$ref": "#/$defs/DoiString" },
+        "arc_source_uri": { "type": "string", "format": "uri" },
+        "uniqueId":       { "type": "string", "format": "uuid" },
+        "record_quality":    { "enum": ["complete", "partial"] },
+        "harvested_at":      { "type": "string", "format": "date-time" },
+        "harvester_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$" },
+        "contacts":          { "type": "array", "items": { "$ref": "#/$defs/Person" } },
+        "creators":          { "type": "array", "items": { "$ref": "#/$defs/Person" } },
+        "publications":      { "type": "array", "items": { "$ref": "#/$defs/Publication" } },
+        "omics_domains": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/OmicsDomain" },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "experiment_context": { "enum": ["field", "greenhouse", "lab", "mixed"] },
+        "organism":           { "type": "array", "items": { "type": "string" } },
+        "project":            { "type": "array", "items": { "type": "string" } },
+        "studies": { "type": "array", "items": { "$ref": "#/$defs/Study" } },
+        "assays": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "allOf": [
+              { "$ref": "#/$defs/AssayCore" },
+              { "$ref": "https://interplant.org/schemas/assay-extensions.schema.json" }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

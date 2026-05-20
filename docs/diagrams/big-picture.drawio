@@ -1,0 +1,115 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="bigpicture-001" name="Big Picture">
+    <mxGraphModel dx="1671" dy="835" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1150" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fillColor=none;strokeColor=none;" value="INTERPLANT - Big Picture" vertex="1">
+          <mxGeometry height="36" width="1500" x="100" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=2;fontColor=#555555;fillColor=none;strokeColor=none;" value="How public ARCs on DataPLANT end up findable on earth-data.de - and what WP1 vs WP2 actually deliver" vertex="1">
+          <mxGeometry height="22" width="1500" x="100" y="58" as="geometry" />
+        </mxCell>
+        <mxCell id="laneSrc" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;dashed=1;fontSize=11;fontStyle=2;align=center;verticalAlign=top;spacingTop=6;fontColor=#777777;" value="DataPLANT (source)" vertex="1">
+          <mxGeometry height="500" width="240" x="40" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="laneUs" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;dashed=1;fontSize=11;fontStyle=2;align=center;verticalAlign=top;spacingTop=6;fontColor=#777777;" value="INTERPLANT (this project) - one small virtual machine" vertex="1">
+          <mxGeometry height="500" width="780" x="300" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="lanePortal" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;dashed=1;fontSize=11;fontStyle=2;align=center;verticalAlign=top;spacingTop=6;fontColor=#777777;" value="earth-data.de (portal)" vertex="1">
+          <mxGeometry height="500" width="300" x="1100" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="laneUser" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;dashed=1;fontSize=11;fontStyle=2;align=center;verticalAlign=top;spacingTop=6;fontColor=#777777;" value="End user" vertex="1">
+          <mxGeometry height="500" width="240" x="1420" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="src" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=middle;" value="DataPLANT Data Hubs&lt;br&gt;&lt;br&gt;git.nfdi4plants.org&lt;br&gt;&lt;br&gt;Public ARCs&lt;br&gt;(ISA XLSX + data)&lt;br&gt;&lt;br&gt;~150 quality-filtered" vertex="1">
+          <mxGeometry height="220" width="200" x="60" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="srcNote" parent="1" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#777777;fillColor=none;strokeColor=none;" value="we read, never write" vertex="1">
+          <mxGeometry height="20" width="200" x="60" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="harv" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;spacingLeft=10;spacingTop=6;" value="Harvester&lt;br&gt;&lt;i&gt;nightly GitLab CI&lt;/i&gt;&lt;br&gt;&lt;br&gt;- enumerate ARCs&lt;br&gt;- filter + dedup&lt;br&gt;- parse ISA&lt;br&gt;- classify (omics + context)&lt;br&gt;- build L2 record&lt;br&gt;- idempotent UPSERT" vertex="1">
+          <mxGeometry height="210" width="200" x="320" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="pg" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=middle;" value="Postgres + PostGIS&lt;br&gt;&lt;b&gt;catalog store&lt;/b&gt;&lt;br&gt;&lt;br&gt;arc_records (JSONB)&lt;br&gt;collections (L1 YAML)&lt;br&gt;11 SQL views&lt;br&gt;&lt;br&gt;&lt;i&gt;Rebuildable from scratch&lt;/i&gt;" vertex="1">
+          <mxGeometry height="220" width="220" x="560" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="oai" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=left;spacingLeft=10;spacingTop=6;" value="OAI-PMH endpoint&lt;br&gt;&lt;i&gt;today&#39;s bridge&lt;/i&gt;&lt;br&gt;&lt;br&gt;- ListRecords / GetRecord&lt;br&gt;- emits DocumentSchema.json&lt;br&gt;- HTTPS, no auth" vertex="1">
+          <mxGeometry height="130" width="220" x="830" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="pyg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=left;spacingLeft=10;spacingTop=6;" value="pygeoapi&lt;br&gt;&lt;i&gt;strategic deliverable&lt;/i&gt;&lt;br&gt;&lt;br&gt;OGC API Records 1.0 + CQL2&lt;br&gt;/collections /items /queryables" vertex="1">
+          <mxGeometry height="130" width="220" x="830" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="portal" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;align=center;verticalAlign=middle;" value="Earth Data Portal&lt;br&gt;&lt;br&gt;Index / search backend&lt;br&gt;(harvests nightly)&lt;br&gt;&lt;br&gt;+ portal plugin renders&lt;br&gt;11 collection pages" vertex="1">
+          <mxGeometry height="220" width="220" x="1140" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="user" parent="1" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalLabelPosition=bottom;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="88" width="60" x="1510" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="O7gzBSAQGy5EX-Ox3BaR-1" edge="1" parent="1" source="userQ" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="user" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="userQ" parent="1" style="text;html=1;align=center;fontSize=11;fontStyle=2;fontColor=#555555;fillColor=#fff4f4;strokeColor=#f8cecc;rounded=1;" value="biologist searches&lt;br&gt;&#39;stress response wheat&#39;&lt;br&gt;on earth-data.de" vertex="1">
+          <mxGeometry height="60" width="200" x="1440" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="src" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#6c8ebf;fontSize=10;labelBackgroundColor=#ffffff;" target="harv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1lbl" parent="1" style="text;html=1;align=center;fontSize=10;fillColor=#ffffff;strokeColor=none;fontColor=#444444;" value="GitLab REST" vertex="1">
+          <mxGeometry height="18" width="80" x="250" y="352" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="harv" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#d6b656;fontSize=10;labelBackgroundColor=#ffffff;" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2lbl" parent="1" style="text;html=1;align=center;fontSize=10;fillColor=#ffffff;strokeColor=none;fontColor=#444444;" value="UPSERT (idempotent)" vertex="1">
+          <mxGeometry height="18" width="120" x="490" y="352" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="pg" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#82b366;fontSize=10;labelBackgroundColor=#ffffff;" target="oai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3lbl" parent="1" style="text;html=1;align=center;fontSize=10;fillColor=#ffffff;strokeColor=none;fontColor=#444444;" value="reads" vertex="1">
+          <mxGeometry height="18" width="50" x="790" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="pg" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#82b366;fontSize=10;labelBackgroundColor=#ffffff;" target="pyg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4lbl" parent="1" style="text;html=1;align=center;fontSize=10;fillColor=#ffffff;strokeColor=none;fontColor=#444444;" value="reads" vertex="1">
+          <mxGeometry height="18" width="50" x="790" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="oai" style="endArrow=block;html=1;rounded=0;strokeWidth=3;strokeColor=#9673a6;fontSize=11;fontStyle=1;labelBackgroundColor=#ffffff;" target="portal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5lbl" parent="1" style="text;html=1;align=center;fontSize=11;fontStyle=1;fillColor=#ffffff;strokeColor=none;fontColor=#9673a6;" value="nightly pull&#xa;(OAI-PMH)" vertex="1">
+          <mxGeometry height="32" width="90" x="1055" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="pyg" style="endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#9673a6;dashed=1;fontSize=10;labelBackgroundColor=#ffffff;" target="portal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6lbl" parent="1" style="text;html=1;align=center;fontSize=10;fontStyle=2;fillColor=#ffffff;strokeColor=none;fontColor=#666666;" value="live queries from&#xa;portal plugin (WP2)" vertex="1">
+          <mxGeometry height="30" width="130" x="1050" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="user" style="endArrow=block;startArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor=#b85450;fontSize=10;labelBackgroundColor=#ffffff;" target="portal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="extClients" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#999999;fontSize=11;align=center;dashed=1;fontStyle=2;fontColor=#555555;" value="Other standards-based clients&#xa;(QGIS, STAC tooling, ...)&#xa;Future, no bespoke code" vertex="1">
+          <mxGeometry height="60" width="220" x="830" y="570" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="pyg" style="endArrow=block;html=1;rounded=0;strokeWidth=1;strokeColor=#999999;dashed=1;" target="extClients">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="reg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff4d6;strokeColor=#b8860b;fontSize=11;align=left;spacingLeft=10;spacingTop=6;" value="One-time handshake (P0, M1)&#xa;&#xa;1. Email o2a-support@awi.de&#xa;2. Get sandbox at rz-000566.cloud.awi.de/harvester/&#xa;3. Validate records against DocumentSchema.json&#xa;4. Switch portal harvester to production endpoint" vertex="1">
+          <mxGeometry height="120" width="380" x="1020" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wp1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=left;spacingLeft=12;spacingTop=8;" value="&lt;b&gt;WP1 - Metadata interface (M4)&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;What:&lt;/b&gt; every quality-filtered ARC becomes searchable on earth-data.de.&lt;br&gt;&lt;br&gt;&lt;b&gt;Mechanism:&lt;/b&gt; the OAI-PMH endpoint serves DocumentSchema.json records;&lt;br&gt;the portal harvester pulls nightly and indexes them into the portal&#39;s search backend.&lt;br&gt;&lt;br&gt;&lt;b&gt;User-visible outcome:&lt;/b&gt; a search for &quot;Arabidopsis transcriptomics&quot; returns&lt;br&gt;DataPLANT ARCs alongside marine and atmospheric datasets. Each result shows&lt;br&gt;title, abstract, ORCID-resolved authors, ROR-resolved institutions, DOI, geometry,&lt;br&gt;and a link back to the canonical ARC on git.nfdi4plants.org.&lt;br&gt;&lt;br&gt;&lt;b&gt;Standards exposed:&lt;/b&gt; OAI-PMH (today) + OGC API Records 1.0 + CQL2 (future-facing)." vertex="1">
+          <mxGeometry height="320" width="750" x="60" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="wp2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=left;spacingLeft=12;spacingTop=8;" value="&lt;b&gt;WP2 - Earth Data Portal collections (M5)&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;What:&lt;/b&gt; 11 themed landing pages inside the portal (8 omics + 3 contexts).&lt;br&gt;&lt;br&gt;&lt;b&gt;Mechanism:&lt;/b&gt; a portal plugin renders one template per collection. Static parts&lt;br&gt;(title, narrative, featured ARCs) come from hand-curated L1 YAML in git;&lt;br&gt;live parts (record counts, map of locations, browse table) come from pygeoapi&lt;br&gt;queries against the same Postgres.&lt;br&gt;&lt;br&gt;&lt;b&gt;User-visible outcome:&lt;/b&gt; a &quot;DataPLANT - Transcriptomics&quot; page with&lt;br&gt;hero+stats strip, narrative by IBG-4, featured ARCs, location map,&lt;br&gt;and a faceted browse table backed by live L3 queryables.&lt;br&gt;&lt;br&gt;&lt;b&gt;Authoring:&lt;/b&gt; narrative + featured ARCs PR-reviewed in git (no CMS)." vertex="1">
+          <mxGeometry height="320" width="750" x="850" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#cccccc;fontSize=10;align=left;spacingLeft=8;spacingTop=4;fontColor=#555555;" value="&lt;b&gt;Reading guide&lt;/b&gt;&lt;br&gt;- Solid arrow = required path to ship&lt;br&gt;- Dashed arrow = future / opportunistic consumer&lt;br&gt;- Lanes (gray dashed) = ownership boundary&lt;br&gt;- Cylinder = persistent store / data source&lt;br&gt;- Rounded box = service / process" vertex="1">
+          <mxGeometry height="110" width="340" x="40" y="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

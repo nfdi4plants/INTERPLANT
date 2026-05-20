@@ -1,0 +1,51 @@
+{
+  "id": "example-partial-arc",
+  "type": "Feature",
+  "conformsTo": ["http://www.opengis.net/spec/ogcapi-records-1/1.0/conf/core"],
+  "time": { "interval": [null, null] },
+  "geometry": null,
+  "properties": {
+    "title": "Example partial ARC (missing DOI)",
+    "description": "An ARC with an assay but no investigation DOI.",
+    "created": "2024-07-01T00:00:00Z",
+    "updated": "2024-07-01T00:00:00Z",
+    "keywords": [],
+    "language": "en",
+    "license": "CC-BY-4.0",
+
+    "arc_source_uri": "https://git.nfdi4plants.org/example/partial",
+    "uniqueId": "0bf1e5a0-0000-5000-8000-000000000002",
+
+    "contacts": [],
+    "creators": [],
+    "publications": [],
+
+    "omics_domains": ["transcriptomics"],
+    "experiment_context": "lab",
+    "organism": ["Arabidopsis thaliana"],
+    "project": [],
+
+    "studies": [
+      { "id": "study-1", "title": "Stub study", "design_type": "unspecified", "factors": [] }
+    ],
+    "assays": [
+      {
+        "id": "transcriptomics",
+        "domain": "transcriptomics",
+        "technology_type": "nucleic acid sequencing",
+        "measurement_type": "transcription profiling",
+        "library_strategy": "RNA-Seq",
+        "platform": "ILLUMINA",
+        "file_counts": { "raw": 6, "derived": 0 }
+      }
+    ],
+
+    "record_quality": "partial",
+    "harvested_at": "2026-05-14T03:00:00Z",
+    "harvester_version": "0.3.0"
+  },
+  "links": [
+    { "rel": "self", "href": "https://interplant.example.org/collections/dataplant-transcriptomics/items/example-partial-arc" },
+    { "rel": "canonical", "href": "https://git.nfdi4plants.org/example/partial" }
+  ]
+}

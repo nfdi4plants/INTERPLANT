@@ -1,0 +1,106 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="yfMvVQ6S_Mbeu32M_KND" name="Page-1">
+    <mxGraphModel dx="1763" dy="881" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1100" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fillColor=none;strokeColor=none;" value="INTERPLANT Spec-Documents Plan - Implementation Status" vertex="1">
+          <mxGeometry height="40" width="1300" x="100" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fontColor=#555555;fillColor=none;strokeColor=none;" value="Branch: feat/interplant-specs · 25 commits since main · Phases A, B, C complete · Phase D started" vertex="1">
+          <mxGeometry height="24" width="1300" x="100" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cccccc;" value="" vertex="1">
+          <mxGeometry height="50" width="1380" x="60" y="95" as="geometry" />
+        </mxCell>
+        <mxCell id="lgDone" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=center;" value="✓ done" vertex="1">
+          <mxGeometry height="22" width="100" x="80" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="lgProg" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;" value="◐ in progress" vertex="1">
+          <mxGeometry height="22" width="120" x="190" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="lgPend" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=center;" value="◯ pending" vertex="1">
+          <mxGeometry height="22" width="110" x="320" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="pAh" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;align=left;spacingLeft=12;" value="Phase A - Scaffolding" vertex="1">
+          <mxGeometry height="36" width="220" x="60" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="pAstatus" parent="1" style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#2e7d32;fillColor=none;strokeColor=none;spacingLeft=8;" value="COMPLETE - 4 / 4 tasks" vertex="1">
+          <mxGeometry height="24" width="300" x="290" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="pA1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" value="✓ A1  pyproject.toml + dev deps (uv, jsonschema, pytest, ruff)" vertex="1">
+          <mxGeometry height="28" width="660" x="80" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="pA2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" value="✓ A2  docs/specs/ directory + README index" vertex="1">
+          <mxGeometry height="28" width="660" x="80" y="244" as="geometry" />
+        </mxCell>
+        <mxCell id="pA3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" value="✓ A3  Pinned upstream portal DocumentSchema.json + refetch script" vertex="1">
+          <mxGeometry height="28" width="660" x="80" y="278" as="geometry" />
+        </mxCell>
+        <mxCell id="pA4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" value="✓ A4  pytest harness + shared fixture loader (conftest.py)" vertex="1">
+          <mxGeometry height="28" width="660" x="80" y="312" as="geometry" />
+        </mxCell>
+        <mxCell id="aArtifacts" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;spacingTop=6;" value="Artifacts shipped&#xa;&#xa;pyproject.toml · .gitignore&#xa;docs/specs/README.md&#xa;scripts/pin_portal_schema.py&#xa;docs/specs/schemas/portal-document-schema.json&#xa;tests/specs/{__init__.py, conftest.py}" vertex="1">
+          <mxGeometry height="130" width="680" x="760" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="pBh" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;align=left;spacingLeft=12;" value="Phase B - Record schema spec (L2)" vertex="1">
+          <mxGeometry height="36" width="280" x="60" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="pBstatus" parent="1" style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#2e7d32;fillColor=none;strokeColor=none;spacingLeft=8;" value="COMPLETE - 10 / 10 tasks" vertex="1">
+          <mxGeometry height="24" width="300" x="350" y="365" as="geometry" />
+        </mxCell>
+        <mxCell id="pBlist" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;" value="✓ B1  Canonical complete example - Ru_ChlamyHeatstress&lt;br&gt;✓ B2  Failing tests requiring schema + examples&lt;br&gt;✓ B3  Minimal record schema (GeoJSON Feature shape + quality)&lt;br&gt;✓ B4  Partial + field-trial fixtures&lt;br&gt;✓ B5  Identifiers, dates, license required on record&lt;br&gt;✓ B6  People + publications structure enforced&lt;br&gt;✓ B7  Promoted facets (omics_domains, experiment_context, organism, project)&lt;br&gt;✓ B8  Studies + assays (core shape) required&lt;br&gt;✓ B9  Per-domain assay extensions ($defs oneOf) + registry-aware test fixture&lt;br&gt;✓ B10 Prose spec - record-schema.md + tightened root (conformsTo / time / geometry)" vertex="1">
+          <mxGeometry height="210" width="660" x="80" y="405" as="geometry" />
+        </mxCell>
+        <mxCell id="bArtifacts" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;spacingTop=6;" value="Artifacts shipped&#xa;&#xa;docs/specs/schemas/record.schema.json&#xa;docs/specs/schemas/assay-extensions.schema.json&#xa;docs/specs/examples/record-complete.json&#xa;docs/specs/examples/record-partial.json&#xa;docs/specs/examples/record-fieldtrial.json&#xa;docs/specs/record-schema.md&#xa;tests/specs/test_record_schema.py" vertex="1">
+          <mxGeometry height="160" width="680" x="760" y="405" as="geometry" />
+        </mxCell>
+        <mxCell id="pCh" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;align=left;spacingLeft=12;" value="Phase C - Collection schema spec (L1)" vertex="1">
+          <mxGeometry height="36" width="320" x="60" y="635" as="geometry" />
+        </mxCell>
+        <mxCell id="pCstatus" parent="1" style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#2e7d32;fillColor=none;strokeColor=none;spacingLeft=8;" value="COMPLETE - 4 / 4 tasks" vertex="1">
+          <mxGeometry height="24" width="300" x="390" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="pClist" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;" value="✓ C1  Failing tests for L1 descriptor validation&lt;br&gt;✓ C2  collection-descriptor.schema.json + 2 worked YAML examples&lt;br&gt;✓ C3  Prose spec - collection-schema.md (documents all 11 collections + classifier rules)&lt;br&gt;✓ C4  Controlled-vocabulary registry stub (vocabularies.yaml) cross-referenced with omics_domains" vertex="1">
+          <mxGeometry height="100" width="660" x="80" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="cArtifacts" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;spacingTop=6;" value="Artifacts shipped&#xa;&#xa;docs/specs/schemas/collection-descriptor.schema.json&#xa;docs/specs/schemas/vocabularies.yaml&#xa;docs/specs/examples/collection-proteomics.yaml&#xa;docs/specs/examples/collection-fieldtrials.yaml&#xa;docs/specs/collection-schema.md&#xa;tests/specs/test_collection_descriptor.py" vertex="1">
+          <mxGeometry height="140" width="680" x="760" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="pDh" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;align=left;spacingLeft=12;" value="Phase D - Portal mapping (OAI-PMH / DocumentSchema.json)" vertex="1">
+          <mxGeometry height="36" width="480" x="60" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="pD1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" value="✓ D1  Failing test - mapper output must validate against pinned portal schema" vertex="1">
+          <mxGeometry height="28" width="660" x="80" y="885" as="geometry" />
+        </mxCell>
+        <mxCell id="pD2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#555555;" value="◯ D2  scripts/portal_mapper.py - reference mapper (record → DocumentSchema)" vertex="1">
+          <mxGeometry height="28" width="660" x="80" y="919" as="geometry" />
+        </mxCell>
+        <mxCell id="pD3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#555555;" value="◯ D3  Prose spec - portal-mapping.md (field-by-field mapping rules)" vertex="1">
+          <mxGeometry height="28" width="660" x="80" y="953" as="geometry" />
+        </mxCell>
+        <mxCell id="pEh" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=13;fontStyle=1;align=left;spacingLeft=12;fontColor=#555555;" value="Phase E - Harvester spec" vertex="1">
+          <mxGeometry height="36" width="240" x="760" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="pEstatus" parent="1" style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#666666;fillColor=none;strokeColor=none;spacingLeft=8;" value="PENDING - 0 / 1 tasks" vertex="1">
+          <mxGeometry height="24" width="200" x="1010" y="845" as="geometry" />
+        </mxCell>
+        <mxCell id="pE1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#555555;" value="◯ E1  harvester.md - pipeline, classifier rules, run modes, observability" vertex="1">
+          <mxGeometry height="28" width="680" x="760" y="885" as="geometry" />
+        </mxCell>
+        <mxCell id="pFh" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=13;fontStyle=1;align=left;spacingLeft=12;fontColor=#555555;" value="Phase F - Cross-reference + finalize" vertex="1">
+          <mxGeometry height="36" width="300" x="760" y="919" as="geometry" />
+        </mxCell>
+        <mxCell id="pFstatus" parent="1" style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#666666;fillColor=none;strokeColor=none;spacingLeft=8;" value="PENDING - 0 / 2 tasks" vertex="1">
+          <mxGeometry height="24" width="200" x="1070" y="924" as="geometry" />
+        </mxCell>
+        <mxCell id="pF1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#555555;" value="◯ F1  Cross-reference checker test (markdown links resolve to real files)" vertex="1">
+          <mxGeometry height="22" width="680" x="760" y="965" as="geometry" />
+        </mxCell>
+        <mxCell id="pF2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#555555;" value="◯ F2  Full-suite smoke test + wrap-up (M1 spec-review exit criteria)" vertex="1">
+          <mxGeometry height="22" width="680" x="760" y="993" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

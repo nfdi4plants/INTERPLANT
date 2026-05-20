@@ -1,0 +1,91 @@
+{
+  "id": "ru-chlamy-heatstress",
+  "type": "Feature",
+  "conformsTo": ["http://www.opengis.net/spec/ogcapi-records-1/1.0/conf/core"],
+  "time": { "interval": ["2021-05-01T00:00:00Z", "2022-09-30T00:00:00Z"] },
+  "geometry": null,
+  "properties": {
+    "title": "Heat-stress response in Chlamydomonas reinhardtii",
+    "description": "Multi-omics time course of heat acclimation integrating growth, metabolomic, proteomic, and transcriptomic readouts.",
+    "created": "2022-03-14T00:00:00Z",
+    "updated": "2024-01-08T00:00:00Z",
+    "keywords": ["heat stress", "multi-omics", "Chlamydomonas"],
+    "language": "en",
+    "license": "CC-BY-4.0",
+
+    "doi": "10.5281/zenodo.0000000",
+    "arc_source_uri": "https://git.nfdi4plants.org/example/Ru_ChlamyHeatstress",
+    "uniqueId": "0bf1e5a0-0000-5000-8000-000000000001",
+
+    "contacts": [
+      { "name": "Example Contact", "role": "pointOfContact", "orcid": "0000-0002-1825-0097" }
+    ],
+    "creators": [
+      { "name": "Example Contact", "orcid": "0000-0002-1825-0097" }
+    ],
+    "publications": [
+      { "title": "Heat acclimation in Chlamydomonas", "doi": "10.1111/tpj.00000", "year": 2023 }
+    ],
+
+    "omics_domains": ["phenotyping", "metabolomics", "proteomics", "transcriptomics"],
+    "experiment_context": "lab",
+    "organism": ["Chlamydomonas reinhardtii"],
+    "project": ["SFB1535"],
+
+    "studies": [
+      {
+        "id": "chlamy-heatstress",
+        "title": "Heat acclimation time course",
+        "design_type": "intervention study",
+        "factors": ["temperature", "time"]
+      }
+    ],
+
+    "assays": [
+      {
+        "id": "transcriptomics",
+        "domain": "transcriptomics",
+        "technology_type": "nucleic acid sequencing",
+        "measurement_type": "transcription profiling",
+        "library_strategy": "RNA-Seq",
+        "platform": "ILLUMINA",
+        "file_counts": { "raw": 24, "derived": 3 }
+      },
+      {
+        "id": "proteomics",
+        "domain": "proteomics",
+        "technology_type": "mass spectrometry",
+        "measurement_type": "protein expression profiling",
+        "instrument_name": "Q Exactive HF",
+        "acquisition_mode": "DDA",
+        "file_counts": { "raw": 18, "derived": 2 }
+      },
+      {
+        "id": "metabolomics",
+        "domain": "metabolomics",
+        "technology_type": "mass spectrometry",
+        "measurement_type": "metabolite profiling",
+        "chromatography": "GC",
+        "ion_mode": "positive",
+        "file_counts": { "raw": 12, "derived": 1 }
+      },
+      {
+        "id": "growth",
+        "domain": "phenotyping",
+        "technology_type": "phenotyping platform",
+        "measurement_type": "plant growth",
+        "trait_category": "physiological",
+        "file_counts": { "raw": 1, "derived": 0 }
+      }
+    ],
+
+    "record_quality": "complete",
+    "harvested_at": "2026-05-14T03:00:00Z",
+    "harvester_version": "0.3.0"
+  },
+  "links": [
+    { "rel": "self", "href": "https://interplant.example.org/collections/dataplant-multi-omics/items/ru-chlamy-heatstress" },
+    { "rel": "canonical", "href": "https://git.nfdi4plants.org/example/Ru_ChlamyHeatstress" },
+    { "rel": "cite-as", "href": "https://doi.org/10.5281/zenodo.0000000" }
+  ]
+}
