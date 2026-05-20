@@ -2,7 +2,7 @@
 
 **Scope:** The behavior contract of the INTERPLANT harvester — the Python job that reads public ARCs from DataPLANT Data Hubs and writes L2 records into the catalog store. This document defines *what* the harvester does and the contracts between its stages. Implementation details (libraries, error-class hierarchy, logging format) are chosen in the harvester implementation plan.
 
-**Upstream design:** [`docs/superpowers/specs/2026-04-21-interplant-wp1-wp2-design.md`](../superpowers/specs/2026-04-21-interplant-wp1-wp2-design.md) § 9 (P1).
+**Upstream design:** `docs/superpowers/specs/2026-04-21-interplant-wp1-wp2-design.md` § 9 (P1). (Local scratch; not in the public repo.)
 
 ## 1. Pipeline
 

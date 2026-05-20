@@ -1,0 +1,41 @@
+server:
+  bind:
+    host: 0.0.0.0
+    port: 80
+  url: http://localhost:5000
+  mimetype: application/json; charset=UTF-8
+  encoding: utf-8
+  languages:
+    - en-US
+  cors: true
+  pretty_print: true
+  limit: 50
+  map:
+    url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+
+logging:
+  level: INFO
+
+metadata:
+  identification:
+    title: INTERPLANT (local dev)
+    description: INTERPLANT catalog (local development instance - no resources yet)
+    keywords:
+      - interplant
+      - dataplant
+      - ogc-api-records
+    keywords_type: theme
+    terms_of_service: https://creativecommons.org/licenses/by/4.0/
+    url: https://gitlab.fz-juelich.de/ibg-3/data-management/projects/interplant
+  license:
+    name: CC-BY-4.0
+    url: https://creativecommons.org/licenses/by/4.0/
+  provider:
+    name: INTERPLANT (FZ Jülich, IBG-3)
+    url: https://gitlab.fz-juelich.de/ibg-3/data-management/projects/interplant
+  contact:
+    name: Mohamed Abouzid
+    email: m.abouzid@fz-juelich.de
+
+resources: {}
