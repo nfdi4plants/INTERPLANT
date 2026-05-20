@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgis/postgis:17-3.6-alpine
+    container_name: interplant-db
+    environment:
+      POSTGRES_USER: interplant
+      POSTGRES_PASSWORD: interplant
+      POSTGRES_DB: interplant
+    ports:
+      - "5432:5432"
+    volumes:
+      - interplant_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U interplant -d interplant"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  interplant_pgdata:
