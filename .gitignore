@@ -9,3 +9,9 @@ __pycache__/
 .uv-cache/
 dist/
 *.egg-info/
+
+# local dev artifacts
+.pgdata/
+.env
+.env.*
+!.env.example
