@@ -1,0 +1,131 @@
+"""Thin wrapper around `arctrl` returning plain dataclasses.
+
+Only this module imports `arctrl`. The rest of the harvester operates on
+the dataclasses below so it stays library-agnostic and trivially testable.
+
+`arctrl` 3.0.5 returns assays at the ARC level (flat list), with each Study
+holding `RegisteredAssayIdentifiers` (list of names) that link studies to
+their registered assays. This reader joins the flat assay list back into
+the per-study dataclasses below so downstream code can iterate
+investigation.studies[i].assays[j] naturally.
+
+Verified API notes (arctrl 3.0.5):
+- arc.Studies / arc.Assays / arc.Contacts are flat lists on the ARC object.
+- Study.RegisteredAssayIdentifiers is a list of assay identifier strings.
+- Contact uses .EMail (not .Email).
+- Assay.MeasurementType is the measurement-type field (may be None).
+- arc.Publications is a list of Publication objects with a .DOI attribute.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+
+
+@dataclass(frozen=True)
+class Assay:
+    name: str
+    folder: str
+    measurement_type: str | None
+
+
+@dataclass(frozen=True)
+class Study:
+    identifier: str
+    title: str | None
+    assays: list[Assay]
+
+
+@dataclass(frozen=True)
+class Contact:
+    first_name: str | None
+    last_name: str | None
+    email: str | None
+    orcid: str | None
+    affiliation: str | None
+
+
+@dataclass(frozen=True)
+class Investigation:
+    identifier: str
+    title: str
+    description: str | None
+    dois: list[str] = field(default_factory=list)
+    contacts: list[Contact] = field(default_factory=list)
+    studies: list[Study] = field(default_factory=list)
+
+
+class IsaReader:
+    """Read an ARC root directory and return a populated Investigation."""
+
+    def read(self, arc_root: Path) -> Investigation:
+        import arctrl
+
+        arc = arctrl.ARC.load(str(arc_root))
+
+        # arc.Assays is a flat list; build a lookup so we can attach to studies.
+        assay_by_id: dict[str, Assay] = {}
+        for raw_assay in (arc.Assays or []):
+            assay = _assay_from(raw_assay)
+            assay_by_id[assay.folder] = assay
+
+        return Investigation(
+            identifier=str(arc.Identifier or ""),
+            title=str(arc.Title or ""),
+            description=_str_or_none(getattr(arc, "Description", None)),
+            dois=_dois_from(arc),
+            contacts=[_contact_from(p) for p in (arc.Contacts or [])],
+            studies=[_study_from(s, assay_by_id) for s in (arc.Studies or [])],
+        )
+
+
+def _dois_from(arc) -> list[str]:
+    # arc.Publications is a list of Publication objects; each has a .DOI attr.
+    raw = getattr(arc, "Publications", None)
+    if not raw:
+        return []
+    out: list[str] = []
+    for p in raw:
+        doi = getattr(p, "DOI", None) if not isinstance(p, str) else p
+        if doi:
+            out.append(str(doi))
+    return out
+
+
+def _contact_from(person) -> Contact:
+    # arctrl 3.0.5 uses .EMail (not .Email) on the Person object.
+    return Contact(
+        first_name=_str_or_none(getattr(person, "FirstName", None)),
+        last_name=_str_or_none(getattr(person, "LastName", None)),
+        email=_str_or_none(getattr(person, "EMail", None)),
+        orcid=_str_or_none(getattr(person, "ORCID", None)),
+        affiliation=_str_or_none(getattr(person, "Affiliation", None)),
+    )
+
+
+def _study_from(study, assay_by_id: dict[str, Assay]) -> Study:
+    registered = list(getattr(study, "RegisteredAssayIdentifiers", []) or [])
+    assays = [assay_by_id[name] for name in registered if name in assay_by_id]
+    return Study(
+        identifier=str(study.Identifier),
+        title=_str_or_none(getattr(study, "Title", None)),
+        assays=assays,
+    )
+
+
+def _assay_from(assay) -> Assay:
+    folder = str(getattr(assay, "Identifier", "")).strip()
+    # MeasurementType is the canonical attribute; may be None if not populated.
+    measurement_type = _str_or_none(
+        getattr(assay, "MeasurementType", None)
+        or getattr(assay, "TechnologyType", None)
+        or getattr(assay, "TechnologyPlatform", None)
+    )
+    return Assay(name=folder, folder=folder, measurement_type=measurement_type)
+
+
+def _str_or_none(value) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
