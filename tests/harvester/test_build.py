@@ -123,3 +123,40 @@ def test_build_record_unmapped_omics_falls_back_safely() -> None:
     valid = {"transcriptomics", "genomics", "proteomics", "metabolomics",
              "phenotyping", "imaging", "microbiome", "other"}
     assert set(domains) <= valid
+
+
+@pytest.mark.parametrize(
+    "vocab_value",
+    [
+        "transcriptomics",
+        "genomics",
+        "proteomics",
+        "metabolomics",
+        "epigenomics",   # maps to 'other'
+        "phenomics",     # maps to 'phenotyping'
+    ],
+)
+def test_build_record_validates_for_every_omics_vocab_value(validate_record, vocab_value: str) -> None:
+    """Every vocab value the omics classifier can emit must produce a record that
+    validates end-to-end (top-level + assay-extensions oneOf branch)."""
+    record = build_record(
+        _fake_investigation(),
+        omics_by_folder={"RNA-Seq": vocab_value},
+        **_CALL_KWARGS,
+    )
+    validate_record(record)
+
+
+def test_build_record_unique_id_is_deterministic() -> None:
+    """uniqueId must depend only on arc_source_uri (uuid5 of NAMESPACE_URL)."""
+    a = build_record(
+        _fake_investigation(),
+        omics_by_folder={"RNA-Seq": "transcriptomics"},
+        **_CALL_KWARGS,
+    )
+    b = build_record(
+        _fake_investigation(),
+        omics_by_folder={"RNA-Seq": "transcriptomics"},
+        **_CALL_KWARGS,
+    )
+    assert a["properties"]["uniqueId"] == b["properties"]["uniqueId"]
