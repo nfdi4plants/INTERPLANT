@@ -198,6 +198,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "arctrl" },
+    { name = "httpx" },
     { name = "jsonschema" },
     { name = "pyyaml" },
     { name = "referencing" },
@@ -206,7 +207,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pytest" },
     { name = "ruff" },
@@ -215,6 +215,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "arctrl", specifier = ">=2.0" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "jsonschema", specifier = ">=4.22" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "referencing", specifier = ">=0.35" },
@@ -223,7 +224,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx", specifier = ">=0.27" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2" },
     { name = "pytest", specifier = ">=8.2" },
     { name = "ruff", specifier = ">=0.5" },
