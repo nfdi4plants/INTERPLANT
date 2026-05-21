@@ -22,6 +22,10 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+markers = [
+    "db: requires a running Postgres (gated by INTERPLANT_STACK_TESTS=1)",
+    "live: requires live network (gated by INTERPLANT_LIVE_HARVEST=1)",
+]
 
 [tool.ruff]
 line-length = 100
