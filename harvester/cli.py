@@ -11,9 +11,9 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timezone
+from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Sequence
 
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
@@ -73,8 +73,9 @@ def _ingest(arc_path: Path, *, dsn: str, provider: str) -> int:
 
     omics_by_folder = _classify_assays(investigation)
 
-    now_iso = datetime.now(tz=timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-    arc_source_uri = arc_path.resolve().as_uri()  # file:// placeholder; Plan 4 replaces with GitLab URL.
+    now_iso = datetime.now(tz=UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+    # file:// placeholder; Plan 4 replaces with GitLab URL.
+    arc_source_uri = arc_path.resolve().as_uri()
 
     record = build_record(
         investigation,

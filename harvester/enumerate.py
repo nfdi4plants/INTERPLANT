@@ -6,7 +6,7 @@ completeness, retry, audit logging) is deferred to Plan 4.
 from __future__ import annotations
 
 import logging
-from typing import Iterator
+from collections.abc import Iterator
 
 import httpx
 

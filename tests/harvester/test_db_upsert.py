@@ -51,8 +51,10 @@ def test_upsert_is_idempotent(clean_db) -> None:
 
 
 def test_upsert_updates_changed_payload(clean_db) -> None:
-    upsert_record(clean_db, "dataplant-foo", {"id": "dataplant-foo", "title": "Foo"}, source_etag="etag-1")
-    upsert_record(clean_db, "dataplant-foo", {"id": "dataplant-foo", "title": "Bar"}, source_etag="etag-2")
+    upsert_record(clean_db, "dataplant-foo", {"id": "dataplant-foo", "title": "Foo"},
+                  source_etag="etag-1")
+    upsert_record(clean_db, "dataplant-foo", {"id": "dataplant-foo", "title": "Bar"},
+                  source_etag="etag-2")
     with clean_db.cursor() as cur:
         cur.execute("SELECT payload, source_etag FROM records")
         payload, etag = cur.fetchone()

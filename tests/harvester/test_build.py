@@ -33,7 +33,11 @@ def _fake_investigation() -> Investigation:
                 title="Material Preparation",
                 assays=[
                     Assay(name="measurement1", folder="measurement1", measurement_type=None),
-                    Assay(name="RNA-Seq",      folder="RNA-Seq",      measurement_type="transcription profiling"),
+                    Assay(
+                        name="RNA-Seq",
+                        folder="RNA-Seq",
+                        measurement_type="transcription profiling",
+                    ),
                 ],
             ),
         ],
@@ -115,7 +119,8 @@ def test_build_record_unmapped_omics_falls_back_safely() -> None:
     record still validates."""
     record = build_record(
         _fake_investigation(),
-        omics_by_folder={"RNA-Seq": "phenomics"},  # vocab uses 'phenomics' which isn't a schema enum
+        # vocab uses 'phenomics' which isn't a schema enum
+        omics_by_folder={"RNA-Seq": "phenomics"},
         **_CALL_KWARGS,
     )
     # Just check it doesn't crash and the resulting domain is in the enum.
@@ -136,7 +141,9 @@ def test_build_record_unmapped_omics_falls_back_safely() -> None:
         "phenomics",     # maps to 'phenotyping'
     ],
 )
-def test_build_record_validates_for_every_omics_vocab_value(validate_record, vocab_value: str) -> None:
+def test_build_record_validates_for_every_omics_vocab_value(
+    validate_record, vocab_value: str
+) -> None:
     """Every vocab value the omics classifier can emit must produce a record that
     validates end-to-end (top-level + assay-extensions oneOf branch)."""
     record = build_record(
