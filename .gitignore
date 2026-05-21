@@ -1,6 +1,7 @@
 .superpowers/
 docs/superpowers/
 .remember/
+ARCs/
 
 # python
 __pycache__/
