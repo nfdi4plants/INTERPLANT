@@ -8,6 +8,7 @@ dependencies = [
   "pyyaml>=6.0",
   "referencing>=0.35",
   "rfc3339-validator>=0.1",
+  "arctrl>=2.0",
 ]
 
 [dependency-groups]
