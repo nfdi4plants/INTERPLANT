@@ -1,0 +1,283 @@
+"""Assemble an L2 record dict from an Investigation + omics classifier results.
+
+The output validates against docs/specs/schemas/record.schema.json (Draft 2020-12)
+together with the assay-extensions.schema.json referenced inside it.
+
+Several fields are synthesised because the walking skeleton does not yet extract
+them from ARC content.  Each synthesis decision is documented with a comment so
+Plan 4 (full extraction pass) knows exactly what to replace:
+
+- experiment_context: hardcoded "lab"; Plan 4 classifier will replace this.
+- technology_type: hardcoded "unknown"; Plan 4 technology extractor will replace this.
+- file_counts: hardcoded {raw:0, derived:0}; Plan 4 file counter will replace this.
+- domain-specific extension fields (library_strategy, platform, ...): hardcoded
+  skeleton defaults; Plan 4 will derive them from ARC assay metadata.
+"""
+from __future__ import annotations
+
+import uuid
+from typing import Any
+
+from harvester.ids import mint_id
+from harvester.isa_reader import Investigation
+
+# ---------------------------------------------------------------------------
+# Omics vocab-to-schema-enum mapping
+#
+# The omics classifier (Task 6) may return vocabulary keys that differ from
+# the OmicsDomain enum in record.schema.json.  Map them here.
+# Unknown vocab values fall back to "other".
+# ---------------------------------------------------------------------------
+_OMICS_VOCAB_TO_ENUM: dict[str, str] = {
+    "transcriptomics": "transcriptomics",
+    "genomics":        "genomics",
+    "proteomics":      "proteomics",
+    "metabolomics":    "metabolomics",
+    "epigenomics":     "other",       # not in schema enum; nearest catch-all
+    "phenomics":       "phenotyping", # schema uses 'phenotyping' for trait data
+    "phenotyping":     "phenotyping",
+    "imaging":         "imaging",
+    "microbiome":      "microbiome",
+    "other":           "other",
+}
+
+_SCHEMA_ENUM_VALUES = frozenset({
+    "transcriptomics", "genomics", "proteomics", "metabolomics",
+    "phenotyping", "imaging", "microbiome", "other",
+})
+
+
+def _map_domain(raw: str | None) -> str:
+    """Convert a vocab classifier output to a schema-valid OmicsDomain enum value."""
+    if raw is None:
+        return "other"
+    # If it's already a valid enum value, pass through.
+    if raw in _SCHEMA_ENUM_VALUES:
+        return raw
+    mapped = _OMICS_VOCAB_TO_ENUM.get(raw)
+    if mapped:
+        return mapped
+    # Unknown vocab value: fall back to "other".
+    return "other"
+
+
+# ---------------------------------------------------------------------------
+# Per-domain skeleton extension fields required by assay-extensions.schema.json
+#
+# The extensions schema uses oneOf: each assay must satisfy exactly one branch.
+# Each branch requires "domain" plus domain-specific fields.  These skeleton
+# values are placeholders; Plan 4 will derive real values from ARC metadata.
+# ---------------------------------------------------------------------------
+def _extension_fields(domain: str) -> dict[str, Any]:
+    """Return the skeleton domain-extension fields required by assay-extensions.schema.json."""
+    if domain == "transcriptomics":
+        return {
+            "library_strategy": "other",   # Plan 4: derive from ARC assay metadata
+            "platform":         "OTHER",    # Plan 4: derive from ARC assay metadata
+        }
+    if domain == "genomics":
+        return {
+            "library_strategy": "other",   # Plan 4: derive from ARC assay metadata
+            "platform":         "OTHER",    # Plan 4: derive from ARC assay metadata
+        }
+    if domain == "proteomics":
+        return {
+            "acquisition_mode": "other",   # Plan 4: derive from ARC assay metadata
+        }
+    if domain == "metabolomics":
+        return {
+            "chromatography": "other",     # Plan 4: derive from ARC assay metadata
+            "ion_mode":       "positive",  # Plan 4: derive from ARC assay metadata
+        }
+    if domain == "phenotyping":
+        return {
+            "trait_category": "morphological",  # Plan 4: derive from ARC assay metadata
+        }
+    if domain == "imaging":
+        return {
+            "image_format": "other",       # Plan 4: derive from ARC assay metadata
+        }
+    if domain == "microbiome":
+        return {
+            "target_gene": "other",        # Plan 4: derive from ARC assay metadata
+        }
+    # domain == "other" (or any unexpected value): no extra fields required.
+    return {}
+
+
+def _build_assay(
+    assay,
+    domain: str,
+) -> dict[str, Any]:
+    """Build a single assay dict satisfying AssayCore + assay-extensions.schema.json."""
+    record: dict[str, Any] = {
+        "id":               assay.folder,
+        "domain":           domain,
+        "technology_type":  "unknown",            # Plan 4: extract from ARC
+        "measurement_type": assay.measurement_type or "unknown",
+        "file_counts":      {"raw": 0, "derived": 0},  # Plan 4: count files
+    }
+    record.update(_extension_fields(domain))
+    return record
+
+
+def _build_person(contact) -> dict[str, Any]:
+    """Build a Person dict from a Contact dataclass.
+
+    Person schema requires 'name' (minLength 1).  ORCID must match the 16-digit
+    pattern; skip it if the value doesn't look valid.
+    """
+    parts = [contact.first_name or "", contact.last_name or ""]
+    name = " ".join(p for p in parts if p).strip()
+    if not name:
+        name = contact.email or "Unknown"
+
+    person: dict[str, Any] = {"name": name}
+    if contact.affiliation:
+        person["affiliation"] = contact.affiliation
+    if contact.orcid:
+        # Basic sanity: schema pattern is ^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9X]{3}[0-9X]$
+        import re
+        if re.match(r"^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9X]{4}$", contact.orcid):
+            person["orcid"] = contact.orcid
+    return person
+
+
+def build_record(
+    investigation: Investigation,
+    omics_by_folder: dict[str, str],
+    *,
+    arc_source_uri: str,
+    harvested_at: str,
+    created: str,
+    updated: str,
+    provider: str = "dataplant",
+) -> dict[str, Any]:
+    """Assemble an L2 record dict that validates against record.schema.json.
+
+    Parameters
+    ----------
+    investigation:
+        Parsed ARC metadata (from IsaReader.read).
+    omics_by_folder:
+        Mapping from assay-folder name to omics-vocab classifier output.
+        Values may be vocab keys (e.g. "phenomics") that differ from the schema
+        enum; they are normalised inside this function.
+    arc_source_uri:
+        Canonical URI for the ARC repository (caller-provided; format: uri).
+    harvested_at:
+        ISO-8601 date-time string marking when harvesting ran.
+    created:
+        ISO-8601 date-time string for the record's creation timestamp.
+    updated:
+        ISO-8601 date-time string for the record's last-updated timestamp.
+    provider:
+        ARC registry provider slug (default "dataplant").
+    """
+    record_id = mint_id(provider, investigation.identifier)
+
+    # Deterministic UUID from the canonical source URI so re-harvesting the
+    # same ARC always yields the same uniqueId.
+    unique_id = str(uuid.uuid5(uuid.NAMESPACE_URL, arc_source_uri))
+
+    # ------------------------------------------------------------------
+    # Collect all assays across all studies into a flat list.
+    # omics_by_folder maps folder -> raw vocab value; we normalise to enum.
+    # ------------------------------------------------------------------
+    all_assays: list[dict[str, Any]] = []
+    seen_domains: list[str] = []
+
+    # Deduplicate assay folders in case the same assay appears in multiple studies.
+    seen_folders: set[str] = set()
+    for study in investigation.studies:
+        for assay in study.assays:
+            if assay.folder in seen_folders:
+                continue
+            seen_folders.add(assay.folder)
+            raw_domain = omics_by_folder.get(assay.folder)
+            domain = _map_domain(raw_domain)
+            all_assays.append(_build_assay(assay, domain))
+            seen_domains.append(domain)
+
+    # Schema requires properties.assays to have minItems: 1.  If no assays were
+    # found (e.g. all studies have empty assay lists), synthesise a placeholder.
+    if not all_assays:
+        placeholder = {
+            "id":               "unknown",
+            "domain":           "other",
+            "technology_type":  "unknown",
+            "measurement_type": "unknown",
+            "file_counts":      {"raw": 0, "derived": 0},
+        }
+        all_assays.append(placeholder)
+        seen_domains.append("other")
+
+    # Deduplicated list of domains (preserving first-seen order) with minItems: 1.
+    omics_domains: list[str] = []
+    for d in seen_domains:
+        if d not in omics_domains:
+            omics_domains.append(d)
+    if not omics_domains:
+        omics_domains = ["other"]
+
+    # ------------------------------------------------------------------
+    # Studies
+    # ------------------------------------------------------------------
+    studies: list[dict[str, Any]] = [
+        {
+            "id":    s.identifier,
+            "title": s.title or s.identifier,
+        }
+        for s in investigation.studies
+    ]
+
+    # ------------------------------------------------------------------
+    # Contacts and creators - both populated from investigation.contacts.
+    # ------------------------------------------------------------------
+    persons = [_build_person(c) for c in investigation.contacts]
+
+    # ------------------------------------------------------------------
+    # Publications
+    # ------------------------------------------------------------------
+    publications: list[dict[str, Any]] = []
+    for doi in investigation.dois:
+        pub: dict[str, Any] = {"title": f"Publication ({doi})"}
+        if doi.startswith("10."):
+            pub["doi"] = doi
+        publications.append(pub)
+
+    # ------------------------------------------------------------------
+    # Assemble the record
+    # ------------------------------------------------------------------
+    return {
+        "id":         record_id,
+        "type":       "Feature",
+        "conformsTo": ["https://interplant.org/schemas/record.schema.json"],
+        "time":       {"interval": [None, None]},
+        "geometry":   None,
+        "properties": {
+            "title":              investigation.title or investigation.identifier,
+            "description":        investigation.description or "",
+            "created":            created,
+            "updated":            updated,
+            "keywords":           [],
+            "license":            "unknown",   # Plan 4: extract from ARC ASSAY table
+            "arc_source_uri":     arc_source_uri,
+            "uniqueId":           unique_id,
+            "record_quality":     "partial",   # skeleton does not extract everything
+            "harvested_at":       harvested_at,
+            "harvester_version":  "0.1.0",
+            "contacts":           persons,
+            "creators":           [],
+            "publications":       publications,
+            "omics_domains":      omics_domains,
+            # experiment_context: defaulting to "lab" for the skeleton.
+            # Plan 4 context classifier will replace this with a real value.
+            "experiment_context": "lab",
+            "organism":           [],
+            "project":            [],
+            "studies":            studies,
+            "assays":             all_assays,
+        },
+        "links": [],
+    }
