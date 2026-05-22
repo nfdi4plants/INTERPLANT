@@ -1,4 +1,4 @@
-.PHONY: help up down restart logs psql serve test test-stack test-all lint format clean
+.PHONY: help up down restart logs psql serve test test-stack test-harvester test-harvester-db test-all harvest-prototype lint format clean
 
 help:
 	@echo "INTERPLANT - local development targets"
@@ -12,6 +12,9 @@ help:
 	@echo "  make test       Run the spec tests (no stack needed)"
 	@echo "  make test-stack Run the stack smoke tests (requires the stack up)"
 	@echo "  make test-all   Run all tests (spec + stack)"
+	@echo "  make test-harvester      Run harvester unit tests"
+	@echo "  make test-harvester-db   Run harvester db-backed tests (requires the stack up)"
+	@echo "  make harvest-prototype   Ingest ARCs/ArcPrototype-main into the local Postgres"
 	@echo "  make lint       Run ruff check"
 	@echo "  make format     Run ruff format"
 	@echo "  make clean      Tear down the stack AND delete the Postgres volume"
@@ -42,6 +45,15 @@ test-stack:
 
 test-all:
 	INTERPLANT_STACK_TESTS=1 uv run pytest -v
+
+test-harvester:
+	uv run pytest tests/harvester -v
+
+test-harvester-db:
+	INTERPLANT_STACK_TESTS=1 uv run pytest tests/harvester -v -m db
+
+harvest-prototype:
+	INTERPLANT_STACK_TESTS=1 uv run python -m harvester ingest ARCs/ArcPrototype-main
 
 lint:
 	uv run ruff check .

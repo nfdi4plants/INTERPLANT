@@ -1,0 +1,22 @@
+# Folder-name patterns to omics-domain mappings.
+# Each rule has: a regex pattern (case-insensitive, matched against the assay
+# folder name) and the omics_domain value to emit. First match wins.
+#
+# Keep this list short and well-known. Real-world tuning belongs in Plan 4
+# once the harvester sees ~150 ARCs.
+
+rules:
+  - pattern: '(?i)rna[\-_]?seq'
+    domain:  transcriptomics
+  - pattern: '(?i)chip[\-_]?seq'
+    domain:  epigenomics
+  - pattern: '(?i)atac[\-_]?seq'
+    domain:  epigenomics
+  - pattern: '(?i)(wgs|wgbs|genom)'
+    domain:  genomics
+  - pattern: '(?i)(lc[\-_]?ms.*protein|protein.*lc[\-_]?ms)'
+    domain:  proteomics
+  - pattern: '(?i)(lc[\-_]?ms.*metabol|metabol.*lc[\-_]?ms|gc[\-_]?ms|maldi)'
+    domain:  metabolomics
+  - pattern: '(?i)(phenotyp|imaging.*plant|growth.*chamber)'
+    domain:  phenomics

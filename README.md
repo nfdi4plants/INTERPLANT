@@ -49,3 +49,35 @@ make test-all
 ### How the test gate works
 
 `tests/stack/` is gated by the env var `INTERPLANT_STACK_TESTS=1`. A plain `pytest` invocation will skip the whole package so it does not blow up when the stack is down. The `make test-stack` and `make test-all` targets set the gate automatically.
+
+### Harvester (walking skeleton)
+
+The `harvester/` package ingests one ARC into Postgres end-to-end. Skeleton scope: one ARC at a time, omics-only classifier, no audit log, no nightly schedule. Quality filter, dedup, audit logging, experiment-context classifier, and scheduling are deferred to Plan 4.
+
+End-to-end smoke ingest:
+
+```bash
+make up                  # bring Postgres + pygeoapi up (Plan 2 stack)
+make harvest-prototype   # parse + classify + upsert ARCs/ArcPrototype-main into local Postgres
+make psql                # inspect: SELECT id, payload->>'type' FROM records;
+```
+
+Unit tests (no stack required):
+
+```bash
+make test-harvester
+```
+
+DB-backed tests (requires `make up`):
+
+```bash
+make test-harvester-db
+```
+
+The harvester accepts any ARC root directory:
+
+```bash
+uv run python -m harvester ingest /path/to/some/ARC --dsn postgresql://...
+```
+
+`arctrl` (DataPLANT's ISA-XLSX library) handles parsing. The pipeline is: `IsaReader.read()` -> minimal omics classifier (folder-name + regex vocab) -> `build_record()` -> JSON-schema validation against `docs/specs/schemas/record.schema.json` -> idempotent `INSERT ... ON CONFLICT` upsert into the `records` table.
