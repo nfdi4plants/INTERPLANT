@@ -21,6 +21,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Identifier for the stub study synthesised when an ARC has assays but no
+# studies at all (some ARCs register assays only at the ARC level).
+_SYNTHETIC_STUDY_ID = "unregistered-assays"
+
 
 @dataclass(frozen=True)
 class Assay:
@@ -63,11 +67,16 @@ class IsaReader:
 
         arc = arctrl.ARC.load(str(arc_root))
 
-        # arc.Assays is a flat list; build a lookup so we can attach to studies.
-        assay_by_id: dict[str, Assay] = {}
-        for raw_assay in (arc.Assays or []):
-            assay = _assay_from(raw_assay)
-            assay_by_id[assay.folder] = assay
+        # arc.Assays is a flat list; _assemble_studies joins it onto the studies.
+        assays = [_assay_from(raw) for raw in (arc.Assays or [])]
+        study_specs = [
+            (
+                str(study.Identifier),
+                _str_or_none(getattr(study, "Title", None)),
+                list(getattr(study, "RegisteredAssayIdentifiers", []) or []),
+            )
+            for study in (arc.Studies or [])
+        ]
 
         return Investigation(
             identifier=str(arc.Identifier or ""),
@@ -75,7 +84,7 @@ class IsaReader:
             description=_str_or_none(getattr(arc, "Description", None)),
             dois=_dois_from(arc),
             contacts=[_contact_from(p) for p in (arc.Contacts or [])],
-            studies=[_study_from(s, assay_by_id) for s in (arc.Studies or [])],
+            studies=_assemble_studies(study_specs, assays),
         )
 
 
@@ -103,14 +112,34 @@ def _contact_from(person) -> Contact:
     )
 
 
-def _study_from(study, assay_by_id: dict[str, Assay]) -> Study:
-    registered = list(getattr(study, "RegisteredAssayIdentifiers", []) or [])
-    assays = [assay_by_id[name] for name in registered if name in assay_by_id]
-    return Study(
-        identifier=str(study.Identifier),
-        title=_str_or_none(getattr(study, "Title", None)),
-        assays=assays,
-    )
+def _assemble_studies(
+    study_specs: list[tuple[str, str | None, list[str]]],
+    assays: list[Assay],
+) -> list[Study]:
+    """Join assays onto studies, tolerating ARCs that never register them.
+
+    `study_specs` is a list of (identifier, title, registered_assay_ids) tuples
+    extracted from the ARC's studies. Many real ARCs leave the registered-assay
+    list empty even though assays exist on disk (and in `arc.Assays`); in that
+    case we attach the full assay list rather than silently dropping it. When an
+    ARC has assays but no studies at all, we synthesise one stub study to carry
+    them so downstream record-building still sees the assays.
+    """
+    if not study_specs:
+        if not assays:
+            return []
+        return [Study(identifier=_SYNTHETIC_STUDY_ID, title=None, assays=list(assays))]
+
+    assay_by_folder = {a.folder: a for a in assays}
+    studies: list[Study] = []
+    for identifier, title, registered in study_specs:
+        if registered:
+            attached = [assay_by_folder[name] for name in registered if name in assay_by_folder]
+        else:
+            # Registration column left empty: attach every assay rather than drop them.
+            attached = list(assays)
+        studies.append(Study(identifier=identifier, title=title, assays=attached))
+    return studies
 
 
 def _assay_from(assay) -> Assay:
