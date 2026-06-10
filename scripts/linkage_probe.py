@@ -142,7 +142,7 @@ def probe_arc_raw(arc_root: Path) -> dict:
         investigation = IsaReader().read(arc_root)
         isareader_assay_count = sum(len(s.assays) for s in investigation.studies)
         isareader_n_studies = len(investigation.studies)
-    except Exception as exc:  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         isareader_assay_count = -1
         isareader_n_studies = -1
 
@@ -196,12 +196,15 @@ def main():
                 continue
 
             if assay_count_via_reader > 0:
-                print(f"  -> IsaReader found {assay_count_via_reader} assay(s) - SKIP (not zero-assay)")
+                print(
+                    f"  -> IsaReader found {assay_count_via_reader} assay(s)"
+                    " - SKIP (not zero-assay)"
+                )
                 continue
 
             # This is a zero-assay ARC - do the full probe
             zero_assay_found += 1
-            print(f"  -> IsaReader: 0 assays. Starting deep probe ...")
+            print("  -> IsaReader: 0 assays. Starting deep probe ...")
 
             # Disk inspection
             assay_subdirs = list_assay_subdirs(arc_root)
@@ -228,7 +231,10 @@ def main():
             print(f"  arc.Assays identifiers: {probe['assay_identifiers']}")
             print(f"  arc.Studies count: {len(probe['studies'])}")
             for s in probe["studies"]:
-                print(f"    Study '{s['identifier']}' RegisteredAssayIdentifiers: {s['registered_assay_identifiers']}")
+                print(
+                    f"    Study '{s['identifier']}' RegisteredAssayIdentifiers:"
+                    f" {s['registered_assay_identifiers']}"
+                )
             print(f"  Match analysis: {probe['match_analysis']}")
             print(f"  assays/ subdirs on disk: {assay_subdirs}")
             print(f"  isa.assay.xlsx files on disk: {isa_assay_files}")
@@ -261,10 +267,17 @@ def main():
         elif arc_assay_count > 0 and "MATCHED-exact" not in match_statuses and all(
             s == "NO-REGISTERED-IDS-IN-ANY-STUDY" for s in match_statuses
         ):
-            verdict = "A - BUG: arc has assays but no study registers them (RegisteredAssayIdentifiers is empty)"
+            verdict = (
+                "A - BUG: arc has assays but no study registers them"
+                " (RegisteredAssayIdentifiers is empty)"
+            )
             verdict_counts["A-bug-no-registered"] += 1
         elif arc_assay_count > 0 and any(
-            s in ("MISMATCH-case-only", "MISMATCH-path-prefix", "UNREGISTERED-no-study-links-this-assay")
+            s in (
+                "MISMATCH-case-only",
+                "MISMATCH-path-prefix",
+                "UNREGISTERED-no-study-links-this-assay",
+            )
             for s in match_statuses
         ):
             verdict = "A - BUG: arc has assays but identifiers do not match registered strings"

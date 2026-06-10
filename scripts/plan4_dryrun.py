@@ -387,7 +387,7 @@ def _write_report(results: list[ArcResult], agg: dict) -> Path:
 
     a("# Plan 4 Dry-Run Diagnostic Report")
     a("")
-    a(f"**Date:** 2026-06-10  ")
+    a("**Date:** 2026-06-10  ")
     a(f"**Target:** `{GITLAB_BASE}` (first {SAMPLE_SIZE} public ARCs, max_pages={MAX_PAGES})  ")
     a(
         f"**Headline:** parsed {agg['n_parsed']}/{agg['n_total']}, "
@@ -401,11 +401,17 @@ def _write_report(results: list[ArcResult], agg: dict) -> Path:
     # -- Per-ARC table --------------------------------------------------------
     a("## Per-ARC Results")
     a("")
-    a("| # | Path | Clone | Parse | Assays | Contacts | DOIs | mtype>0 | Build | Valid | Val-errors |")
+    a(
+        "| # | Path | Clone | Parse | Assays | Contacts | DOIs | mtype>0 | Build | Valid |"
+        " Val-errors |"
+    )
     a("|---|------|-------|-------|--------|----------|------|---------|-------|-------|-----------|")
     for idx, r in enumerate(results, 1):
-        clone_s = "ok" if r.clone_ok else f"FAIL"
-        parse_s = "ok" if r.parse_ok else (f"FAIL({r.parse_exc_type})" if r.parse_exc_type else "skip")
+        clone_s = "ok" if r.clone_ok else "FAIL"
+        parse_s = (
+            "ok" if r.parse_ok
+            else (f"FAIL({r.parse_exc_type})" if r.parse_exc_type else "skip")
+        )
         assays_s = str(r.n_assays) if r.parse_ok else "-"
         contacts_s = str(r.n_contacts) if r.parse_ok else "-"
         dois_s = str(r.n_dois) if r.parse_ok else "-"
@@ -415,7 +421,10 @@ def _write_report(results: list[ArcResult], agg: dict) -> Path:
         n_verr = len(r.validate_errors)
         verr_s = str(n_verr) if n_verr > 0 else "-"
         short_path = r.path.split("/")[-1] if "/" in r.path else r.path
-        a(f"| {idx} | `{short_path}` | {clone_s} | {parse_s} | {assays_s} | {contacts_s} | {dois_s} | {mtype_s} | {build_s} | {valid_s} | {verr_s} |")
+        a(
+            f"| {idx} | `{short_path}` | {clone_s} | {parse_s} | {assays_s} | {contacts_s} | "
+            f"{dois_s} | {mtype_s} | {build_s} | {valid_s} | {verr_s} |"
+        )
 
     a("")
     a("---")
