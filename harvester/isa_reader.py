@@ -60,6 +60,9 @@ class Investigation:
     dois: list[str] = field(default_factory=list)
     contacts: list[Contact] = field(default_factory=list)
     studies: list[Study] = field(default_factory=list)
+    organisms: list[str] = field(default_factory=list)
+    license: str | None = None
+    arc_root: Path | None = None
 
 
 class IsaReader:
@@ -88,7 +91,46 @@ class IsaReader:
             dois=_dois_from(arc),
             contacts=[_contact_from(p) for p in (arc.Contacts or [])],
             studies=_assemble_studies(study_specs, assays),
+            organisms=_organisms_from(arc),
         )
+
+
+def _organisms_from(arc) -> list[str]:
+    """Collect organism characteristic values across the ARC's studies.
+
+    Confirmed by the Task 1 discovery spike: organism lives in study ArcTable
+    columns whose header names an organism/species characteristic. Tolerant of
+    header variants (Organism / organism / Species / species_short_names) but
+    excludes 'organism part' (that is tissue, not organism). Defensive: any
+    arctrl shape surprise yields [] rather than breaking ingest.
+    """
+    out: list[str] = []
+    for study in (getattr(arc, "Studies", None) or []):
+        for table in (getattr(study, "Tables", None) or []):
+            out.extend(_organism_values_from_table(table))
+    return out
+
+
+def _organism_values_from_table(table) -> list[str]:
+    try:
+        headers = getattr(table, "Headers", None) or []
+        columns = getattr(table, "Columns", None) or []
+        values: list[str] = []
+        for colidx, header in enumerate(headers):
+            header_str = str(header).lower()
+            if "part" in header_str:
+                continue
+            if "organism" not in header_str and "species" not in header_str:
+                continue
+            if colidx >= len(columns):
+                continue
+            for cell in (getattr(columns[colidx], "Cells", None) or []):
+                text = _annotation_name(cell)
+                if text:
+                    values.append(text)
+        return values
+    except Exception:  # noqa: BLE001 - never let table parsing break ingest
+        return []
 
 
 def _dois_from(arc) -> list[str]:
