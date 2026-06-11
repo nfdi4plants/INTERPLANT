@@ -13,7 +13,9 @@ Verified API notes (arctrl 3.0.5):
 - arc.Studies / arc.Assays / arc.Contacts are flat lists on the ARC object.
 - Study.RegisteredAssayIdentifiers is a list of assay identifier strings.
 - Contact uses .EMail (not .Email).
-- Assay.MeasurementType is the measurement-type field (may be None).
+- Assay.MeasurementType / TechnologyType / TechnologyPlatform are arctrl
+  OntologyAnnotation objects, not plain strings. Use _annotation_name() to
+  extract the .Name field; do NOT call str() on them directly.
 - arc.Publications is a list of Publication objects with a .DOI attribute.
 """
 from __future__ import annotations
@@ -31,6 +33,7 @@ class Assay:
     name: str
     folder: str
     measurement_type: str | None
+    technology_type: str | None = None
 
 
 @dataclass(frozen=True)
@@ -144,13 +147,32 @@ def _assemble_studies(
 
 def _assay_from(assay) -> Assay:
     folder = str(getattr(assay, "Identifier", "")).strip()
-    # MeasurementType is the canonical attribute; may be None if not populated.
-    measurement_type = _str_or_none(
-        getattr(assay, "MeasurementType", None)
-        or getattr(assay, "TechnologyType", None)
+    measurement_type = _annotation_name(getattr(assay, "MeasurementType", None))
+    technology_type = _annotation_name(
+        getattr(assay, "TechnologyType", None)
         or getattr(assay, "TechnologyPlatform", None)
     )
-    return Assay(name=folder, folder=folder, measurement_type=measurement_type)
+    return Assay(
+        name=folder,
+        folder=folder,
+        measurement_type=measurement_type,
+        technology_type=technology_type,
+    )
+
+
+def _annotation_name(value) -> str | None:
+    """Return the .Name of an arctrl OntologyAnnotation, or the plain string.
+
+    arctrl exposes MeasurementType/TechnologyType/TechnologyPlatform as
+    OntologyAnnotation objects whose str() is '{Name = X; TSR = ...; TAN = ...}'.
+    We want just X. Plain strings (used in tests/older paths) pass through.
+    """
+    if value is None:
+        return None
+    name = getattr(value, "Name", None)
+    if name is not None:
+        return _str_or_none(name)
+    return _str_or_none(value)
 
 
 def _str_or_none(value) -> str | None:

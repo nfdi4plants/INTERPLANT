@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from harvester.isa_reader import Assay, IsaReader, _assemble_studies
+from harvester.isa_reader import Assay, IsaReader, _assay_from, _assemble_studies
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "arcs" / "ArcPrototype"
 
@@ -84,3 +84,56 @@ def test_reader_assays_have_folder_names(investigation) -> None:
         for assay in study.assays:
             assert assay.folder
             assert isinstance(assay.folder, str)
+
+
+# ---------------------------------------------------------------------------
+# _assay_from: technology_type split from measurement_type
+# ---------------------------------------------------------------------------
+
+
+class _FakeRawAssay:
+    def __init__(self, identifier, measurement_type=None, technology_type=None):
+        self.Identifier = identifier
+        self.MeasurementType = measurement_type
+        self.TechnologyType = technology_type
+
+
+def test_assay_from_keeps_measurement_and_technology_separate() -> None:
+    raw = _FakeRawAssay("a1", measurement_type="transcription profiling", technology_type="RNA-Seq")
+    assay = _assay_from(raw)
+    assert assay.measurement_type == "transcription profiling"
+    assert assay.technology_type == "RNA-Seq"
+
+
+def test_assay_from_technology_none_when_absent() -> None:
+    raw = _FakeRawAssay("a1", measurement_type="metabolite profiling")
+    assay = _assay_from(raw)
+    assert assay.measurement_type == "metabolite profiling"
+    assert assay.technology_type is None
+
+
+class _FakeOntologyAnnotation:
+    def __init__(self, name):
+        self.Name = name
+
+
+def test_assay_from_extracts_name_from_ontology_annotation() -> None:
+    raw = _FakeRawAssay(
+        "a1",
+        measurement_type=_FakeOntologyAnnotation("imaging"),
+        technology_type=_FakeOntologyAnnotation("microscope"),
+    )
+    assay = _assay_from(raw)
+    assert assay.measurement_type == "imaging"
+    assert assay.technology_type == "microscope"
+
+
+def test_assay_from_technology_platform_fallback() -> None:
+    class _Raw:
+        Identifier = "a1"
+        MeasurementType = None
+        TechnologyType = None
+        TechnologyPlatform = _FakeOntologyAnnotation("Illumina NovaSeq")
+
+    assay = _assay_from(_Raw())
+    assert assay.technology_type == "Illumina NovaSeq"
