@@ -93,6 +93,7 @@ class IsaReader:
             studies=_assemble_studies(study_specs, assays),
             organisms=_organisms_from(arc),
             license=_license_from(arc),
+            arc_root=arc_root,
         )
 
 
