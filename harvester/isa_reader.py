@@ -92,6 +92,7 @@ class IsaReader:
             contacts=[_contact_from(p) for p in (arc.Contacts or [])],
             studies=_assemble_studies(study_specs, assays),
             organisms=_organisms_from(arc),
+            license=_license_from(arc),
         )
 
 
@@ -131,6 +132,29 @@ def _organism_values_from_table(table) -> list[str]:
         return values
     except Exception:  # noqa: BLE001 - never let table parsing break ingest
         return []
+
+
+def _license_from(arc) -> str | None:
+    """Unwrap a license string from arctrl's arc.License object.
+
+    AMENDED per the Task 1 discovery spike: arc.Comments is always empty on
+    real ARCs, so the originally-planned investigation Comment[License] path
+    does not exist. License lives in arc.License (an arctrl License object).
+    Its attribute shape is not documented here, so we probe a few likely
+    name-like attributes defensively; if none yield a value we return None and
+    let extract_license() fall back to the root LICENSE file.
+    """
+    try:
+        license_obj = getattr(arc, "License", None)
+        if license_obj is None:
+            return None
+        for attr in ("Name", "FullName", "fullName", "SPDX", "spdx", "Id", "Identifier"):
+            value = _str_or_none(getattr(license_obj, attr, None))
+            if value:
+                return value
+        return None
+    except Exception:  # noqa: BLE001 - never let license parsing break ingest
+        return None
 
 
 def _dois_from(arc) -> list[str]:
