@@ -167,3 +167,59 @@ def test_build_record_unique_id_is_deterministic() -> None:
         **_CALL_KWARGS,
     )
     assert a["properties"]["uniqueId"] == b["properties"]["uniqueId"]
+
+
+def _rich_investigation(tmp_path) -> Investigation:
+    arc_root = tmp_path / "arc"
+    base = arc_root / "assays" / "RNA-Seq" / "dataset"
+    base.mkdir(parents=True)
+    (base / "r1.fastq").write_text("x", encoding="utf-8")
+    return Investigation(
+        identifier="ArcX",
+        title="A greenhouse study of Arabidopsis",
+        description="Plants grown in the greenhouse.",
+        organisms=["Arabidopsis thaliana"],
+        license="CC-BY-4.0",
+        arc_root=arc_root,
+        studies=[
+            Study(
+                identifier="s1",
+                title="Greenhouse study",
+                assays=[
+                    Assay(
+                        name="RNA-Seq",
+                        folder="RNA-Seq",
+                        measurement_type="transcription profiling",
+                        technology_type="Illumina NovaSeq",
+                    )
+                ],
+            )
+        ],
+    )
+
+
+def test_build_enriches_core_fields(tmp_path) -> None:
+    inv = _rich_investigation(tmp_path)
+    record = build_record(inv, omics_by_folder={"RNA-Seq": "transcriptomics"}, **_CALL_KWARGS)
+    props = record["properties"]
+    assert props["organism"] == ["Arabidopsis thaliana"]
+    assert props["license"] == "CC-BY-4.0"
+    # experiment_context is DEMOTED (spike): always the "lab" stub.
+    assert props["experiment_context"] == "lab"
+    # record_quality core set = [omics, organism]; both present here -> complete.
+    assert props["record_quality"] == "complete"
+    assay = props["assays"][0]
+    assert assay["technology_type"] == "Illumina NovaSeq"
+    assert assay["file_counts"] == {"raw": 1, "derived": 0}
+
+
+def test_build_falls_back_and_marks_partial() -> None:
+    # No organisms, no license, no arc_root, no omics -> all stubs, partial.
+    inv = Investigation(identifier="Bare", title="bare", description=None,
+                        studies=[Study(identifier="s", title="s", assays=[])])
+    record = build_record(inv, omics_by_folder={}, **_CALL_KWARGS)
+    props = record["properties"]
+    assert props["organism"] == []
+    assert props["license"] == "unknown"
+    assert props["experiment_context"] == "lab"
+    assert props["record_quality"] == "partial"
