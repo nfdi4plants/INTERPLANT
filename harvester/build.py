@@ -3,21 +3,26 @@
 The output validates against docs/specs/schemas/record.schema.json (Draft 2020-12)
 together with the assay-extensions.schema.json referenced inside it.
 
-Several fields are synthesised because the walking skeleton does not yet extract
-them from ARC content.  Each synthesis decision is documented with a comment so
-Plan 4 (full extraction pass) knows exactly what to replace:
-
-- experiment_context: hardcoded "lab"; Plan 4 classifier will replace this.
-- technology_type: hardcoded "unknown"; Plan 4 technology extractor will replace this.
-- file_counts: hardcoded {raw:0, derived:0}; Plan 4 file counter will replace this.
-- domain-specific extension fields (library_strategy, platform, ...): hardcoded
-  skeleton defaults; Plan 4 will derive them from ARC assay metadata.
+Plan 4 enrichment status (as of Task 8):
+- organism:           extracted via extractors.organism.extract_organisms.
+- license:            extracted via extractors.license.extract_license.
+- technology_type:    read from Assay.technology_type (parsed by IsaReader).
+- file_counts:        counted via extractors.file_counts.count_assay_files.
+- record_quality:     computed from core set [omics, organism]; "complete" when
+                      both are present, "partial" otherwise.
+- experiment_context: DEMOTED per Task 1 discovery spike - usable field/greenhouse/lab
+                      wording appeared in <20% of real ARCs. Always the "lab" stub.
+- domain-specific extension fields (library_strategy, platform, ...): still skeleton
+  defaults - deriving them from ARC assay metadata is out of scope for Plan 4.
 """
 from __future__ import annotations
 
 import uuid
 from typing import Any
 
+from harvester.extractors.file_counts import count_assay_files
+from harvester.extractors.license import extract_license
+from harvester.extractors.organism import extract_organisms
 from harvester.ids import mint_id
 from harvester.isa_reader import Investigation
 
@@ -105,17 +110,14 @@ def _extension_fields(domain: str) -> dict[str, Any]:
     return {}
 
 
-def _build_assay(
-    assay,
-    domain: str,
-) -> dict[str, Any]:
+def _build_assay(assay, domain: str, file_counts: dict[str, int]) -> dict[str, Any]:
     """Build a single assay dict satisfying AssayCore + assay-extensions.schema.json."""
     record: dict[str, Any] = {
         "id":               assay.folder,
         "domain":           domain,
-        "technology_type":  "unknown",            # Plan 4: extract from ARC
+        "technology_type":  assay.technology_type or "unknown",
         "measurement_type": assay.measurement_type or "unknown",
-        "file_counts":      {"raw": 0, "derived": 0},  # Plan 4: count files
+        "file_counts":      file_counts,
     }
     record.update(_extension_fields(domain))
     return record
@@ -184,6 +186,7 @@ def build_record(
     # Collect all assays across all studies into a flat list.
     # omics_by_folder maps folder -> raw vocab value; we normalise to enum.
     # ------------------------------------------------------------------
+    arc_root = investigation.arc_root
     all_assays: list[dict[str, Any]] = []
     seen_domains: list[str] = []
 
@@ -196,7 +199,12 @@ def build_record(
             seen_folders.add(assay.folder)
             raw_domain = omics_by_folder.get(assay.folder)
             domain = _map_domain(raw_domain)
-            all_assays.append(_build_assay(assay, domain))
+            counts = (
+                count_assay_files(arc_root, assay.folder)
+                if arc_root is not None
+                else {"raw": 0, "derived": 0}
+            )
+            all_assays.append(_build_assay(assay, domain, counts))
             seen_domains.append(domain)
 
     # Schema requires properties.assays to have minItems: 1.  If no assays were
@@ -247,6 +255,29 @@ def build_record(
         publications.append(pub)
 
     # ------------------------------------------------------------------
+    # Enriched record-level fields (Plan 4 Task 8)
+    # ------------------------------------------------------------------
+    organism = extract_organisms(investigation)
+    license_value = (
+        extract_license(investigation, arc_root) if arc_root is not None
+        else (investigation.license.strip() if investigation.license else None)
+    )
+
+    # experiment_context DEMOTED per Task 1 spike: no classifier, always "lab" stub.
+    # Usable field/greenhouse/lab wording appeared in <20% of real ARCs.
+    context = None
+
+    # record_quality: "complete" only when every core discovery field was
+    # genuinely extracted (real value, not a stub fallback). Per the spike's
+    # DEMOTE decision the core set is [omics, organism] - experiment_context
+    # is excluded because it is not reliably extractable.
+    core_extracted = [
+        bool(omics_by_folder),   # omics: at least one real classification
+        bool(organism),          # organism: non-empty
+    ]
+    record_quality = "complete" if all(core_extracted) else "partial"
+
+    # ------------------------------------------------------------------
     # Assemble the record
     # ------------------------------------------------------------------
     return {
@@ -261,20 +292,19 @@ def build_record(
             "created":            created,
             "updated":            updated,
             "keywords":           [],
-            "license":            "unknown",   # Plan 4: extract from ARC ASSAY table
+            "license":            license_value or "unknown",
             "arc_source_uri":     arc_source_uri,
             "uniqueId":           unique_id,
-            "record_quality":     "partial",   # skeleton does not extract everything
+            "record_quality":     record_quality,
             "harvested_at":       harvested_at,
             "harvester_version":  "0.1.0",
             "contacts":           persons,
             "creators":           [],
             "publications":       publications,
             "omics_domains":      omics_domains,
-            # experiment_context: defaulting to "lab" for the skeleton.
-            # Plan 4 context classifier will replace this with a real value.
-            "experiment_context": "lab",
-            "organism":           [],
+            # experiment_context DEMOTED: always "lab" stub (see module docstring).
+            "experiment_context": context or "lab",
+            "organism":           organism,
             "project":            [],
             "studies":            studies,
             "assays":             all_assays,

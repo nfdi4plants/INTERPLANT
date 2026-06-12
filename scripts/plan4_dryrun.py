@@ -7,7 +7,7 @@ docs/progress/2026-06-10-plan4-dryrun.md.
 Pipeline stages tested per ARC:
   1. clone  - shallow git clone, LFS skipped
   2. parse  - IsaReader.read() via arctrl
-  3. omics  - classify_omics() per assay folder
+  3. omics  - classify_omics() per assay, preferring measurement_type
   4. build  - build_record()
   5. validate - Draft202012Validator against record.schema.json + assay-extensions
 
@@ -154,7 +154,10 @@ def _parse_arc(arc_root: Path) -> tuple[Any, str, str]:
 
 
 def _classify_assays(investigation) -> tuple[dict[str, str], int, int]:
-    """Run classify_omics on every assay folder.
+    """Run classify_omics on every assay, preferring measurement_type.
+
+    Mirrors harvester.cli._classify_assays (Plan 4): measurement_type is the
+    richer signal and is tried first, with the assay folder name as fallback.
 
     Returns (omics_by_folder, n_classified_non_none, n_total).
     """
@@ -171,7 +174,7 @@ def _classify_assays(investigation) -> tuple[dict[str, str], int, int]:
                 continue
             seen.add(folder)
             n_total += 1
-            domain = classify_omics(folder)
+            domain = classify_omics(folder, assay.measurement_type)
             omics_by_folder[folder] = domain or "other"
             if domain is not None:
                 n_classified += 1

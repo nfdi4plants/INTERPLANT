@@ -20,3 +20,19 @@ rules:
     domain:  metabolomics
   - pattern: '(?i)(phenotyp|imaging.*plant|growth.*chamber)'
     domain:  phenomics
+
+measurement_type_rules:
+  - pattern: '(?i)(transcript|rna[\-_]?seq|expression profiling.*rna)'
+    domain:  transcriptomics
+  - pattern: '(?i)(metabolite|metabolom)'
+    domain:  metabolomics
+  - pattern: '(?i)(protein|proteom)'
+    domain:  proteomics
+  - pattern: '(?i)(genome sequencing|dna sequencing|genotyp|genom|wgs|wgbs)'
+    domain:  genomics
+  - pattern: '(?i)(phenotyp|morpholog|trait|growth)'
+    domain:  phenomics
+  - pattern: '(?i)(imaging|microscop)'
+    domain:  imaging
+  - pattern: '(?i)(metagenom|amplicon|16s|microbiome)'
+    domain:  microbiome

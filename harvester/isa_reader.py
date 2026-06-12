@@ -13,7 +13,9 @@ Verified API notes (arctrl 3.0.5):
 - arc.Studies / arc.Assays / arc.Contacts are flat lists on the ARC object.
 - Study.RegisteredAssayIdentifiers is a list of assay identifier strings.
 - Contact uses .EMail (not .Email).
-- Assay.MeasurementType is the measurement-type field (may be None).
+- Assay.MeasurementType / TechnologyType / TechnologyPlatform are arctrl
+  OntologyAnnotation objects, not plain strings. Use _annotation_name() to
+  extract the .Name field; do NOT call str() on them directly.
 - arc.Publications is a list of Publication objects with a .DOI attribute.
 """
 from __future__ import annotations
@@ -31,6 +33,7 @@ class Assay:
     name: str
     folder: str
     measurement_type: str | None
+    technology_type: str | None = None
 
 
 @dataclass(frozen=True)
@@ -57,6 +60,9 @@ class Investigation:
     dois: list[str] = field(default_factory=list)
     contacts: list[Contact] = field(default_factory=list)
     studies: list[Study] = field(default_factory=list)
+    organisms: list[str] = field(default_factory=list)
+    license: str | None = None
+    arc_root: Path | None = None
 
 
 class IsaReader:
@@ -85,7 +91,71 @@ class IsaReader:
             dois=_dois_from(arc),
             contacts=[_contact_from(p) for p in (arc.Contacts or [])],
             studies=_assemble_studies(study_specs, assays),
+            organisms=_organisms_from(arc),
+            license=_license_from(arc),
+            arc_root=arc_root,
         )
+
+
+def _organisms_from(arc) -> list[str]:
+    """Collect organism characteristic values across the ARC's studies.
+
+    Confirmed by the Task 1 discovery spike: organism lives in study ArcTable
+    columns whose header names an organism/species characteristic. Tolerant of
+    header variants (Organism / organism / Species / species_short_names) but
+    excludes 'organism part' (that is tissue, not organism). Defensive: any
+    arctrl shape surprise yields [] rather than breaking ingest.
+    """
+    out: list[str] = []
+    for study in (getattr(arc, "Studies", None) or []):
+        for table in (getattr(study, "Tables", None) or []):
+            out.extend(_organism_values_from_table(table))
+    return out
+
+
+def _organism_values_from_table(table) -> list[str]:
+    try:
+        headers = getattr(table, "Headers", None) or []
+        columns = getattr(table, "Columns", None) or []
+        values: list[str] = []
+        for colidx, header in enumerate(headers):
+            header_str = str(header).lower()
+            if "part" in header_str:
+                continue
+            if "organism" not in header_str and "species" not in header_str:
+                continue
+            if colidx >= len(columns):
+                continue
+            for cell in (getattr(columns[colidx], "Cells", None) or []):
+                text = _annotation_name(cell)
+                if text:
+                    values.append(text)
+        return values
+    except Exception:  # noqa: BLE001 - never let table parsing break ingest
+        return []
+
+
+def _license_from(arc) -> str | None:
+    """Unwrap a license string from arctrl's arc.License object.
+
+    AMENDED per the Task 1 discovery spike: arc.Comments is always empty on
+    real ARCs, so the originally-planned investigation Comment[License] path
+    does not exist. License lives in arc.License (an arctrl License object).
+    Its attribute shape is not documented here, so we probe a few likely
+    name-like attributes defensively; if none yield a value we return None and
+    let extract_license() fall back to the root LICENSE file.
+    """
+    try:
+        license_obj = getattr(arc, "License", None)
+        if license_obj is None:
+            return None
+        for attr in ("Name", "FullName", "fullName", "SPDX", "spdx", "Id", "Identifier"):
+            value = _str_or_none(getattr(license_obj, attr, None))
+            if value:
+                return value
+        return None
+    except Exception:  # noqa: BLE001 - never let license parsing break ingest
+        return None
 
 
 def _dois_from(arc) -> list[str]:
@@ -144,13 +214,32 @@ def _assemble_studies(
 
 def _assay_from(assay) -> Assay:
     folder = str(getattr(assay, "Identifier", "")).strip()
-    # MeasurementType is the canonical attribute; may be None if not populated.
-    measurement_type = _str_or_none(
-        getattr(assay, "MeasurementType", None)
-        or getattr(assay, "TechnologyType", None)
+    measurement_type = _annotation_name(getattr(assay, "MeasurementType", None))
+    technology_type = _annotation_name(
+        getattr(assay, "TechnologyType", None)
         or getattr(assay, "TechnologyPlatform", None)
     )
-    return Assay(name=folder, folder=folder, measurement_type=measurement_type)
+    return Assay(
+        name=folder,
+        folder=folder,
+        measurement_type=measurement_type,
+        technology_type=technology_type,
+    )
+
+
+def _annotation_name(value) -> str | None:
+    """Return the .Name of an arctrl OntologyAnnotation, or the plain string.
+
+    arctrl exposes MeasurementType/TechnologyType/TechnologyPlatform as
+    OntologyAnnotation objects whose str() is '{Name = X; TSR = ...; TAN = ...}'.
+    We want just X. Plain strings (used in tests/older paths) pass through.
+    """
+    if value is None:
+        return None
+    name = getattr(value, "Name", None)
+    if name is not None:
+        return _str_or_none(name)
+    return _str_or_none(value)
 
 
 def _str_or_none(value) -> str | None:
