@@ -7,7 +7,7 @@ docs/progress/2026-06-10-plan4-dryrun.md.
 Pipeline stages tested per ARC:
   1. clone  - shallow git clone, LFS skipped
   2. parse  - IsaReader.read() via arctrl
-  3. omics  - classify_omics() per assay folder
+  3. omics  - classify_omics() per assay, preferring measurement_type
   4. build  - build_record()
   5. validate - Draft202012Validator against record.schema.json + assay-extensions
 
