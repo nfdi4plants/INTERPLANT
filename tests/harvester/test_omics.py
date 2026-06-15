@@ -18,6 +18,7 @@ from harvester.classifiers.omics import classify_omics
         ("ChIP-Seq",           "genomics"),        # folded: epigenomics -> genomics
         ("ATAC-seq",           "genomics"),
         ("WGS",                "genomics"),
+        ("metagenomics",       "microbiome"),      # must not be swallowed by 'genom'
         ("phenotyping",        "phenotyping"),     # enum value, not 'phenomics'
         ("lipidomics",         "metabolomics"),    # folded: lipidomics -> metabolomics
     ],
@@ -26,7 +27,10 @@ def test_classify_omics_known_folders(folder: str, expected: str) -> None:
     assert classify_omics(folder) == expected
 
 
-@pytest.mark.parametrize("folder", ["measurement1", "unknown-assay", "", "weather-station"])
+@pytest.mark.parametrize(
+    "folder",
+    ["measurement1", "unknown-assay", "", "weather-station", "vehicle", "hierarchical"],
+)
 def test_classify_omics_unknown_returns_none(folder: str) -> None:
     assert classify_omics(folder) is None
 
@@ -42,6 +46,8 @@ def test_classify_omics_unknown_returns_none(folder: str) -> None:
         ("whole genome sequencing",      "genomics"),
         ("plant phenotyping",            "phenotyping"),
         ("Bacterial 16S RNA",            "microbiome"),
+        ("ITS1 amplicon sequencing",     "microbiome"),
+        ("ITS2 region",                  "microbiome"),
     ],
 )
 def test_classify_omics_by_measurement_type(mtype: str, expected: str) -> None:

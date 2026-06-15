@@ -9,7 +9,7 @@
 # measurement_type (richest signal). Microbiome first so 16S/18S/amplicon win
 # before transcriptomics ("...RNA") or genomics ("metagenom" contains "genom").
 measurement_type_rules:
-  - pattern: '(?i)(metabarcod|metagenom|amplicon|\b16s\b|\b18s\b|\bits\b|microbiom|phage)'
+  - pattern: '(?i)(metabarcod|metagenom|amplicon|\b16s\b|\b18s\b|\bits[12]?\b|microbiom|phage)'
     domain:  microbiome
   - pattern: '(?i)(transcript|rna[\s\-_]?seq|mirna|scrna|isoseq)'
     domain:  transcriptomics
@@ -17,14 +17,17 @@ measurement_type_rules:
     domain:  proteomics
   - pattern: '(?i)(lipidom|metabolit|metabolom|\bgc[\s\-_]?ms\b|maldi)'
     domain:  metabolomics
-  - pattern: '(?i)(genom|genotyp|\bwgs\b|wgbs|chip[\s\-_]?seq|atac[\s\-_]?seq|dap[\s\-_]?seq|hi[\s\-_]?c|dna sequencing|epigenom|methylat)'
+  - pattern: '(?i)(genom|genotyp|\bwgs\b|wgbs|chip[\s\-_]?seq|atac[\s\-_]?seq|dap[\s\-_]?seq|\bhi[\s\-_]?c\b|dna sequencing|epigenom|methylat)'
     domain:  genomics
-  - pattern: '(?i)(phenotyp|morpholog|\btrait|growth|miappe|observation[\s\-_]?unit|field[\s\-_]?trial)'
+  - pattern: '(?i)(phenotyp|morpholog|\btrait|\bgrowth|miappe|observation[\s\-_]?unit|field[\s\-_]?trial)'
     domain:  phenotyping
   - pattern: '(?i)(imaging|microsc)'
     domain:  imaging
 
 # technology_type (method-level; often domain-bearing).
+# Proteomics/metabolomics/microbiome are intentionally omitted here: their
+# technology_type strings (e.g. "mass spectrometry") are ambiguous, so those
+# domains are resolved via measurement_type or folder name instead.
 technology_type_rules:
   - pattern: '(?i)(rna[\s\-_]?seq|transcript)'
     domain:  transcriptomics
@@ -40,16 +43,17 @@ technology_platform_rules:
   - pattern: '(?i)(\blsm\b|confocal|light[\s\-_]?sheet|spinning[\s\-_]?disk|\bsem\b|\btem\b)'
     domain:  imaging
 
-# folder name (last-resort fallback).
+# folder name (last-resort fallback). Microbiome precedes the genomics rules so
+# "metagenom" (which contains "genom") is not misrouted to genomics.
 rules:
   - pattern: '(?i)rna[\s\-_]?seq'
     domain:  transcriptomics
-  - pattern: '(?i)(chip[\s\-_]?seq|atac[\s\-_]?seq|dap[\s\-_]?seq|hi[\s\-_]?c)'
+  - pattern: '(?i)(16s|18s|metabarcod|metagenom|amplicon|microbiom)'
+    domain:  microbiome
+  - pattern: '(?i)(chip[\s\-_]?seq|atac[\s\-_]?seq|dap[\s\-_]?seq|\bhi[\s\-_]?c\b)'
     domain:  genomics
   - pattern: '(?i)(\bwgs\b|wgbs|genom|genotyp)'
     domain:  genomics
-  - pattern: '(?i)(16s|18s|metabarcod|metagenom|amplicon|microbiom)'
-    domain:  microbiome
   - pattern: '(?i)(lc[\s\-_]?ms.*protein|protein.*lc[\s\-_]?ms|proteom|turboid|co[\s\-_]?ip)'
     domain:  proteomics
   - pattern: '(?i)(lipidom|lc[\s\-_]?ms.*metabol|metabol.*lc[\s\-_]?ms|metabolom|gc[\s\-_]?ms|maldi)'
