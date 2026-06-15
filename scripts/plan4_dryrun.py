@@ -81,6 +81,8 @@ class ArcResult:
 
     omics_by_folder: dict[str, str] = field(default_factory=dict)
     omics_mtype_by_folder: dict[str, str] = field(default_factory=dict)
+    omics_techtype_by_folder: dict[str, str] = field(default_factory=dict)
+    omics_techplat_by_folder: dict[str, str] = field(default_factory=dict)
 
     build_ok: bool = False
     build_error: str = ""
@@ -156,20 +158,18 @@ def _parse_arc(arc_root: Path) -> tuple[Any, str, str]:
         return None, type(exc).__name__, str(exc)[:300]
 
 
-def _classify_assays(
-    investigation,
-) -> tuple[dict[str, str], dict[str, str], int, int]:
+def _classify_assays(investigation):
     """Run classify_omics on every assay, preferring measurement_type.
 
-    Mirrors harvester.cli._classify_assays (Plan 4): measurement_type is the
-    richer signal and is tried first, with the assay folder name as fallback.
-
-    Returns (omics_by_folder, omics_mtype_by_folder, n_classified_non_none, n_total).
+    Returns (omics_by_folder, mtype_by_folder, techtype_by_folder,
+    techplat_by_folder, n_classified_non_none, n_total).
     """
     from harvester.classifiers.omics import classify_omics
 
     omics_by_folder: dict[str, str] = {}
-    omics_mtype_by_folder: dict[str, str] = {}
+    mtype_by_folder: dict[str, str] = {}
+    techtype_by_folder: dict[str, str] = {}
+    techplat_by_folder: dict[str, str] = {}
     n_total = 0
     n_classified = 0
     seen: set[str] = set()
@@ -180,13 +180,25 @@ def _classify_assays(
                 continue
             seen.add(folder)
             n_total += 1
-            mtype = assay.measurement_type
-            domain = classify_omics(folder, mtype)
+            mtype = assay.measurement_type or ""
+            techtype = assay.technology_type or ""
+            techplat = getattr(assay, "technology_platform", None) or ""
+            mtype_by_folder[folder] = mtype
+            techtype_by_folder[folder] = techtype
+            techplat_by_folder[folder] = techplat
+            domain = classify_omics(
+                folder,
+                assay.measurement_type,
+                technology_type=assay.technology_type,
+                technology_platform=getattr(assay, "technology_platform", None),
+            )
             omics_by_folder[folder] = domain or "other"
-            omics_mtype_by_folder[folder] = mtype if mtype is not None else ""
             if domain is not None:
                 n_classified += 1
-    return omics_by_folder, omics_mtype_by_folder, n_classified, n_total
+    return (
+        omics_by_folder, mtype_by_folder, techtype_by_folder,
+        techplat_by_folder, n_classified, n_total,
+    )
 
 
 def _build(investigation, omics_by_folder: dict[str, str], web_url: str) -> tuple[Any, str]:
@@ -289,13 +301,16 @@ def run_dryrun() -> list[ArcResult]:
             )
 
             # -- Stage 3: omics classification ---------------------------------
-            omics_by_folder, omics_mtype_by_folder, n_classified, n_total = (
-                _classify_assays(investigation)
-            )
+            (
+                omics_by_folder, mtype_by_folder, techtype_by_folder,
+                techplat_by_folder, n_classified, n_total,
+            ) = _classify_assays(investigation)
             r.omics_classified = n_classified
             r.omics_total = n_total
             r.omics_by_folder = omics_by_folder
-            r.omics_mtype_by_folder = omics_mtype_by_folder
+            r.omics_mtype_by_folder = mtype_by_folder
+            r.omics_techtype_by_folder = techtype_by_folder
+            r.omics_techplat_by_folder = techplat_by_folder
             log.info(
                 "  omics - classified=%d/%d",
                 n_classified, n_total,
@@ -657,6 +672,32 @@ def _write_report(results: list[ArcResult], agg: dict) -> Path:
     return report_path
 
 
+def _write_context(results: list[ArcResult]) -> Path:
+    """Emit a machine-readable per-folder signal snapshot for gold labelling."""
+    import yaml
+
+    context_path = REPO_ROOT / "docs" / "progress" / "omics_context.yaml"
+    rows: list[dict] = []
+    for r in results:
+        if not r.parse_ok:
+            continue
+        short = r.path.split("/")[-1] if "/" in r.path else r.path
+        for folder in sorted(r.omics_by_folder):
+            rows.append({
+                "arc": short,
+                "folder": folder,
+                "measurement_type": r.omics_mtype_by_folder.get(folder, ""),
+                "technology_type": r.omics_techtype_by_folder.get(folder, ""),
+                "technology_platform": r.omics_techplat_by_folder.get(folder, ""),
+                "predicted_domain": r.omics_by_folder.get(folder, "other"),
+            })
+    context_path.write_text(
+        yaml.safe_dump({"rows": rows}, sort_keys=False, allow_unicode=True),
+        encoding="utf-8",
+    )
+    return context_path
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
@@ -691,6 +732,9 @@ def main() -> None:
     log.info("=== Writing report ===")
     report_path = _write_report(results, agg)
     log.info("Report written to: %s", report_path)
+
+    context_path = _write_context(results)
+    log.info("Context snapshot written to: %s", context_path)
     log.info("=== Plan 4 dry-run complete ===")
 
 
