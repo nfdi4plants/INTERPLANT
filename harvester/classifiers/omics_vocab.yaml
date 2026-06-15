@@ -36,3 +36,9 @@ measurement_type_rules:
     domain:  imaging
   - pattern: '(?i)(metagenom|amplicon|16s|microbiome)'
     domain:  microbiome
+
+# Technology signals. technology_type is method-level; technology_platform is
+# the instrument model. Populated in a later task. Empty here so the signature
+# lands without changing behavior.
+technology_type_rules: []
+technology_platform_rules: []
