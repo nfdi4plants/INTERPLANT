@@ -1,44 +1,60 @@
-# Folder-name patterns to omics-domain mappings.
-# Each rule has: a regex pattern (case-insensitive, matched against the assay
-# folder name) and the omics_domain value to emit. First match wins.
-#
-# Keep this list short and well-known. Real-world tuning belongs in Plan 4
-# once the harvester sees ~150 ARCs.
+# Omics-domain classifier vocabulary. Single source of truth.
+# Every `domain` value MUST be one of the 8 schema-enum values:
+#   transcriptomics, genomics, proteomics, metabolomics,
+#   phenotyping, imaging, microbiome, other
+# Folding policy: lipidomics -> metabolomics; epigenomics/ChIP/ATAC -> genomics.
+# Within each list, first match wins. Order across lists is fixed in code:
+# measurement_type_rules, technology_type_rules, technology_platform_rules, rules.
 
-rules:
-  - pattern: '(?i)rna[\-_]?seq'
-    domain:  transcriptomics
-  - pattern: '(?i)chip[\-_]?seq'
-    domain:  epigenomics
-  - pattern: '(?i)atac[\-_]?seq'
-    domain:  epigenomics
-  - pattern: '(?i)(wgs|wgbs|genom)'
-    domain:  genomics
-  - pattern: '(?i)(lc[\-_]?ms.*protein|protein.*lc[\-_]?ms)'
-    domain:  proteomics
-  - pattern: '(?i)(lc[\-_]?ms.*metabol|metabol.*lc[\-_]?ms|gc[\-_]?ms|maldi)'
-    domain:  metabolomics
-  - pattern: '(?i)(phenotyp|imaging.*plant|growth.*chamber)'
-    domain:  phenomics
-
+# measurement_type (richest signal). Microbiome first so 16S/18S/amplicon win
+# before transcriptomics ("...RNA") or genomics ("metagenom" contains "genom").
 measurement_type_rules:
-  - pattern: '(?i)(transcript|rna[\-_]?seq|expression profiling.*rna)'
-    domain:  transcriptomics
-  - pattern: '(?i)(metabolite|metabolom)'
-    domain:  metabolomics
-  - pattern: '(?i)(protein|proteom)'
-    domain:  proteomics
-  - pattern: '(?i)(genome sequencing|dna sequencing|genotyp|genom|wgs|wgbs)'
-    domain:  genomics
-  - pattern: '(?i)(phenotyp|morpholog|trait|growth)'
-    domain:  phenomics
-  - pattern: '(?i)(imaging|microscop)'
-    domain:  imaging
-  - pattern: '(?i)(metagenom|amplicon|16s|microbiome)'
+  - pattern: '(?i)(metabarcod|metagenom|amplicon|\b16s\b|\b18s\b|\bits\b|microbiom|phage)'
     domain:  microbiome
+  - pattern: '(?i)(transcript|rna[\s\-_]?seq|mirna|scrna|isoseq)'
+    domain:  transcriptomics
+  - pattern: '(?i)(proteom|\bprotein\b|protein structure|turboid|co[\s\-_]?ip|\bdda\b|\bdia\b)'
+    domain:  proteomics
+  - pattern: '(?i)(lipidom|metabolit|metabolom|\bgc[\s\-_]?ms\b|maldi)'
+    domain:  metabolomics
+  - pattern: '(?i)(genom|genotyp|\bwgs\b|wgbs|chip[\s\-_]?seq|atac[\s\-_]?seq|dap[\s\-_]?seq|hi[\s\-_]?c|dna sequencing|epigenom|methylat)'
+    domain:  genomics
+  - pattern: '(?i)(phenotyp|morpholog|\btrait|growth|miappe|observation[\s\-_]?unit|field[\s\-_]?trial)'
+    domain:  phenotyping
+  - pattern: '(?i)(imaging|microsc)'
+    domain:  imaging
 
-# Technology signals. technology_type is method-level; technology_platform is
-# the instrument model. Populated in a later task. Empty here so the signature
-# lands without changing behavior.
-technology_type_rules: []
-technology_platform_rules: []
+# technology_type (method-level; often domain-bearing).
+technology_type_rules:
+  - pattern: '(?i)(rna[\s\-_]?seq|transcript)'
+    domain:  transcriptomics
+  - pattern: '(?i)(dna microarray|nucleotide sequencing|dna sequencing|exome|\bwgs\b)'
+    domain:  genomics
+  - pattern: '(?i)(microsc|imaging)'
+    domain:  imaging
+
+# technology_platform (instrument model). ONLY unambiguous instruments.
+# Sequencers and generic mass specs are deliberately omitted: they are shared
+# across domains and must defer to measurement_type / folder.
+technology_platform_rules:
+  - pattern: '(?i)(\blsm\b|confocal|light[\s\-_]?sheet|spinning[\s\-_]?disk|\bsem\b|\btem\b)'
+    domain:  imaging
+
+# folder name (last-resort fallback).
+rules:
+  - pattern: '(?i)rna[\s\-_]?seq'
+    domain:  transcriptomics
+  - pattern: '(?i)(chip[\s\-_]?seq|atac[\s\-_]?seq|dap[\s\-_]?seq|hi[\s\-_]?c)'
+    domain:  genomics
+  - pattern: '(?i)(\bwgs\b|wgbs|genom|genotyp)'
+    domain:  genomics
+  - pattern: '(?i)(16s|18s|metabarcod|metagenom|amplicon|microbiom)'
+    domain:  microbiome
+  - pattern: '(?i)(lc[\s\-_]?ms.*protein|protein.*lc[\s\-_]?ms|proteom|turboid|co[\s\-_]?ip)'
+    domain:  proteomics
+  - pattern: '(?i)(lipidom|lc[\s\-_]?ms.*metabol|metabol.*lc[\s\-_]?ms|metabolom|gc[\s\-_]?ms|maldi)'
+    domain:  metabolomics
+  - pattern: '(?i)(phenotyp|imaging.*plant|growth.*chamber|field[\s\-_]?trial)'
+    domain:  phenotyping
+  - pattern: '(?i)(clsm|microsc|light[\s\-_]?sheet|confocal|drone|ir[\s\-_]?imaging)'
+    domain:  imaging
