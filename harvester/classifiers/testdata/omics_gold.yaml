@@ -10,28 +10,28 @@ rows:
     technology_type: ''
     technology_platform: ''
     gold_domain: other
-    needs_review: true
+    needs_review: false
   - arc: drone_test_endpoint
     folder: test_deposit_01
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: other
-    needs_review: true
+    needs_review: false
   - arc: drone_test_endpoint
     folder: test_deposit_02
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: other
-    needs_review: true
+    needs_review: false
   - arc: ayash-2026-spatial-proteomics
     folder: Mass-Spectrometry
     measurement_type: Mass Spectrometry
     technology_type: ''
     technology_platform: Exactive Plus
     gold_domain: proteomics
-    needs_review: true
+    needs_review: false
   - arc: ayash-2026-spatial-proteomics
     folder: Microscopy
     measurement_type: imaging
@@ -45,7 +45,7 @@ rows:
     technology_type: ''
     technology_platform: ''
     gold_domain: proteomics
-    needs_review: true
+    needs_review: false
   - arc: 260505_EMBOReports
     folder: 260505_EMBOReports_s1_a1
     measurement_type: Lipidomics
@@ -94,84 +94,84 @@ rows:
     technology_type: Xcalibur
     technology_platform: ''
     gold_domain: metabolomics
-    needs_review: true
+    needs_review: false
   - arc: 260505_EMBOReports
     folder: Processing lipid data s6
     measurement_type: Data Processing
     technology_type: Xcalibur
     technology_platform: ''
     gold_domain: metabolomics
-    needs_review: true
+    needs_review: false
   - arc: master_template
     folder: Genomics_Assay
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: genomics
-    needs_review: true
+    needs_review: false
   - arc: master_template
     folder: Metabolomics_Assay
     measurement_type: Metabolomics
     technology_type: Chromatography
     technology_platform: ''
     gold_domain: metabolomics
-    needs_review: true
+    needs_review: false
   - arc: master_template
     folder: Proteomics_Assay
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: proteomics
-    needs_review: true
+    needs_review: false
   - arc: master_template
     folder: Transcriptomics_Assay
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: transcriptomics
-    needs_review: true
+    needs_review: false
   - arc: review_test
     folder: Experiment_1__Bacterial_Cultivation
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: microbiome
-    needs_review: true
+    needs_review: false
   - arc: review_test
     folder: Experiment_2__DNA_Extraction
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: genomics
-    needs_review: true
+    needs_review: false
   - arc: review_test
     folder: Experiment_3__Library_Preparation_-_FFPE_Repair__A-tailing__Adapter_Ligation
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: genomics
-    needs_review: true
+    needs_review: false
   - arc: review_test
     folder: Experiment_4__Sequencing_Run
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: genomics
-    needs_review: true
+    needs_review: false
   - arc: review_test
     folder: Experiment_5__Bioinformatic_Analysis
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: other
-    needs_review: true
+    needs_review: false
   - arc: example-high-throughput-phenotyping
     folder: ftir-analysis
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: phenotyping
-    needs_review: true
+    needs_review: false
   - arc: example-high-throughput-phenotyping
     folder: phenotyping
     measurement_type: high-throughput phenotyping
@@ -199,42 +199,42 @@ rows:
     technology_type: ''
     technology_platform: ''
     gold_domain: transcriptomics
-    needs_review: true
+    needs_review: false
   - arc: Genomics
     folder: Experiment_1__Bacterial_Cultivation
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: genomics
-    needs_review: true
+    needs_review: false
   - arc: Genomics
     folder: Experiment_2__DNA_Extraction
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: genomics
-    needs_review: true
+    needs_review: false
   - arc: Genomics
     folder: Experiment_3__Library_Preparation_-_FFPE_Repair__A-tailing__Adapter_Ligation
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: genomics
-    needs_review: true
+    needs_review: false
   - arc: Genomics
     folder: Experiment_4__Sequencing_Run
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: genomics
-    needs_review: true
+    needs_review: false
   - arc: Genomics
     folder: Experiment_5__Bioinformatic_Analysis
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: genomics
-    needs_review: true
+    needs_review: false
   - arc: Facultative-CAM-in-Talinum
     folder: GCqTOF_targets
     measurement_type: GCqTOF targeted
@@ -248,7 +248,7 @@ rows:
     technology_type: ''
     technology_platform: ''
     gold_domain: metabolomics
-    needs_review: true
+    needs_review: false
   - arc: Facultative-CAM-in-Talinum
     folder: RNASeq
     measurement_type: mRNA Sequencing
@@ -262,21 +262,21 @@ rows:
     technology_type: ''
     technology_platform: ''
     gold_domain: phenotyping
-    needs_review: true
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: ShootPhenotyping-CarbonNitrogen
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: phenotyping
-    needs_review: true
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: ShootPhenotyping-FlaSla
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: phenotyping
-    needs_review: true
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: ShootPhenotypingManual
     measurement_type: plant trait
@@ -289,127 +289,162 @@ rows:
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-01_tree_analysis
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-02_pca_blup
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-02b_pcoa_blup
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-03_pca_phylogeny
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-04_mean_trait_performance
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-05_trait_partitioning
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-06_pairwise_correlations
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-07_effect_sizes_phylogeny
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-08_extract_env_variables
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-09_pre_process_env_data
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-10_env_predictors
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-12_variance_partitioning
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-12b_variance_partitioning
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-12c_variance_partitioning
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-13_geographic_map
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: AnnualPerennialTraitSyndromes
     folder: da-14_raw_trait_boxplots
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: phenotyping
+    needs_review: false
   - arc: ARC_SiCHIT2_B
     folder: Mass spec assay
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: proteomics
-    needs_review: true
+    needs_review: false
+  - arc: ARC_SiCHIT2_B
+    folder: Phylogeny
+    measurement_type: ''
+    technology_type: ''
+    technology_platform: ''
+    gold_domain: genomics
+    needs_review: false
+  - arc: ARC_SiCHIT2_B
+    folder: ROS
+    measurement_type: ''
+    technology_type: ''
+    technology_platform: ''
+    gold_domain: genomics
+    needs_review: false
+  - arc: ARC_SiCHIT2_B
+    folder: chitinase assay
+    measurement_type: ''
+    technology_type: ''
+    technology_platform: ''
+    gold_domain: proteomics
+    needs_review: false
+  - arc: ARC_SiCHIT2_B
+    folder: gene expression assay
+    measurement_type: gene
+    technology_type: ''
+    technology_platform: ''
+    gold_domain: transcriptomics
+    needs_review: false
+  - arc: ARC_SiCHIT2_B
+    folder: Mass spec assay
+    measurement_type: ''
+    technology_type: ''
+    technology_platform: ''
+    gold_domain: proteomics
+    needs_review: false
   - arc: ARC_SiCHIT2_B
     folder: Phylogeny
     measurement_type: ''
@@ -422,57 +457,22 @@ rows:
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
-  - arc: ARC_SiCHIT2_B
-    folder: chitinase assay
-    measurement_type: ''
-    technology_type: ''
-    technology_platform: ''
-    gold_domain: proteomics
-    needs_review: true
-  - arc: ARC_SiCHIT2_B
-    folder: gene expression assay
-    measurement_type: gene
-    technology_type: ''
-    technology_platform: ''
-    gold_domain: transcriptomics
-    needs_review: true
-  - arc: ARC_SiCHIT2_B
-    folder: Mass spec assay
-    measurement_type: ''
-    technology_type: ''
-    technology_platform: ''
-    gold_domain: proteomics
-    needs_review: true
-  - arc: ARC_SiCHIT2_B
-    folder: Phylogeny
-    measurement_type: ''
-    technology_type: ''
-    technology_platform: ''
     gold_domain: genomics
-    needs_review: true
-  - arc: ARC_SiCHIT2_B
-    folder: ROS
-    measurement_type: ''
-    technology_type: ''
-    technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    needs_review: false
   - arc: ARC_SiCHIT2_B
     folder: chitinase assay
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: proteomics
-    needs_review: true
+    needs_review: false
   - arc: ARC_SiCHIT2_B
     folder: gene expression assay
     measurement_type: gene
     technology_type: ''
     technology_platform: ''
     gold_domain: transcriptomics
-    needs_review: true
+    needs_review: false
   - arc: 2026_ATPLyzer
     folder: Docking_anaylsis_of_nucleotides_by_structure
     measurement_type: protein-ligand interaction
@@ -493,21 +493,21 @@ rows:
     technology_type: ratiometric fluorescence imaging
     technology_platform: ''
     gold_domain: metabolomics
-    needs_review: true
+    needs_review: false
   - arc: 2026_ATPLyzer
     folder: in_vivo_ecoli_growth_csource
     measurement_type: intracellular metabolite quantification
     technology_type: ratiometric fluorescence imaging
     technology_platform: ''
     gold_domain: metabolomics
-    needs_review: true
+    needs_review: false
   - arc: 2026_ATPLyzer
     folder: protein_production_and_purification
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: proteomics
-    needs_review: true
+    needs_review: false
   - arc: 2026_ATPLyzer
     folder: sec-saxs-structural-analysis
     measurement_type: protein structure determination
@@ -521,7 +521,7 @@ rows:
     technology_type: ''
     technology_platform: ''
     gold_domain: genomics
-    needs_review: true
+    needs_review: false
   - arc: Pennellii_Cheesmaniae_genomes
     folder: Genome_assembly
     measurement_type: ''
@@ -535,14 +535,14 @@ rows:
     technology_type: ''
     technology_platform: ''
     gold_domain: other
-    needs_review: true
+    needs_review: false
   - arc: Pennellii_Cheesmaniae_genomes
     folder: Transposable_Element_annotation
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: genomics
-    needs_review: true
+    needs_review: false
   - arc: Buchmann_2025_GP-rapid
     folder: G01_Selection_of_five_GPR_lines
     measurement_type: Genotyping
@@ -570,7 +570,7 @@ rows:
     technology_type: ''
     technology_platform: ''
     gold_domain: transcriptomics
-    needs_review: true
+    needs_review: false
   - arc: Buchmann_2025_GP-rapid
     folder: P01_Morphological_comparison_LD_data
     measurement_type: Morphology
@@ -591,14 +591,14 @@ rows:
     technology_type: ''
     technology_platform: ''
     gold_domain: genomics
-    needs_review: true
+    needs_review: false
   - arc: Buchmann_2025_GP-rapid
     folder: P04_Visualization
     measurement_type: Box Plot
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: genomics
+    needs_review: false
   - arc: Kaplunova_2025_TPJ
     folder: Microbiota Profiling
     measurement_type: Bacterial 16S RNA
@@ -612,21 +612,21 @@ rows:
     technology_type: ''
     technology_platform: ''
     gold_domain: microbiome
-    needs_review: true
+    needs_review: false
   - arc: Kaplunova_2025_TPJ
     folder: Rice ArtSoil shoot length
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: phenotyping
-    needs_review: true
+    needs_review: false
   - arc: Kaplunova_2025_TPJ
     folder: Shoot Fresh Mass
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: phenotyping
-    needs_review: true
+    needs_review: false
   - arc: Kaplunova_2025_TPJ
     folder: Single-cell Transcriptomics
     measurement_type: ''
@@ -639,47 +639,47 @@ rows:
     measurement_type: Inductively-Coupled Plasma Mass Spectrometry
     technology_type: Agilent instrument model
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: transcriptomics
+    needs_review: false
   - arc: Kaplunova_2025_TPJ
     folder: Total Root Length
     measurement_type: root length
     technology_type: ''
     technology_platform: Fiji
     gold_domain: phenotyping
-    needs_review: true
+    needs_review: false
   - arc: Kaplunova_2025_TPJ
     folder: Visualization
     measurement_type: ''
     technology_type: ''
     technology_platform: ''
     gold_domain: other
-    needs_review: true
+    needs_review: false
   - arc: MGlucoMeter2_6
     folder: Candidate selection of MGlucoMeter Generation 2
     measurement_type: Affinity
     technology_type: Affinity Chromatography
     technology_platform: Tecan
     gold_domain: proteomics
-    needs_review: true
+    needs_review: false
   - arc: MGlucoMeter2_6
     folder: In vitro analysis of MGlucoMeter2_6 variants
     measurement_type: site-directed mutagenesis
     technology_type: ''
     technology_platform: ''
     gold_domain: proteomics
-    needs_review: true
+    needs_review: false
   - arc: MGlucoMeter2_6
     folder: In vivo detection of glucose
     measurement_type: Imaging
     technology_type: Axiozoom
     technology_platform: ''
     gold_domain: imaging
-    needs_review: true
+    needs_review: false
   - arc: MGlucoMeter2_6
     folder: Monitoring uptake of glucose into Arabidopsis roots
     measurement_type: Agrobacterium mediated transformation of plants
     technology_type: ''
     technology_platform: ''
-    gold_domain: other
-    needs_review: true
+    gold_domain: imaging
+    needs_review: false
