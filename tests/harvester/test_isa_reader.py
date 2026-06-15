@@ -128,7 +128,7 @@ def test_assay_from_extracts_name_from_ontology_annotation() -> None:
     assert assay.technology_type == "microscope"
 
 
-def test_assay_from_technology_platform_fallback() -> None:
+def test_assay_from_technology_platform_stored_separately() -> None:
     class _Raw:
         Identifier = "a1"
         MeasurementType = None
@@ -136,4 +136,44 @@ def test_assay_from_technology_platform_fallback() -> None:
         TechnologyPlatform = _FakeOntologyAnnotation("Illumina NovaSeq")
 
     assay = _assay_from(_Raw())
-    assert assay.technology_type == "Illumina NovaSeq"
+    assert assay.technology_type is None
+    assert assay.technology_platform == "Illumina NovaSeq"
+
+
+# ---------------------------------------------------------------------------
+# _assay_from: technology_platform split from technology_type
+# ---------------------------------------------------------------------------
+
+
+def test_assay_from_keeps_type_and_platform_separate() -> None:
+    from types import SimpleNamespace
+
+    def _ann(name: str) -> SimpleNamespace:
+        return SimpleNamespace(Name=name)
+
+    raw = SimpleNamespace(
+        Identifier="assay1",
+        MeasurementType=_ann("transcription profiling"),
+        TechnologyType=_ann("RNA-Seq"),
+        TechnologyPlatform=_ann("Illumina NovaSeq 6000"),
+    )
+    assay = _assay_from(raw)
+    assert assay.technology_type == "RNA-Seq"
+    assert assay.technology_platform == "Illumina NovaSeq 6000"
+
+
+def test_assay_from_platform_none_when_absent() -> None:
+    from types import SimpleNamespace
+
+    def _ann(name: str) -> SimpleNamespace:
+        return SimpleNamespace(Name=name)
+
+    raw = SimpleNamespace(
+        Identifier="assay2",
+        MeasurementType=_ann("metabolite profiling"),
+        TechnologyType=_ann("mass spectrometry"),
+        TechnologyPlatform=None,
+    )
+    assay = _assay_from(raw)
+    assert assay.technology_type == "mass spectrometry"
+    assert assay.technology_platform is None

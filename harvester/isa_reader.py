@@ -34,6 +34,7 @@ class Assay:
     folder: str
     measurement_type: str | None
     technology_type: str | None = None
+    technology_platform: str | None = None
 
 
 @dataclass(frozen=True)
@@ -215,15 +216,14 @@ def _assemble_studies(
 def _assay_from(assay) -> Assay:
     folder = str(getattr(assay, "Identifier", "")).strip()
     measurement_type = _annotation_name(getattr(assay, "MeasurementType", None))
-    technology_type = _annotation_name(
-        getattr(assay, "TechnologyType", None)
-        or getattr(assay, "TechnologyPlatform", None)
-    )
+    technology_type = _annotation_name(getattr(assay, "TechnologyType", None))
+    technology_platform = _annotation_name(getattr(assay, "TechnologyPlatform", None))
     return Assay(
         name=folder,
         folder=folder,
         measurement_type=measurement_type,
         technology_type=technology_type,
+        technology_platform=technology_platform,
     )
 
 
