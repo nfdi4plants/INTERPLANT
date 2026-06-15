@@ -79,6 +79,9 @@ class ArcResult:
     omics_classified: int = 0   # matched a real domain (not None)
     omics_total: int = 0        # total assay folders classified
 
+    omics_by_folder: dict[str, str] = field(default_factory=dict)
+    omics_mtype_by_folder: dict[str, str] = field(default_factory=dict)
+
     build_ok: bool = False
     build_error: str = ""
 
@@ -153,17 +156,20 @@ def _parse_arc(arc_root: Path) -> tuple[Any, str, str]:
         return None, type(exc).__name__, str(exc)[:300]
 
 
-def _classify_assays(investigation) -> tuple[dict[str, str], int, int]:
+def _classify_assays(
+    investigation,
+) -> tuple[dict[str, str], dict[str, str], int, int]:
     """Run classify_omics on every assay, preferring measurement_type.
 
     Mirrors harvester.cli._classify_assays (Plan 4): measurement_type is the
     richer signal and is tried first, with the assay folder name as fallback.
 
-    Returns (omics_by_folder, n_classified_non_none, n_total).
+    Returns (omics_by_folder, omics_mtype_by_folder, n_classified_non_none, n_total).
     """
     from harvester.classifiers.omics import classify_omics
 
     omics_by_folder: dict[str, str] = {}
+    omics_mtype_by_folder: dict[str, str] = {}
     n_total = 0
     n_classified = 0
     seen: set[str] = set()
@@ -174,11 +180,13 @@ def _classify_assays(investigation) -> tuple[dict[str, str], int, int]:
                 continue
             seen.add(folder)
             n_total += 1
-            domain = classify_omics(folder, assay.measurement_type)
+            mtype = assay.measurement_type
+            domain = classify_omics(folder, mtype)
             omics_by_folder[folder] = domain or "other"
+            omics_mtype_by_folder[folder] = mtype if mtype is not None else ""
             if domain is not None:
                 n_classified += 1
-    return omics_by_folder, n_classified, n_total
+    return omics_by_folder, omics_mtype_by_folder, n_classified, n_total
 
 
 def _build(investigation, omics_by_folder: dict[str, str], web_url: str) -> tuple[Any, str]:
@@ -281,9 +289,13 @@ def run_dryrun() -> list[ArcResult]:
             )
 
             # -- Stage 3: omics classification ---------------------------------
-            omics_by_folder, n_classified, n_total = _classify_assays(investigation)
+            omics_by_folder, omics_mtype_by_folder, n_classified, n_total = (
+                _classify_assays(investigation)
+            )
             r.omics_classified = n_classified
             r.omics_total = n_total
+            r.omics_by_folder = omics_by_folder
+            r.omics_mtype_by_folder = omics_mtype_by_folder
             log.info(
                 "  omics - classified=%d/%d",
                 n_classified, n_total,
@@ -406,9 +418,12 @@ def _write_report(results: list[ArcResult], agg: dict) -> Path:
     a("")
     a(
         "| # | Path | Clone | Parse | Assays | Contacts | DOIs | mtype>0 | Build | Valid |"
-        " Val-errors |"
+        " Val-errors | Omics domains |"
     )
-    a("|---|------|-------|-------|--------|----------|------|---------|-------|-------|-----------|")
+    a(
+        "|---|------|-------|-------|--------|----------|------|---------|-------|-------|"
+        "-----------|---------------|"
+    )
     for idx, r in enumerate(results, 1):
         clone_s = "ok" if r.clone_ok else "FAIL"
         parse_s = (
@@ -424,9 +439,20 @@ def _write_report(results: list[ArcResult], agg: dict) -> Path:
         n_verr = len(r.validate_errors)
         verr_s = str(n_verr) if n_verr > 0 else "-"
         short_path = r.path.split("/")[-1] if "/" in r.path else r.path
+        if r.parse_ok and r.omics_by_folder:
+            domain_counts: Counter[str] = Counter(r.omics_by_folder.values())
+            omics_parts = [
+                f"{d} x{c}"
+                for d, c in sorted(
+                    domain_counts.items(), key=lambda kv: (-kv[1], kv[0])
+                )
+            ]
+            omics_s = ", ".join(omics_parts)
+        else:
+            omics_s = "-"
         a(
             f"| {idx} | `{short_path}` | {clone_s} | {parse_s} | {assays_s} | {contacts_s} | "
-            f"{dois_s} | {mtype_s} | {build_s} | {valid_s} | {verr_s} |"
+            f"{dois_s} | {mtype_s} | {build_s} | {valid_s} | {verr_s} | {omics_s} |"
         )
 
     a("")
@@ -494,6 +520,23 @@ def _write_report(results: list[ArcResult], agg: dict) -> Path:
         f"**{agg['omics_rate']}** classified to a real domain (not None -> fell back to 'other')."
     )
     a(f"Total assay folders examined: {agg['total_omics_folders']}.")
+    a("")
+
+    # -- Per-folder omics classification table --------------------------------
+    a("## Per-folder omics classification")
+    a("")
+    a("| ARC | Folder | measurement_type | Domain |")
+    a("|-----|--------|-----------------|--------|")
+    for r in results:
+        if not r.parse_ok:
+            continue
+        arc_short = r.path.split("/")[-1] if "/" in r.path else r.path
+        for folder, domain in r.omics_by_folder.items():
+            mtype_raw = r.omics_mtype_by_folder.get(folder, "")
+            mtype_cell = mtype_raw.replace("|", "\\|") if mtype_raw else "-"
+            folder_cell = folder.replace("|", "\\|")
+            domain_cell = domain.replace("|", "\\|")
+            a(f"| {arc_short} | {folder_cell} | {mtype_cell} | {domain_cell} |")
     a("")
 
     # -- Implications for Plan 4 ----------------------------------------------
