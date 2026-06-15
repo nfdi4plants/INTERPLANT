@@ -26,26 +26,6 @@ from harvester.extractors.organism import extract_organisms
 from harvester.ids import mint_id
 from harvester.isa_reader import Investigation
 
-# ---------------------------------------------------------------------------
-# Omics vocab-to-schema-enum mapping
-#
-# The omics classifier (Task 6) may return vocabulary keys that differ from
-# the OmicsDomain enum in record.schema.json.  Map them here.
-# Unknown vocab values fall back to "other".
-# ---------------------------------------------------------------------------
-_OMICS_VOCAB_TO_ENUM: dict[str, str] = {
-    "transcriptomics": "transcriptomics",
-    "genomics":        "genomics",
-    "proteomics":      "proteomics",
-    "metabolomics":    "metabolomics",
-    "epigenomics":     "other",       # not in schema enum; nearest catch-all
-    "phenomics":       "phenotyping", # schema uses 'phenotyping' for trait data
-    "phenotyping":     "phenotyping",
-    "imaging":         "imaging",
-    "microbiome":      "microbiome",
-    "other":           "other",
-}
-
 _SCHEMA_ENUM_VALUES = frozenset({
     "transcriptomics", "genomics", "proteomics", "metabolomics",
     "phenotyping", "imaging", "microbiome", "other",
@@ -53,16 +33,14 @@ _SCHEMA_ENUM_VALUES = frozenset({
 
 
 def _map_domain(raw: str | None) -> str:
-    """Convert a vocab classifier output to a schema-valid OmicsDomain enum value."""
-    if raw is None:
-        return "other"
-    # If it's already a valid enum value, pass through.
+    """Validate a classifier domain against the schema enum.
+
+    The classifier now emits schema-enum values directly; this is a defensive
+    guard so any unexpected/stale value degrades to "other" instead of
+    producing an invalid record.
+    """
     if raw in _SCHEMA_ENUM_VALUES:
         return raw
-    mapped = _OMICS_VOCAB_TO_ENUM.get(raw)
-    if mapped:
-        return mapped
-    # Unknown vocab value: fall back to "other".
     return "other"
 
 
@@ -162,9 +140,9 @@ def build_record(
     investigation:
         Parsed ARC metadata (from IsaReader.read).
     omics_by_folder:
-        Mapping from assay-folder name to omics-vocab classifier output.
-        Values may be vocab keys (e.g. "phenomics") that differ from the schema
-        enum; they are normalised inside this function.
+        Mapping from assay-folder name to classifier output. The classifier
+        emits schema-enum values directly; _map_domain guards against any stale
+        or unexpected value by degrading it to "other".
     arc_source_uri:
         Canonical URI for the ARC repository (caller-provided; format: uri).
     harvested_at:
@@ -198,6 +176,7 @@ def build_record(
                 continue
             seen_folders.add(assay.folder)
             raw_domain = omics_by_folder.get(assay.folder)
+            # _map_domain passes through valid enum values and degrades stale ones.
             domain = _map_domain(raw_domain)
             counts = (
                 count_assay_files(arc_root, assay.folder)
