@@ -100,7 +100,12 @@ def _classify_assays(investigation) -> dict[str, str]:
     out: dict[str, str] = {}
     for study in investigation.studies:
         for assay in study.assays:
-            domain = classify_omics(assay.folder, assay.measurement_type)
+            domain = classify_omics(
+                assay.folder,
+                assay.measurement_type,
+                technology_type=assay.technology_type,
+                technology_platform=getattr(assay, "technology_platform", None),
+            )
             if domain is not None:
                 out[assay.folder] = domain
     return out

@@ -114,20 +114,19 @@ def test_build_record_studies_listed_under_properties() -> None:
 
 
 def test_build_record_unmapped_omics_falls_back_safely() -> None:
-    """If the vocab returns a non-enum value (e.g. 'phenomics'), build_record must
-    map it to a schema-valid OmicsDomain enum value (e.g. 'phenotyping') so the
-    record still validates."""
+    """A non-enum classifier value (e.g. a stale 'phenomics') must degrade to
+    the schema-valid 'other' bucket so the record still validates, never crash."""
     record = build_record(
         _fake_investigation(),
-        # vocab uses 'phenomics' which isn't a schema enum
+        # 'phenomics' is not a schema enum value; it must map to 'other'.
         omics_by_folder={"RNA-Seq": "phenomics"},
         **_CALL_KWARGS,
     )
-    # Just check it doesn't crash and the resulting domain is in the enum.
     domains = record["properties"]["omics_domains"]
     valid = {"transcriptomics", "genomics", "proteomics", "metabolomics",
              "phenotyping", "imaging", "microbiome", "other"}
     assert set(domains) <= valid
+    assert domains == ["other"]
 
 
 @pytest.mark.parametrize(
@@ -137,8 +136,8 @@ def test_build_record_unmapped_omics_falls_back_safely() -> None:
         "genomics",
         "proteomics",
         "metabolomics",
-        "epigenomics",   # maps to 'other'
-        "phenomics",     # maps to 'phenotyping'
+        "epigenomics",   # non-enum -> other
+        "phenomics",     # non-enum -> other
     ],
 )
 def test_build_record_validates_for_every_omics_vocab_value(
