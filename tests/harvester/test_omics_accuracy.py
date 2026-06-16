@@ -15,11 +15,12 @@ from harvester.classifiers.omics import classify_omics
 _GOLD = Path(__file__).parents[2] / "harvester" / "classifiers" / "testdata" / "omics_gold.yaml"
 
 # Regression gate. Achieved accuracy against the human-reviewed gold set is
-# 39/97 = 40.2% (up from a 26.8% baseline). Locked 5 points below that so the
-# gate catches a real regression without flapping on minor vocab tweaks.
-# Context: on the 41 gold rows that carry any measurement/technology signal,
-# accuracy is 65.9%; the remainder are folder-name-only rows the per-folder
-# classifier cannot resolve without ARC-level context (out of scope here).
+# 39/92 = 42.4% (up from a 28.3% baseline on the same set). Locked ~7 points
+# below that so the gate catches a real regression without flapping on minor
+# vocab tweaks. Context: on the 40 gold rows that carry any measurement/
+# technology signal, accuracy is 67.5%; the remainder are folder-name-only rows
+# the per-folder classifier cannot resolve without ARC-level context (out of
+# scope here).
 MIN_ACCURACY = 0.35
 
 

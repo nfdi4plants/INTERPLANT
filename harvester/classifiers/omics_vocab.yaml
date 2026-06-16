@@ -9,7 +9,7 @@
 # measurement_type (richest signal). Microbiome first so 16S/18S/amplicon win
 # before transcriptomics ("...RNA") or genomics ("metagenom" contains "genom").
 measurement_type_rules:
-  - pattern: '(?i)(metabarcod|metagenom|amplicon|\b16s\b|\b18s\b|\bits[12]?\b|microbiom|phage)'
+  - pattern: '(?i)(metabarcod|metagenom|amplicon|\b16s\b|\b18s\b|\bits[\s\-_]?[12]\b|internal transcribed spacer|microbiom|phage)'
     domain:  microbiome
   - pattern: '(?i)(transcript|rna[\s\-_]?seq|mirna|scrna|isoseq)'
     domain:  transcriptomics

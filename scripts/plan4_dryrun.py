@@ -7,7 +7,7 @@ docs/progress/2026-06-10-plan4-dryrun.md.
 Pipeline stages tested per ARC:
   1. clone  - shallow git clone, LFS skipped
   2. parse  - IsaReader.read() via arctrl
-  3. omics  - classify_omics() per assay, preferring measurement_type
+  3. omics  - classify_omics() per assay (measurement_type, then technology, then folder)
   4. build  - build_record()
   5. validate - Draft202012Validator against record.schema.json + assay-extensions
 
@@ -678,11 +678,17 @@ def _write_context(results: list[ArcResult]) -> Path:
 
     context_path = REPO_ROOT / "docs" / "progress" / "omics_context.yaml"
     rows: list[dict] = []
+    # Some ARCs appear more than once in the sample (e.g. mirrored repos); keep
+    # one row per (arc, folder) so each assay folder is counted once.
+    seen: set[tuple[str, str]] = set()
     for r in results:
         if not r.parse_ok:
             continue
         short = r.path.split("/")[-1] if "/" in r.path else r.path
         for folder in sorted(r.omics_by_folder):
+            if (short, folder) in seen:
+                continue
+            seen.add((short, folder))
             rows.append({
                 "arc": short,
                 "folder": folder,
