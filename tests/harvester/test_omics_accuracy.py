@@ -14,9 +14,13 @@ from harvester.classifiers.omics import classify_omics
 
 _GOLD = Path(__file__).parents[2] / "harvester" / "classifiers" / "testdata" / "omics_gold.yaml"
 
-# Set to the achieved accuracy minus a small margin once the expanded vocab
-# lands (later task). Until then we only assert we did not regress below floor.
-MIN_ACCURACY = 0.0
+# Regression gate. Achieved accuracy against the human-reviewed gold set is
+# 39/97 = 40.2% (up from a 26.8% baseline). Locked 5 points below that so the
+# gate catches a real regression without flapping on minor vocab tweaks.
+# Context: on the 41 gold rows that carry any measurement/technology signal,
+# accuracy is 65.9%; the remainder are folder-name-only rows the per-folder
+# classifier cannot resolve without ARC-level context (out of scope here).
+MIN_ACCURACY = 0.35
 
 
 def _load_rows() -> list[dict]:
