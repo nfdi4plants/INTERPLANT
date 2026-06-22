@@ -7,7 +7,6 @@ The CLI orchestrates: IsaReader -> classifier -> build_record -> validate -> ups
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import os
 import sys
@@ -15,18 +14,11 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
-from referencing import Registry, Resource
-
-from harvester import db
-from harvester.build import build_record
-from harvester.classifiers.omics import classify_omics
-from harvester.isa_reader import IsaReader
+from harvester import db, pipeline
 
 logger = logging.getLogger("harvester")
 
 DEFAULT_DSN = "postgresql://interplant:interplant@localhost:5432/interplant"
-SCHEMAS_DIR = Path(__file__).parent.parent / "docs" / "specs" / "schemas"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -69,60 +61,37 @@ def _ingest(arc_path: Path, *, dsn: str, provider: str) -> int:
         return 1
 
     logger.info("Parsing ARC at %s", arc_path)
-    investigation = IsaReader().read(arc_path)
-
-    omics_by_folder = _classify_assays(investigation)
-
-    now_iso = datetime.now(tz=UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
-    # file:// placeholder; Plan 4 replaces with GitLab URL.
-    arc_source_uri = arc_path.resolve().as_uri()
-
-    record = build_record(
-        investigation,
-        omics_by_folder,
-        arc_source_uri=arc_source_uri,
-        harvested_at=now_iso,
-        created=now_iso,
-        updated=now_iso,
-        provider=provider,
-    )
-    _validate(record)
+    now_iso = _now_iso()
+    source_uri = arc_path.resolve().as_uri()
+    validator = pipeline.build_validator()
 
     logger.info("Connecting to %s", _redact(dsn))
     conn = db.connect(dsn)
     db.apply_schema(conn)
-    db.upsert_record(conn, record["id"], record)
-    logger.info("Upserted record %s", record["id"])
+
+    outcome = pipeline.ingest_arc(
+        arc_path,
+        conn=conn,
+        provider=provider,
+        source_uri=source_uri,
+        now_iso=now_iso,
+        validator=validator,
+    )
+    if not outcome.parse_ok:
+        logger.error("Parse failed (%s): %s", outcome.parse_exc_type, outcome.parse_error)
+        return 1
+    if not outcome.build_ok:
+        logger.error("Build failed: %s", outcome.build_error)
+        return 1
+    if not outcome.validate_ok:
+        logger.error("Validation failed: %s", "; ".join(outcome.validate_errors[:5]))
+        return 1
+    logger.info("Upserted record %s", outcome.record_id)
     return 0
 
 
-def _classify_assays(investigation) -> dict[str, str]:
-    out: dict[str, str] = {}
-    for study in investigation.studies:
-        for assay in study.assays:
-            domain = classify_omics(
-                assay.folder,
-                assay.measurement_type,
-                technology_type=assay.technology_type,
-                technology_platform=getattr(assay, "technology_platform", None),
-            )
-            if domain is not None:
-                out[assay.folder] = domain
-    return out
-
-
-def _validate(record: dict) -> None:
-    record_schema = json.loads((SCHEMAS_DIR / "record.schema.json").read_text("utf-8"))
-    assay_ext = json.loads((SCHEMAS_DIR / "assay-extensions.schema.json").read_text("utf-8"))
-    registry = Registry().with_resource(
-        "https://interplant.org/schemas/assay-extensions.schema.json",
-        Resource.from_contents(assay_ext),
-    )
-    Draft202012Validator(
-        record_schema,
-        registry=registry,
-        format_checker=Draft202012Validator.FORMAT_CHECKER,
-    ).validate(record)
+def _now_iso() -> str:
+    return datetime.now(tz=UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def _redact(dsn: str) -> str:

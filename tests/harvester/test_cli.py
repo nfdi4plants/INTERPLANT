@@ -47,7 +47,7 @@ def test_cli_ingest_invokes_upsert_with_built_record(monkeypatch, fake_investiga
     monkeypatch.setattr("harvester.isa_reader.IsaReader.read", fake_read)
     monkeypatch.setattr("harvester.cli.db.connect", lambda dsn: fake_conn)
     monkeypatch.setattr("harvester.cli.db.apply_schema", lambda conn: None)
-    monkeypatch.setattr("harvester.cli.db.upsert_record", fake_upsert)
+    monkeypatch.setattr("harvester.pipeline.db.upsert_record", fake_upsert)
 
     exit_code = cli.main(["ingest", str(FIXTURE), "--dsn", "postgresql://fake"])
     assert exit_code == 0
