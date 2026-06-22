@@ -1,7 +1,8 @@
 """List public ARC projects on a DataPLANT GitLab instance.
 
-The skeleton uses this only via its env-gated test. Production use (pagination
-completeness, retry, audit logging) is deferred to Plan 4.
+`iter_public_arcs` paginates the GitLab projects API (per_page=100) and yields
+only those whose root contains isa.investigation.xlsx. With max_pages=None it
+paginates until the API returns an empty page (production use).
 """
 from __future__ import annotations
 
@@ -14,11 +15,20 @@ logger = logging.getLogger("harvester.enumerate")
 
 _ISA_PATH = "isa.investigation.xlsx"
 
+# Safety backstop against a misbehaving API that never returns an empty page.
+# At per_page=100 this caps enumeration at 100k projects, far above DataPLANT scale.
+_MAX_PAGES_CEILING = 1000
 
-def iter_public_arcs(base_url: str, *, max_pages: int = 5) -> Iterator[dict]:
-    """Yield project descriptors for public projects whose root contains isa.investigation.xlsx."""
+
+def iter_public_arcs(base_url: str, *, max_pages: int | None = None) -> Iterator[dict]:
+    """Yield project descriptors for public projects whose root contains isa.investigation.xlsx.
+
+    max_pages=None paginates until the API returns an empty page (production use),
+    bounded by a safety ceiling; pass an integer to cap pages (tests).
+    """
+    last_page = max_pages if max_pages is not None else _MAX_PAGES_CEILING
     with httpx.Client(base_url=base_url, timeout=15.0) as client:
-        for page in range(1, max_pages + 1):
+        for page in range(1, last_page + 1):
             resp = client.get(
                 "/api/v4/projects",
                 params={"visibility": "public", "archived": "false", "per_page": 100, "page": page},
@@ -36,6 +46,12 @@ def iter_public_arcs(base_url: str, *, max_pages: int = 5) -> Iterator[dict]:
                         "web_url": project["web_url"],
                         "last_activity_at": project.get("last_activity_at"),
                     }
+        else:
+            if max_pages is None:
+                logger.warning(
+                    "iter_public_arcs hit the %d-page safety ceiling; results may be truncated",
+                    _MAX_PAGES_CEILING,
+                )
 
 
 def _has_isa(client: httpx.Client, project: dict) -> bool:
