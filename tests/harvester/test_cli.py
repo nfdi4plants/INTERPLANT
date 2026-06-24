@@ -47,7 +47,7 @@ def test_cli_ingest_invokes_upsert_with_built_record(monkeypatch, fake_investiga
     monkeypatch.setattr("harvester.isa_reader.IsaReader.read", fake_read)
     monkeypatch.setattr("harvester.cli.db.connect", lambda dsn: fake_conn)
     monkeypatch.setattr("harvester.cli.db.apply_schema", lambda conn: None)
-    monkeypatch.setattr("harvester.cli.db.upsert_record", fake_upsert)
+    monkeypatch.setattr("harvester.pipeline.db.upsert_record", fake_upsert)
 
     exit_code = cli.main(["ingest", str(FIXTURE), "--dsn", "postgresql://fake"])
     assert exit_code == 0
@@ -68,3 +68,39 @@ def test_cli_missing_path_returns_nonzero():
 def test_cli_no_command_returns_nonzero():
     exit_code = cli.main([])
     assert exit_code != 0
+
+
+def test_cli_harvest_local_dry_run_writes_report(tmp_path):
+    fixtures_root = FIXTURE.parent  # tests/fixtures/arcs
+    exit_code = cli.main([
+        "harvest", "--local-dir", str(fixtures_root),
+        "--dry-run", "--out-dir", str(tmp_path),
+    ])
+    assert exit_code == 0
+    reports = list(tmp_path.glob("harvest-*.json"))
+    assert len(reports) == 1
+
+
+def test_cli_harvest_rejects_dry_run_with_dsn():
+    exit_code = cli.main([
+        "harvest", "--local-dir", "x", "--dry-run", "--dsn", "postgresql://fake",
+    ])
+    assert exit_code == 2
+
+
+def test_cli_harvest_missing_local_dir_returns_nonzero():
+    exit_code = cli.main([
+        "harvest", "--local-dir", "/no/such/dir", "--dry-run",
+    ])
+    assert exit_code != 0
+
+
+@pytest.mark.live
+def test_cli_harvest_live_smoke(tmp_path):
+    """Gated by INTERPLANT_LIVE_HARVEST=1; hits git.nfdi4plants.org."""
+    exit_code = cli.main([
+        "harvest", "--source", "live", "--dry-run", "--limit", "3",
+        "--out-dir", str(tmp_path),
+    ])
+    assert exit_code == 0
+    assert list(tmp_path.glob("harvest-*.json"))

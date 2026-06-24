@@ -17,11 +17,11 @@ What's done (P0 → P1)
 - P1 - Harvester walking skeleton: full pipeline exists and writes to Postgres: enumerate → isa_reader → classify → build_record → validate → idempotent upsert (ON CONFLICT into a JSONB records table). CLI orchestrates it.
 - P1 - Enrichment: organism / license / file_counts extractors + omics & experiment-context classifiers (omics coverage 11%→27%).
 - Omics accuracy: unified vocab → 8 schema-enum values, a technology-signal tier, and a hand-labelled gold-set regression gate. Accuracy 28.3% baseline → 42.4% on the deduplicated 92-row gold set; 105 tests green, lint clean.
+- P1 - Batch harvest: `harvester harvest` enumerates all public ARCs, clones each (stateless temp clone), runs the shared pipeline, upserts into Postgres, and writes a JSON+Markdown audit artifact. `make harvest-all` runs it locally; a non-blocking nightly CI job validates the live upstream; a fixture gate protects the pipeline on every push.
 
 
 What's not done
 
-- P1 tail: a real full-scale harvest (~150 ARCs into Postgres, vs the 20-ARC dry-run sample), nightly GitLab CI job, per-run audit log.
 - P2 - Catalog API: pygeoapi PostgreSQL-JSONB provider, 11 per-collection SQL views, L3 queryables, the OAI-PMH endpoint emitting DocumentSchema.json, and OGC/portal contract tests. This is the next major roadmap phase.
 - P4/P5: 11 L1 collection descriptors + narrative; overview pages / portal plugin.
 - registering as an Earth Data Portal content provider with AWI (o2a-support@awi.de) for sandbox access.

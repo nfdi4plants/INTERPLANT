@@ -7,7 +7,6 @@ The CLI orchestrates: IsaReader -> classifier -> build_record -> validate -> ups
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import os
 import sys
@@ -15,18 +14,11 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
-from referencing import Registry, Resource
-
-from harvester import db
-from harvester.build import build_record
-from harvester.classifiers.omics import classify_omics
-from harvester.isa_reader import IsaReader
+from harvester import acquire, audit, batch, db, pipeline
 
 logger = logging.getLogger("harvester")
 
 DEFAULT_DSN = "postgresql://interplant:interplant@localhost:5432/interplant"
-SCHEMAS_DIR = Path(__file__).parent.parent / "docs" / "specs" / "schemas"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -38,6 +30,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     if args.command == "ingest":
         return _ingest(Path(args.arc_path), dsn=args.dsn, provider=args.provider)
+    if args.command == "harvest":
+        return _harvest(args)
     parser.print_usage(sys.stderr)
     return 2
 
@@ -57,6 +51,16 @@ def _build_parser() -> argparse.ArgumentParser:
         default="dataplant",
         help="Record-id provider prefix (default: dataplant)",
     )
+    harvest = sub.add_parser("harvest", help="Batch-harvest many ARCs into Postgres")
+    src = harvest.add_mutually_exclusive_group(required=True)
+    src.add_argument("--source", choices=["live"], help="Enumerate + clone live ARCs")
+    src.add_argument("--local-dir", help="Harvest ARC subdirectories under this path")
+    harvest.add_argument("--gitlab-base", default="https://git.nfdi4plants.org")
+    harvest.add_argument("--dsn", default=None, help="Postgres DSN (omit with --dry-run)")
+    harvest.add_argument("--dry-run", action="store_true", help="Validate only, no DB writes")
+    harvest.add_argument("--out-dir", default="./harvest-runs")
+    harvest.add_argument("--limit", type=int, default=None)
+    harvest.add_argument("--provider", default="dataplant")
     return parser
 
 
@@ -69,60 +73,86 @@ def _ingest(arc_path: Path, *, dsn: str, provider: str) -> int:
         return 1
 
     logger.info("Parsing ARC at %s", arc_path)
-    investigation = IsaReader().read(arc_path)
-
-    omics_by_folder = _classify_assays(investigation)
-
-    now_iso = datetime.now(tz=UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
-    # file:// placeholder; Plan 4 replaces with GitLab URL.
-    arc_source_uri = arc_path.resolve().as_uri()
-
-    record = build_record(
-        investigation,
-        omics_by_folder,
-        arc_source_uri=arc_source_uri,
-        harvested_at=now_iso,
-        created=now_iso,
-        updated=now_iso,
-        provider=provider,
-    )
-    _validate(record)
+    now_iso = _now_iso()
+    source_uri = arc_path.resolve().as_uri()
+    validator = pipeline.build_validator()
 
     logger.info("Connecting to %s", _redact(dsn))
     conn = db.connect(dsn)
     db.apply_schema(conn)
-    db.upsert_record(conn, record["id"], record)
-    logger.info("Upserted record %s", record["id"])
+
+    outcome = pipeline.ingest_arc(
+        arc_path,
+        conn=conn,
+        provider=provider,
+        source_uri=source_uri,
+        now_iso=now_iso,
+        validator=validator,
+    )
+    if not outcome.parse_ok:
+        logger.error("Parse failed (%s): %s", outcome.parse_exc_type, outcome.parse_error)
+        return 1
+    if not outcome.build_ok:
+        logger.error("Build failed: %s", outcome.build_error)
+        return 1
+    if not outcome.validate_ok:
+        logger.error("Validation failed: %s", "; ".join(outcome.validate_errors[:5]))
+        return 1
+    logger.info("Upserted record %s", outcome.record_id)
     return 0
 
 
-def _classify_assays(investigation) -> dict[str, str]:
-    out: dict[str, str] = {}
-    for study in investigation.studies:
-        for assay in study.assays:
-            domain = classify_omics(
-                assay.folder,
-                assay.measurement_type,
-                technology_type=assay.technology_type,
-                technology_platform=getattr(assay, "technology_platform", None),
-            )
-            if domain is not None:
-                out[assay.folder] = domain
-    return out
+def _now_iso() -> str:
+    return datetime.now(tz=UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
-def _validate(record: dict) -> None:
-    record_schema = json.loads((SCHEMAS_DIR / "record.schema.json").read_text("utf-8"))
-    assay_ext = json.loads((SCHEMAS_DIR / "assay-extensions.schema.json").read_text("utf-8"))
-    registry = Registry().with_resource(
-        "https://interplant.org/schemas/assay-extensions.schema.json",
-        Resource.from_contents(assay_ext),
+def _harvest(args) -> int:
+    if args.dry_run and args.dsn:
+        logger.error("--dry-run and --dsn are mutually exclusive")
+        return 2
+
+    now_iso = _now_iso()
+    run_timestamp = now_iso.replace("-", "").replace(":", "")  # 20260622T000000Z
+
+    if args.local_dir:
+        local_dir = Path(args.local_dir)
+        if not local_dir.exists():
+            logger.error("Local directory does not exist: %s", local_dir)
+            return 1
+        if not local_dir.is_dir():
+            logger.error("Local path is not a directory: %s", local_dir)
+            return 1
+        identities = acquire.iter_local_arcs(args.local_dir)
+        source = "local"
+        gitlab_base = ""
+    else:
+        identities = acquire.iter_live_arcs(args.gitlab_base)
+        source = "live"
+        gitlab_base = args.gitlab_base
+
+    conn = None
+    if not args.dry_run:
+        dsn = args.dsn or os.environ.get("INTERPLANT_PG_DSN", DEFAULT_DSN)
+        logger.info("Connecting to %s", _redact(dsn))
+        try:
+            conn = db.connect(dsn)
+            db.apply_schema(conn)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Cannot connect to DB: %s", exc)
+            return 1
+
+    report = batch.run_batch(
+        identities, conn=conn, provider=args.provider, now_iso=now_iso,
+        run_timestamp=run_timestamp, source=source, gitlab_base=gitlab_base,
+        limit=args.limit,
     )
-    Draft202012Validator(
-        record_schema,
-        registry=registry,
-        format_checker=Draft202012Validator.FORMAT_CHECKER,
-    ).validate(record)
+    json_path, md_path = audit.write_run_report(report, args.out_dir)
+    logger.info("Audit report: %s (json: %s)", md_path, json_path)
+
+    if report.verdict != "ok":
+        logger.error("Harvest verdict: %s (%s)", report.verdict, report.verdict_reason)
+        return 1
+    return 0
 
 
 def _redact(dsn: str) -> str:
