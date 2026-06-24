@@ -26,3 +26,17 @@ test:
     INTERPLANT_STACK_TESTS: "1"
   script:
     - uv run pytest -v
+
+harvest-nightly:
+  stage: test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  allow_failure: true
+  variables:
+    INTERPLANT_LIVE_HARVEST: "1"
+  script:
+    - uv run python -m harvester harvest --source live --dry-run --out-dir artifacts/
+  artifacts:
+    paths:
+      - artifacts/
+    when: always
