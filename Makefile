@@ -1,4 +1,6 @@
-.PHONY: help up down restart logs psql serve test test-stack test-harvester test-harvester-db test-all harvest-prototype lint format clean
+.PHONY: help up down restart logs psql serve test test-stack test-harvester test-harvester-db test-all harvest-prototype harvest-all harvest-dryrun lint format clean
+
+DSN ?= postgresql://interplant:interplant@localhost:5432/interplant
 
 help:
 	@echo "INTERPLANT - local development targets"
@@ -15,6 +17,8 @@ help:
 	@echo "  make test-harvester      Run harvester unit tests"
 	@echo "  make test-harvester-db   Run harvester db-backed tests (requires the stack up)"
 	@echo "  make harvest-prototype   Ingest ARCs/ArcPrototype-main into the local Postgres"
+	@echo "  make harvest-all         Batch-harvest all live public ARCs into the local Postgres"
+	@echo "  make harvest-dryrun      Batch-harvest live ARCs in dry-run mode (validate only)"
 	@echo "  make lint       Run ruff check"
 	@echo "  make format     Run ruff format"
 	@echo "  make clean      Tear down the stack AND delete the Postgres volume"
@@ -54,6 +58,12 @@ test-harvester-db:
 
 harvest-prototype:
 	INTERPLANT_STACK_TESTS=1 uv run python -m harvester ingest ARCs/ArcPrototype-main
+
+harvest-all:
+	uv run python -m harvester harvest --source live --dsn $(DSN)
+
+harvest-dryrun:
+	uv run python -m harvester harvest --source live --dry-run
 
 lint:
 	uv run ruff check .

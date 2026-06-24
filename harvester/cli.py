@@ -14,7 +14,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harvester import db, pipeline
+from harvester import acquire, audit, batch, db, pipeline
 
 logger = logging.getLogger("harvester")
 
@@ -30,6 +30,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     if args.command == "ingest":
         return _ingest(Path(args.arc_path), dsn=args.dsn, provider=args.provider)
+    if args.command == "harvest":
+        return _harvest(args)
     parser.print_usage(sys.stderr)
     return 2
 
@@ -49,6 +51,16 @@ def _build_parser() -> argparse.ArgumentParser:
         default="dataplant",
         help="Record-id provider prefix (default: dataplant)",
     )
+    harvest = sub.add_parser("harvest", help="Batch-harvest many ARCs into Postgres")
+    src = harvest.add_mutually_exclusive_group(required=True)
+    src.add_argument("--source", choices=["live"], help="Enumerate + clone live ARCs")
+    src.add_argument("--local-dir", help="Harvest ARC subdirectories under this path")
+    harvest.add_argument("--gitlab-base", default="https://git.nfdi4plants.org")
+    harvest.add_argument("--dsn", default=None, help="Postgres DSN (omit with --dry-run)")
+    harvest.add_argument("--dry-run", action="store_true", help="Validate only, no DB writes")
+    harvest.add_argument("--out-dir", default="./harvest-runs")
+    harvest.add_argument("--limit", type=int, default=None)
+    harvest.add_argument("--provider", default="dataplant")
     return parser
 
 
@@ -92,6 +104,55 @@ def _ingest(arc_path: Path, *, dsn: str, provider: str) -> int:
 
 def _now_iso() -> str:
     return datetime.now(tz=UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _harvest(args) -> int:
+    if args.dry_run and args.dsn:
+        logger.error("--dry-run and --dsn are mutually exclusive")
+        return 2
+
+    now_iso = _now_iso()
+    run_timestamp = now_iso.replace("-", "").replace(":", "")  # 20260622T000000Z
+
+    if args.local_dir:
+        local_dir = Path(args.local_dir)
+        if not local_dir.exists():
+            logger.error("Local directory does not exist: %s", local_dir)
+            return 1
+        if not local_dir.is_dir():
+            logger.error("Local path is not a directory: %s", local_dir)
+            return 1
+        identities = acquire.iter_local_arcs(args.local_dir)
+        source = "local"
+        gitlab_base = ""
+    else:
+        identities = acquire.iter_live_arcs(args.gitlab_base)
+        source = "live"
+        gitlab_base = args.gitlab_base
+
+    conn = None
+    if not args.dry_run:
+        dsn = args.dsn or os.environ.get("INTERPLANT_PG_DSN", DEFAULT_DSN)
+        logger.info("Connecting to %s", _redact(dsn))
+        try:
+            conn = db.connect(dsn)
+            db.apply_schema(conn)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Cannot connect to DB: %s", exc)
+            return 1
+
+    report = batch.run_batch(
+        identities, conn=conn, provider=args.provider, now_iso=now_iso,
+        run_timestamp=run_timestamp, source=source, gitlab_base=gitlab_base,
+        limit=args.limit,
+    )
+    json_path, md_path = audit.write_run_report(report, args.out_dir)
+    logger.info("Audit report: %s (json: %s)", md_path, json_path)
+
+    if report.verdict != "ok":
+        logger.error("Harvest verdict: %s (%s)", report.verdict, report.verdict_reason)
+        return 1
+    return 0
 
 
 def _redact(dsn: str) -> str:
