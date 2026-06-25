@@ -18,12 +18,12 @@ FIXTURES_ROOT = Path(__file__).parent.parent / "fixtures" / "arcs"
 def clean_conn(pg_dsn: str):
     with psycopg.connect(pg_dsn, autocommit=True) as conn:
         with conn.cursor() as cur:
-            cur.execute("DROP TABLE IF EXISTS records")
+            cur.execute("DROP TABLE IF EXISTS records CASCADE")
         from harvester import db
         db.apply_schema(conn)
         yield conn
         with conn.cursor() as cur:
-            cur.execute("DROP TABLE IF EXISTS records")
+            cur.execute("DROP TABLE IF EXISTS records CASCADE")
 
 
 def _run(conn):

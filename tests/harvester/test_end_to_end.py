@@ -17,10 +17,10 @@ pytestmark = pytest.mark.db
 def clean_records(pg_dsn: str):
     with psycopg.connect(pg_dsn, autocommit=True) as conn:
         with conn.cursor() as cur:
-            cur.execute("DROP TABLE IF EXISTS records")
+            cur.execute("DROP TABLE IF EXISTS records CASCADE")
         yield conn
         with conn.cursor() as cur:
-            cur.execute("DROP TABLE IF EXISTS records")
+            cur.execute("DROP TABLE IF EXISTS records CASCADE")
 
 
 def test_ingest_creates_one_row_with_validated_payload(clean_records, pg_dsn) -> None:
