@@ -1,4 +1,4 @@
-.PHONY: help up down restart logs psql serve test test-stack test-harvester test-harvester-db test-all harvest-prototype harvest-all harvest-dryrun lint format clean
+.PHONY: help up down restart logs psql serve test test-stack test-harvester test-harvester-db test-all harvest-prototype harvest-all harvest-dryrun catalog-views catalog-up lint format clean
 
 DSN ?= postgresql://interplant:interplant@localhost:5432/interplant
 
@@ -19,6 +19,8 @@ help:
 	@echo "  make harvest-prototype   Ingest ARCs/ArcPrototype-main into the local Postgres"
 	@echo "  make harvest-all         Batch-harvest all live public ARCs into the local Postgres"
 	@echo "  make harvest-dryrun      Batch-harvest live ARCs in dry-run mode (validate only)"
+	@echo "  make catalog-views       Apply the catalog serving views to the local Postgres"
+	@echo "  make catalog-up          Up + harvest fixtures + apply views (serving stack)"
 	@echo "  make lint       Run ruff check"
 	@echo "  make format     Run ruff format"
 	@echo "  make clean      Tear down the stack AND delete the Postgres volume"
@@ -64,6 +66,13 @@ harvest-all:
 
 harvest-dryrun:
 	uv run python -m harvester harvest --source live --dry-run
+
+catalog-views:
+	uv run python scripts/apply_catalog_views.py $(DSN)
+
+catalog-up: up
+	uv run python -m harvester harvest --local-dir tests/fixtures/arcs --dsn $(DSN)
+	uv run python scripts/apply_catalog_views.py $(DSN)
 
 lint:
 	uv run ruff check .

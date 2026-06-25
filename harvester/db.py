@@ -12,6 +12,7 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
+_VIEWS_PATH = Path(__file__).parent.parent / "sql" / "catalog_views.sql"
 
 
 def connect(dsn: str) -> psycopg.Connection:
@@ -20,6 +21,12 @@ def connect(dsn: str) -> psycopg.Connection:
 
 def apply_schema(conn: psycopg.Connection) -> None:
     sql = _SCHEMA_PATH.read_text(encoding="utf-8")
+    with conn.cursor() as cur:
+        cur.execute(sql)
+
+
+def apply_catalog_views(conn: psycopg.Connection) -> None:
+    sql = _VIEWS_PATH.read_text(encoding="utf-8")
     with conn.cursor() as cur:
         cur.execute(sql)
 

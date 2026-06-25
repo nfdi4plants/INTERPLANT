@@ -18,11 +18,12 @@ What's done (P0 → P1)
 - P1 - Enrichment: organism / license / file_counts extractors + omics & experiment-context classifiers (omics coverage 11%→27%).
 - Omics accuracy: unified vocab → 8 schema-enum values, a technology-signal tier, and a hand-labelled gold-set regression gate. Accuracy 28.3% baseline → 42.4% on the deduplicated 92-row gold set; 105 tests green, lint clean.
 - P1 - Batch harvest: `harvester harvest` enumerates all public ARCs, clones each (stateless temp clone), runs the shared pipeline, upserts into Postgres, and writes a JSON+Markdown audit artifact. `make harvest-all` runs it locally; a non-blocking nightly CI job validates the live upstream; a fixture gate protects the pipeline on every push.
+- P2 - Catalog API (skeleton): pygeoapi serves the records over OGC API - Records as `arc-records` (all records) plus one thematic collection `dataplant-proteomics`, backed by flattening SQL views (`sql/catalog_views.sql`). Null geometry for now. `make catalog-up` brings up a populated serving stack.
 
 
 What's not done
 
-- P2 - Catalog API: pygeoapi PostgreSQL-JSONB provider, 11 per-collection SQL views, L3 queryables, the OAI-PMH endpoint emitting DocumentSchema.json, and OGC/portal contract tests. This is the next major roadmap phase.
+- P2 - Catalog API (remainder): the other 10 thematic collections, real geometry, the OAI-PMH endpoint emitting DocumentSchema.json, and OGC/portal contract tests.
 - P4/P5: 11 L1 collection descriptors + narrative; overview pages / portal plugin.
 - registering as an Earth Data Portal content provider with AWI (o2a-support@awi.de) for sandbox access.
 

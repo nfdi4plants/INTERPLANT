@@ -28,17 +28,16 @@ def test_postgis_extension_available(pg_dsn: str) -> None:
     assert row[0].strip().startswith("3.6"), row[0]
 
 
-def test_pygeoapi_collections_empty(
+def test_pygeoapi_collections_present(
     pygeoapi_url: str, pygeoapi_reachable: bool
 ) -> None:
-    """pygeoapi answers /collections with an empty resources list.
+    """pygeoapi serves the catalog skeleton collections.
 
-    Skipped when pygeoapi is not reachable (e.g. in CI, which does not run
-    the pygeoapi service in Plan 2)."""
+    Skipped when pygeoapi is not reachable (e.g. in CI, which does not run the
+    pygeoapi service)."""
     if not pygeoapi_reachable:
         pytest.skip(f"pygeoapi not reachable at {pygeoapi_url}")
     response = httpx.get(f"{pygeoapi_url}/collections", timeout=5.0)
     assert response.status_code == 200, response.text
-    body = response.json()
-    assert "collections" in body, body
-    assert body["collections"] == [], body["collections"]
+    ids = {c["id"] for c in response.json()["collections"]}
+    assert {"arc-records", "dataplant-proteomics"} <= ids, ids
