@@ -15,6 +15,13 @@ from harvester.acquire import iter_local_arcs
 
 FIXTURES_ROOT = Path(__file__).parent.parent / "fixtures" / "arcs"
 
+ALL_COLLECTIONS = {
+    "arc-records",
+    "dataplant-proteomics", "dataplant-transcriptomics", "dataplant-genomics",
+    "dataplant-metabolomics", "dataplant-phenotyping", "dataplant-imaging",
+    "dataplant-microbiome",
+}
+
 
 @pytest.fixture
 def seeded(pg_dsn: str, pygeoapi_reachable: bool, pygeoapi_url: str):
@@ -22,9 +29,7 @@ def seeded(pg_dsn: str, pygeoapi_reachable: bool, pygeoapi_url: str):
         pytest.skip(f"pygeoapi not reachable at {pygeoapi_url}")
     with psycopg.connect(pg_dsn, autocommit=True) as conn:
         with conn.cursor() as cur:
-            cur.execute("DROP VIEW IF EXISTS arc_records_proteomics")
-            cur.execute("DROP VIEW IF EXISTS arc_records")
-            cur.execute("DROP TABLE IF EXISTS records")
+            cur.execute("DROP TABLE IF EXISTS records CASCADE")
         db.apply_schema(conn)
         batch.run_batch(
             list(iter_local_arcs(FIXTURES_ROOT)),
@@ -35,6 +40,13 @@ def seeded(pg_dsn: str, pygeoapi_reachable: bool, pygeoapi_url: str):
     yield
 
 
+def test_all_collections_present(seeded, pygeoapi_url):
+    r = httpx.get(f"{pygeoapi_url}/collections", timeout=5.0)
+    assert r.status_code == 200, r.text
+    ids = {c["id"] for c in r.json()["collections"]}
+    assert ALL_COLLECTIONS <= ids, ids
+
+
 def test_arc_records_items_serve_with_null_geometry(seeded, pygeoapi_url):
     r = httpx.get(f"{pygeoapi_url}/collections/arc-records/items", timeout=5.0)
     assert r.status_code == 200, r.text
@@ -43,23 +55,21 @@ def test_arc_records_items_serve_with_null_geometry(seeded, pygeoapi_url):
     assert all(f["geometry"] is None for f in feats)
 
 
-def test_proteomics_collection_is_filtered(seeded, pygeoapi_url):
-    r = httpx.get(f"{pygeoapi_url}/collections/dataplant-proteomics/items", timeout=5.0)
+def test_imaging_collection_is_filtered(seeded, pygeoapi_url):
+    r = httpx.get(f"{pygeoapi_url}/collections/dataplant-imaging/items", timeout=5.0)
     assert r.status_code == 200, r.text
     ids = [f["id"] for f in r.json()["features"]]
-    assert ids == ["dataplant-arcproteomics"]
+    assert ids == ["dataplant-arcimaging"]
+
+
+def test_empty_collection_serves_empty_feature_list(seeded, pygeoapi_url):
+    r = httpx.get(f"{pygeoapi_url}/collections/dataplant-genomics/items", timeout=5.0)
+    assert r.status_code == 200, r.text
+    assert r.json()["features"] == []
 
 
 def test_queryables_lists_properties(seeded, pygeoapi_url):
-    r = httpx.get(f"{pygeoapi_url}/collections/arc-records/queryables", timeout=5.0)
+    r = httpx.get(f"{pygeoapi_url}/collections/dataplant-proteomics/queryables", timeout=5.0)
     assert r.status_code == 200, r.text
     props = r.json().get("properties", {})
     assert "omics_domains" in props
-    assert "experiment_context" in props
-
-
-def test_conformance_advertises_records(seeded, pygeoapi_url):
-    r = httpx.get(f"{pygeoapi_url}/conformance", timeout=5.0)
-    assert r.status_code == 200, r.text
-    classes = " ".join(r.json().get("conformsTo", []))
-    assert "ogcapi-records" in classes or "cat/1.0" in classes

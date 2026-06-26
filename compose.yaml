@@ -17,6 +17,27 @@ services:
       retries: 10
     restart: unless-stopped
 
+  catalog-init:
+    image: postgis/postgis:17-3.6-alpine
+    container_name: interplant-catalog-init
+    environment:
+      PGPASSWORD: interplant
+    volumes:
+      - ./harvester/schema.sql:/sql/00_schema.sql:ro
+      - ./sql/catalog_views.sql:/sql/10_views.sql:ro
+      - ./sql/catalog_collections.generated.sql:/sql/20_generated.sql:ro
+    entrypoint:
+      - sh
+      - -c
+      - >
+        psql -h db -U interplant -d interplant -v ON_ERROR_STOP=1 -f /sql/00_schema.sql &&
+        psql -h db -U interplant -d interplant -v ON_ERROR_STOP=1 -f /sql/10_views.sql &&
+        psql -h db -U interplant -d interplant -v ON_ERROR_STOP=1 -f /sql/20_generated.sql
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
   pygeoapi:
     image: geopython/pygeoapi:0.23.4
     container_name: interplant-pygeoapi
@@ -27,6 +48,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      catalog-init:
+        condition: service_completed_successfully
     restart: unless-stopped
 
 volumes:

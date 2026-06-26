@@ -1,4 +1,4 @@
-"""DB-backed: catalog views flatten records and filter the proteomics collection."""
+"""DB-backed: catalog views flatten records and filter each omics collection."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -13,12 +13,21 @@ pytestmark = pytest.mark.db
 
 FIXTURES_ROOT = Path(__file__).parent.parent / "fixtures" / "arcs"
 
+# Domains and the fixture ids expected in each (empty list = no fixture data).
+EXPECTED = {
+    "proteomics": ["dataplant-arcproteomics"],
+    "imaging": ["dataplant-arcimaging"],
+    "transcriptomics": [],
+    "genomics": [],
+    "metabolomics": [],
+    "phenotyping": [],
+    "microbiome": [],
+}
+
 
 def _drop(conn):
     with conn.cursor() as cur:
-        cur.execute("DROP VIEW IF EXISTS arc_records_proteomics")
-        cur.execute("DROP VIEW IF EXISTS arc_records")
-        cur.execute("DROP TABLE IF EXISTS records")
+        cur.execute("DROP TABLE IF EXISTS records CASCADE")
 
 
 @pytest.fixture
@@ -51,15 +60,9 @@ def test_geometry_is_null_for_all_rows(seeded_conn):
     assert n == 0
 
 
-def test_omics_domains_extracted_as_array(seeded_conn):
+@pytest.mark.parametrize("domain,expected_ids", sorted(EXPECTED.items()))
+def test_domain_view_filters_correctly(seeded_conn, domain, expected_ids):
     with seeded_conn.cursor() as cur:
-        cur.execute("SELECT omics_domains FROM arc_records WHERE id = 'dataplant-arcproteomics'")
-        (domains,) = cur.fetchone()
-    assert "proteomics" in domains
-
-
-def test_proteomics_view_filters_to_proteomics_only(seeded_conn):
-    with seeded_conn.cursor() as cur:
-        cur.execute("SELECT id FROM arc_records_proteomics ORDER BY id")
+        cur.execute(f"SELECT id FROM arc_records_{domain} ORDER BY id")
         ids = [r[0] for r in cur.fetchall()]
-    assert ids == ["dataplant-arcproteomics"]
+    assert ids == expected_ids

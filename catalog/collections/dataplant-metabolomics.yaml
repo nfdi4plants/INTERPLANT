@@ -1,0 +1,24 @@
+id: dataplant-metabolomics
+title: DataPLANT Metabolomics
+description: |
+  ARCs with at least one metabolomics assay. Covers GC-MS, LC-MS, and NMR
+  profiling of primary and secondary plant metabolites.
+keywords: [metabolomics, GC-MS, LC-MS, NMR, DataPLANT, plants]
+license: CC-BY-4.0
+axis: omics
+provider:
+  name: DataPLANT
+  url: https://nfdi4plants.org
+extent:
+  spatial:
+    bbox: [[-180, -90, 180, 90]]
+  temporal:
+    interval: [["2010-01-01T00:00:00Z", null]]
+links:
+  - rel: describedby
+    href: /schemas/record.schema.json
+    title: L2 record schema
+  - rel: items
+    href: /collections/dataplant-metabolomics/items
+    title: Records in this collection
+query_rule: "'metabolomics' = ANY(omics_domains)"

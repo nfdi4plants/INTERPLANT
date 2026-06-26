@@ -1,4 +1,4 @@
-.PHONY: help up down restart logs psql serve test test-stack test-harvester test-harvester-db test-all harvest-prototype harvest-all harvest-dryrun catalog-views catalog-up lint format clean
+.PHONY: help up down restart logs psql serve test test-stack test-harvester test-harvester-db test-all harvest-prototype harvest-all harvest-dryrun catalog-views catalog-gen catalog-up lint format clean
 
 DSN ?= postgresql://interplant:interplant@localhost:5432/interplant
 
@@ -20,6 +20,7 @@ help:
 	@echo "  make harvest-all         Batch-harvest all live public ARCs into the local Postgres"
 	@echo "  make harvest-dryrun      Batch-harvest live ARCs in dry-run mode (validate only)"
 	@echo "  make catalog-views       Apply the catalog serving views to the local Postgres"
+	@echo "  make catalog-gen         Regenerate catalog views + pygeoapi config from descriptors"
 	@echo "  make catalog-up          Up + harvest fixtures + apply views (serving stack)"
 	@echo "  make lint       Run ruff check"
 	@echo "  make format     Run ruff format"
@@ -70,7 +71,10 @@ harvest-dryrun:
 catalog-views:
 	uv run python scripts/apply_catalog_views.py $(DSN)
 
-catalog-up: up
+catalog-gen:
+	uv run python scripts/generate_catalog.py
+
+catalog-up: up catalog-gen
 	uv run python -m harvester harvest --local-dir tests/fixtures/arcs --dsn $(DSN)
 	uv run python scripts/apply_catalog_views.py $(DSN)
 

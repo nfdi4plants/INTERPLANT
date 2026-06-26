@@ -18,6 +18,3 @@ SELECT
     ELSE ST_SetSRID(ST_GeomFromGeoJSON(payload->'geometry'), 4326)
   END                                                              AS geom
 FROM records;
-
-CREATE OR REPLACE VIEW arc_records_proteomics AS
-SELECT * FROM arc_records WHERE 'proteomics' = ANY(omics_domains);
