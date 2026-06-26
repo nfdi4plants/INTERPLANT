@@ -18,12 +18,12 @@ What's done (P0 → P1)
 - P1 - Enrichment: organism / license / file_counts extractors + omics & experiment-context classifiers (omics coverage 11%→27%).
 - Omics accuracy: unified vocab → 8 schema-enum values, a technology-signal tier, and a hand-labelled gold-set regression gate. Accuracy 28.3% baseline → 42.4% on the deduplicated 92-row gold set; 105 tests green, lint clean.
 - P1 - Batch harvest: `harvester harvest` enumerates all public ARCs, clones each (stateless temp clone), runs the shared pipeline, upserts into Postgres, and writes a JSON+Markdown audit artifact. `make harvest-all` runs it locally; a non-blocking nightly CI job validates the live upstream; a fixture gate protects the pipeline on every push.
-- P2 - Catalog API (skeleton): pygeoapi serves the records over OGC API - Records as `arc-records` (all records) plus one thematic collection `dataplant-proteomics`, backed by flattening SQL views (`sql/catalog_views.sql`). Null geometry for now. `make catalog-up` brings up a populated serving stack.
+- P2 - Catalog API (omics): pygeoapi serves the records over OGC API - Records as `arc-records` (all records) plus 7 omics thematic collections (`dataplant-proteomics`, `-transcriptomics`, `-genomics`, `-metabolomics`, `-phenotyping`, `-imaging`, `-microbiome`). Collections are generated from `catalog/collections/*.yaml` descriptors via `make catalog-gen` (single source of truth) over flattening SQL views. Null geometry for now. `make catalog-up` brings up a populated serving stack.
 
 
 What's not done
 
-- P2 - Catalog API (remainder): the other 10 thematic collections, real geometry, the OAI-PMH endpoint emitting DocumentSchema.json, and OGC/portal contract tests.
+- P2 - Catalog API (remainder): experiment_context collections (blocked on the demoted classifier), real geometry, and the OAI-PMH endpoint emitting DocumentSchema.json.
 - P4/P5: 11 L1 collection descriptors + narrative; overview pages / portal plugin.
 - registering as an Earth Data Portal content provider with AWI (o2a-support@awi.de) for sandbox access.
 
