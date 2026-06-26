@@ -127,8 +127,27 @@ def _list_metadata_formats(root: Element, source, config: RepoConfig, params: di
 
 # --- dispatch + envelope --------------------------------------------------
 
-_NO_ARG_VERBS = {"Identify", "ListMetadataFormats", "ListSets",
-                 "ListIdentifiers", "ListRecords", "GetRecord"}
+_VALID_VERBS = {"Identify", "ListMetadataFormats", "ListSets",
+                "ListIdentifiers", "ListRecords", "GetRecord"}
+
+# Per OAI-PMH 2.0, the arguments each verb accepts besides "verb". Any other
+# argument is badArgument. (Resumption-token exclusivity and required-prefix
+# rules are enforced inside the verb implementations.)
+_VERB_ARGS: dict[str, set[str]] = {
+    "Identify": set(),
+    "ListSets": set(),
+    "ListMetadataFormats": {"identifier"},
+    "ListIdentifiers": {"from", "until", "set", "metadataPrefix", "resumptionToken"},
+    "ListRecords": {"from", "until", "set", "metadataPrefix", "resumptionToken"},
+    "GetRecord": {"identifier", "metadataPrefix"},
+}
+
+
+def _validate_args(verb: str, params: dict) -> None:
+    allowed = _VERB_ARGS[verb]
+    for key in params:
+        if key != "verb" and key not in allowed:
+            raise OaiError("badArgument", f"illegal argument {key!r} for {verb}")
 
 
 def _dispatch(root: Element, verb: str, params: dict, *, source, config, base_url) -> None:
@@ -153,9 +172,10 @@ def handle(params: dict, *, base_url: str, source, config: RepoConfig) -> bytes:
     request.text = base_url
     verb = params.get("verb")
     try:
-        if verb not in _NO_ARG_VERBS:
+        if verb not in _VALID_VERBS:
             raise OaiError("badVerb", "illegal or missing verb")
-        # echo request args only once we know the verb is legal
+        _validate_args(verb, params)
+        # echo request args only once the verb and its arguments are legal
         for key, value in params.items():
             request.set(key, value)
         _dispatch(root, verb, params, source=source, config=config, base_url=base_url)

@@ -62,3 +62,44 @@ def test_list_sets_returns_no_set_hierarchy():
     from tests.oai.conftest import FakeSource
     root = _call({"verb": "ListSets"}, FakeSource([]))
     assert root.find(f"{{{OAI}}}error").get("code") == "noSetHierarchy"
+
+
+def test_identify_rejects_extra_argument():
+    from tests.oai.conftest import FakeSource
+    root = _call({"verb": "Identify", "metadataPrefix": "oai_dc"}, FakeSource([]))
+    assert root.find(f"{{{OAI}}}error").get("code") == "badArgument"
+
+
+def test_list_sets_rejects_extra_argument():
+    from tests.oai.conftest import FakeSource
+    root = _call({"verb": "ListSets", "foo": "bar"}, FakeSource([]))
+    assert root.find(f"{{{OAI}}}error").get("code") == "badArgument"
+
+
+def test_list_metadata_formats_rejects_unknown_argument():
+    from tests.oai.conftest import FakeSource
+    root = _call(
+        {"verb": "ListMetadataFormats", "from": "2026-01-01"}, FakeSource([])
+    )
+    assert root.find(f"{{{OAI}}}error").get("code") == "badArgument"
+
+
+def test_bad_argument_does_not_echo_attributes():
+    from tests.oai.conftest import FakeSource
+    root = _call({"verb": "Identify", "metadataPrefix": "oai_dc"}, FakeSource([]))
+    req = root.find(f"{{{OAI}}}request")
+    assert req.get("verb") is None and req.get("metadataPrefix") is None
+
+
+def test_list_metadata_formats_accepts_identifier(make_record):
+    from tests.oai.conftest import FakeSource
+    dt = __import__("datetime")
+    src = FakeSource(
+        [make_record("rec00", dt.datetime(2026, 6, 24, tzinfo=dt.timezone.utc))]
+    )
+    root = _call(
+        {"verb": "ListMetadataFormats", "identifier": "oai:interplant:rec00"}, src
+    )
+    assert root.find(f"{{{OAI}}}error") is None
+    prefixes = [e.text for e in root.iter(f"{{{OAI}}}metadataPrefix")]
+    assert set(prefixes) == {"oai_dc", "documentschema"}
