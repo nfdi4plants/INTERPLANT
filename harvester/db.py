@@ -13,6 +13,7 @@ from psycopg.types.json import Jsonb
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 _VIEWS_PATH = Path(__file__).parent.parent / "sql" / "catalog_views.sql"
+_GENERATED_VIEWS_PATH = Path(__file__).parent.parent / "sql" / "catalog_collections.generated.sql"
 
 
 def connect(dsn: str) -> psycopg.Connection:
@@ -26,9 +27,9 @@ def apply_schema(conn: psycopg.Connection) -> None:
 
 
 def apply_catalog_views(conn: psycopg.Connection) -> None:
-    sql = _VIEWS_PATH.read_text(encoding="utf-8")
     with conn.cursor() as cur:
-        cur.execute(sql)
+        cur.execute(_VIEWS_PATH.read_text(encoding="utf-8"))
+        cur.execute(_GENERATED_VIEWS_PATH.read_text(encoding="utf-8"))
 
 
 def upsert_record(
