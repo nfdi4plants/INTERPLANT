@@ -1,7 +1,7 @@
-"""Reference implementation of the L2-record -> portal-DocumentSchema mapping.
+"""Production mapper: INTERPLANT L2 record -> portal DocumentSchema document.
 
-Not the production harvester mapper. Used by the spec tests to demonstrate
-and pin the mapping rules defined in docs/specs/portal-mapping.md.
+Pinned by tests/specs/test_portal_mapping.py against portal-document-schema.json.
+Governed by docs/specs/portal-mapping.md.
 """
 from __future__ import annotations
 

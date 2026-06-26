@@ -2,11 +2,11 @@
 
 **Scope:** How an INTERPLANT L2 record is mapped onto the Earth Data Portal's internal `DocumentSchema.json`. This spec governs the mapper the OAI-PMH endpoint will use in production.
 
-**Authoritative reference mapper:** [`scripts/portal_mapper.py`](../../scripts/portal_mapper.py).
+**Authoritative reference mapper:** [`oai/mapping.py`](../../oai/mapping.py).
 
 **Pinned upstream schema:** [`schemas/portal-document-schema.json`](schemas/portal-document-schema.json) (snapshot from `gitlab.awi.de/software-engineering/index/de.awi.index/DocumentSchema.json`).
 
-**Canonical fixture:** [`examples/portal-document-chlamy.json`](examples/portal-document-chlamy.json) — produced by applying `portal_mapper.map_record` to `record-complete.json`.
+**Canonical fixture:** [`examples/portal-document-chlamy.json`](examples/portal-document-chlamy.json) — produced by applying `oai.mapping.map_record` to `record-complete.json`.
 
 ## 1. Field-by-field mapping
 
