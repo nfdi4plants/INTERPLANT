@@ -1,0 +1,82 @@
+# pygeoapi-config.base.yml
+# Hand-authored base config. The served pygeoapi-config.yml is generated from
+# this file plus the catalog/collections/*.yaml descriptors (make catalog-gen).
+server:
+  bind:
+    host: 0.0.0.0
+    port: 80
+  url: http://localhost:5000
+  mimetype: application/json; charset=UTF-8
+  encoding: utf-8
+  languages:
+    - en-US
+  cors: true
+  pretty_print: true
+  limit: 50
+  map:
+    url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+
+logging:
+  level: INFO
+
+metadata:
+  identification:
+    title: INTERPLANT (local dev)
+    description: INTERPLANT catalog (local development instance)
+    keywords:
+      - interplant
+      - dataplant
+      - ogc-api-records
+    keywords_type: theme
+    terms_of_service: https://creativecommons.org/licenses/by/4.0/
+    url: https://gitlab.fz-juelich.de/ibg-3/data-management/projects/interplant
+  license:
+    name: CC-BY-4.0
+    url: https://creativecommons.org/licenses/by/4.0/
+  provider:
+    name: INTERPLANT (FZ Jülich, IBG-3)
+    url: https://gitlab.fz-juelich.de/ibg-3/data-management/projects/interplant
+  contact:
+    name: Mohamed Abouzid
+    email: m.abouzid@fz-juelich.de
+
+resources:
+  arc-records:
+    type: collection
+    title: INTERPLANT ARC records
+    description: All harvested DataPLANT ARC metadata records.
+    keywords:
+      - arc
+      - dataplant
+      - records
+    extents:
+      spatial:
+        bbox: [-180, -90, 180, 90]
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+    links:
+      - type: text/html
+        rel: canonical
+        title: DataPLANT
+        href: https://www.nfdi4plants.org/
+    providers:
+      - type: record
+        name: PostgreSQL
+        data:
+          host: db
+          port: 5432
+          dbname: interplant
+          user: interplant
+          password: interplant
+        id_field: id
+        table: arc_records
+        geom_field: geom
+        properties:
+          - title
+          - description
+          - created
+          - omics_domains
+          - experiment_context
+          - organism
+          - keywords
+          - arc_source_uri

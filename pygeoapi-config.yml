@@ -1,3 +1,8 @@
+# GENERATED FILE - do not edit. Edit catalog/collections/*.yaml or
+# pygeoapi-config.base.yml and run `make catalog-gen`.
+# pygeoapi-config.base.yml
+# Hand-authored base config. The served pygeoapi-config.yml is generated from
+# this file plus the catalog/collections/*.yaml descriptors (make catalog-gen).
 server:
   bind:
     host: 0.0.0.0
@@ -20,7 +25,7 @@ logging:
 metadata:
   identification:
     title: INTERPLANT (local dev)
-    description: INTERPLANT catalog (local development instance - no resources yet)
+    description: INTERPLANT catalog (local development instance)
     keywords:
       - interplant
       - dataplant
@@ -77,41 +82,333 @@ resources:
           - organism
           - keywords
           - arc_source_uri
-
-  dataplant-proteomics:
+  dataplant-genomics:
     type: collection
-    title: Proteomics ARCs
-    description: DataPLANT ARCs with at least one proteomics assay.
+    title: DataPLANT Genomics
+    description: 'ARCs with at least one genomics assay. Covers whole-genome sequencing,
+  
+      resequencing, and variant-calling studies in plants and photosynthetic
+  
+      microbes.'
     keywords:
-      - proteomics
-      - dataplant
+    - genomics
+    - whole-genome sequencing
+    - variants
+    - DataPLANT
+    - plants
     extents:
       spatial:
-        bbox: [-180, -90, 180, 90]
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
         crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
     links:
-      - type: text/html
-        rel: canonical
-        title: DataPLANT
-        href: https://www.nfdi4plants.org/
+    - type: text/html
+      rel: canonical
+      title: DataPLANT
+      href: https://www.nfdi4plants.org/
     providers:
-      - type: record
-        name: PostgreSQL
-        data:
-          host: db
-          port: 5432
-          dbname: interplant
-          user: interplant
-          password: interplant
-        id_field: id
-        table: arc_records_proteomics
-        geom_field: geom
-        properties:
-          - title
-          - description
-          - created
-          - omics_domains
-          - experiment_context
-          - organism
-          - keywords
-          - arc_source_uri
+    - type: record
+      name: PostgreSQL
+      data:
+        host: db
+        port: 5432
+        dbname: interplant
+        user: interplant
+        password: interplant
+      id_field: id
+      table: arc_records_genomics
+      geom_field: geom
+      properties:
+      - title
+      - description
+      - created
+      - omics_domains
+      - experiment_context
+      - organism
+      - keywords
+      - arc_source_uri
+  dataplant-imaging:
+    type: collection
+    title: DataPLANT Imaging
+    description: 'ARCs with at least one imaging assay. Covers microscopy, hyperspectral, and
+  
+      macroscopic plant imaging modalities.'
+    keywords:
+    - imaging
+    - microscopy
+    - hyperspectral
+    - DataPLANT
+    - plants
+    extents:
+      spatial:
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+    links:
+    - type: text/html
+      rel: canonical
+      title: DataPLANT
+      href: https://www.nfdi4plants.org/
+    providers:
+    - type: record
+      name: PostgreSQL
+      data:
+        host: db
+        port: 5432
+        dbname: interplant
+        user: interplant
+        password: interplant
+      id_field: id
+      table: arc_records_imaging
+      geom_field: geom
+      properties:
+      - title
+      - description
+      - created
+      - omics_domains
+      - experiment_context
+      - organism
+      - keywords
+      - arc_source_uri
+  dataplant-metabolomics:
+    type: collection
+    title: DataPLANT Metabolomics
+    description: 'ARCs with at least one metabolomics assay. Covers GC-MS, LC-MS, and NMR
+  
+      profiling of primary and secondary plant metabolites.'
+    keywords:
+    - metabolomics
+    - GC-MS
+    - LC-MS
+    - NMR
+    - DataPLANT
+    - plants
+    extents:
+      spatial:
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+    links:
+    - type: text/html
+      rel: canonical
+      title: DataPLANT
+      href: https://www.nfdi4plants.org/
+    providers:
+    - type: record
+      name: PostgreSQL
+      data:
+        host: db
+        port: 5432
+        dbname: interplant
+        user: interplant
+        password: interplant
+      id_field: id
+      table: arc_records_metabolomics
+      geom_field: geom
+      properties:
+      - title
+      - description
+      - created
+      - omics_domains
+      - experiment_context
+      - organism
+      - keywords
+      - arc_source_uri
+  dataplant-microbiome:
+    type: collection
+    title: DataPLANT Microbiome
+    description: 'ARCs with at least one microbiome assay. Covers amplicon (16S/ITS) and shotgun
+  
+      metagenomic profiling of plant-associated microbial communities.'
+    keywords:
+    - microbiome
+    - 16S
+    - ITS
+    - metagenomics
+    - DataPLANT
+    - plants
+    extents:
+      spatial:
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+    links:
+    - type: text/html
+      rel: canonical
+      title: DataPLANT
+      href: https://www.nfdi4plants.org/
+    providers:
+    - type: record
+      name: PostgreSQL
+      data:
+        host: db
+        port: 5432
+        dbname: interplant
+        user: interplant
+        password: interplant
+      id_field: id
+      table: arc_records_microbiome
+      geom_field: geom
+      properties:
+      - title
+      - description
+      - created
+      - omics_domains
+      - experiment_context
+      - organism
+      - keywords
+      - arc_source_uri
+  dataplant-phenotyping:
+    type: collection
+    title: DataPLANT Phenotyping
+    description: 'ARCs with at least one phenotyping assay. Covers growth, morphological, and
+  
+      physiological trait measurements across plant species.'
+    keywords:
+    - phenotyping
+    - plant traits
+    - growth
+    - DataPLANT
+    - plants
+    extents:
+      spatial:
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+    links:
+    - type: text/html
+      rel: canonical
+      title: DataPLANT
+      href: https://www.nfdi4plants.org/
+    providers:
+    - type: record
+      name: PostgreSQL
+      data:
+        host: db
+        port: 5432
+        dbname: interplant
+        user: interplant
+        password: interplant
+      id_field: id
+      table: arc_records_phenotyping
+      geom_field: geom
+      properties:
+      - title
+      - description
+      - created
+      - omics_domains
+      - experiment_context
+      - organism
+      - keywords
+      - arc_source_uri
+  dataplant-proteomics:
+    type: collection
+    title: DataPLANT Proteomics
+    description: 'ARCs that contain at least one proteomics assay. Covers LC-MS/MS (DDA/DIA),
+  
+      label-free quantification, TurboID proximity labelling, and co-immunoprecipitation
+  
+      studies across plant and photosynthetic microbial species.'
+    keywords:
+    - proteomics
+    - mass spectrometry
+    - LC-MS/MS
+    - DataPLANT
+    - plants
+    extents:
+      spatial:
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+    links:
+    - type: text/html
+      rel: canonical
+      title: DataPLANT
+      href: https://www.nfdi4plants.org/
+    providers:
+    - type: record
+      name: PostgreSQL
+      data:
+        host: db
+        port: 5432
+        dbname: interplant
+        user: interplant
+        password: interplant
+      id_field: id
+      table: arc_records_proteomics
+      geom_field: geom
+      properties:
+      - title
+      - description
+      - created
+      - omics_domains
+      - experiment_context
+      - organism
+      - keywords
+      - arc_source_uri
+  dataplant-transcriptomics:
+    type: collection
+    title: DataPLANT Transcriptomics
+    description: 'ARCs that contain at least one transcriptomics assay. Covers RNA-Seq,
+  
+      microarray, and small-RNA profiling across plant and photosynthetic microbial
+  
+      species.'
+    keywords:
+    - transcriptomics
+    - RNA-Seq
+    - gene expression
+    - DataPLANT
+    - plants
+    extents:
+      spatial:
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+    links:
+    - type: text/html
+      rel: canonical
+      title: DataPLANT
+      href: https://www.nfdi4plants.org/
+    providers:
+    - type: record
+      name: PostgreSQL
+      data:
+        host: db
+        port: 5432
+        dbname: interplant
+        user: interplant
+        password: interplant
+      id_field: id
+      table: arc_records_transcriptomics
+      geom_field: geom
+      properties:
+      - title
+      - description
+      - created
+      - omics_domains
+      - experiment_context
+      - organism
+      - keywords
+      - arc_source_uri

@@ -1,0 +1,24 @@
+id: dataplant-phenotyping
+title: DataPLANT Phenotyping
+description: |
+  ARCs with at least one phenotyping assay. Covers growth, morphological, and
+  physiological trait measurements across plant species.
+keywords: [phenotyping, plant traits, growth, DataPLANT, plants]
+license: CC-BY-4.0
+axis: omics
+provider:
+  name: DataPLANT
+  url: https://nfdi4plants.org
+extent:
+  spatial:
+    bbox: [[-180, -90, 180, 90]]
+  temporal:
+    interval: [["2010-01-01T00:00:00Z", null]]
+links:
+  - rel: describedby
+    href: /schemas/record.schema.json
+    title: L2 record schema
+  - rel: items
+    href: /collections/dataplant-phenotyping/items
+    title: Records in this collection
+query_rule: "'phenotyping' = ANY(omics_domains)"

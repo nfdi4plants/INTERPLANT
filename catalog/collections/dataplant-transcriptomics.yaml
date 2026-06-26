@@ -1,0 +1,25 @@
+id: dataplant-transcriptomics
+title: DataPLANT Transcriptomics
+description: |
+  ARCs that contain at least one transcriptomics assay. Covers RNA-Seq,
+  microarray, and small-RNA profiling across plant and photosynthetic microbial
+  species.
+keywords: [transcriptomics, RNA-Seq, gene expression, DataPLANT, plants]
+license: CC-BY-4.0
+axis: omics
+provider:
+  name: DataPLANT
+  url: https://nfdi4plants.org
+extent:
+  spatial:
+    bbox: [[-180, -90, 180, 90]]
+  temporal:
+    interval: [["2010-01-01T00:00:00Z", null]]
+links:
+  - rel: describedby
+    href: /schemas/record.schema.json
+    title: L2 record schema
+  - rel: items
+    href: /collections/dataplant-transcriptomics/items
+    title: Records in this collection
+query_rule: "'transcriptomics' = ANY(omics_domains)"
