@@ -20,6 +20,7 @@ from oai.formats import (
     oai_dc_element,
 )
 from oai.mapping import map_record
+from oai.source import parse_oai_datetime
 
 OAI_NS = "http://www.openarchives.org/OAI/2.0/"
 XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
@@ -187,9 +188,79 @@ def handle(params: dict, *, base_url: str, source, config: RepoConfig) -> bytes:
     return tostring(root, encoding="utf-8", xml_declaration=True)
 
 
-def _list_records(root, verb, params, *, source, config):  # implemented in Task 5
-    raise OaiError("badArgument", "not yet implemented")
+def _parse_window(value: str | None) -> datetime | None:
+    if value is None:
+        return None
+    try:
+        return parse_oai_datetime(value)
+    except ValueError as exc:
+        raise OaiError("badArgument", f"bad date: {value!r}") from exc
 
 
-def _get_record(root, params, *, source, config):  # implemented in Task 5
-    raise OaiError("badArgument", "not yet implemented")
+def _list_records(root: Element, verb: str, params: dict, *, source, config) -> None:
+    token = params.get("resumptionToken")
+    if token is not None:
+        if any(k in params for k in ("metadataPrefix", "from", "until", "set")):
+            raise OaiError("badArgument", "resumptionToken must be the only argument")
+        state = decode_token(token)
+        prefix = state["p"]
+        frm = datetime.fromisoformat(state["f"]) if state.get("f") else None
+        until = datetime.fromisoformat(state["u"]) if state.get("u") else None
+        after = (datetime.fromisoformat(state["ats"]), state["aid"])
+    else:
+        if "set" in params:
+            raise OaiError("noSetHierarchy", "this repository does not support sets")
+        prefix = params.get("metadataPrefix")
+        if not prefix:
+            raise OaiError("badArgument", "metadataPrefix is required")
+        frm = _parse_window(params.get("from"))
+        until = _parse_window(params.get("until"))
+        after = None
+    if prefix not in _VALID_PREFIXES:
+        raise OaiError("cannotDisseminateFormat", prefix)
+
+    rows = source.list(frm=frm, until=until, after=after, limit=PAGE_SIZE + 1)
+    has_more = len(rows) > PAGE_SIZE
+    page = rows[:PAGE_SIZE]
+    if not page and after is None:
+        raise OaiError("noRecordsMatch", "no records match the request")
+
+    container = SubElement(root, f"{{{OAI_NS}}}{verb}")
+    for rec in page:
+        if verb == "ListIdentifiers":
+            _header(container, config, rec)
+        else:
+            record_el = SubElement(container, f"{{{OAI_NS}}}record")
+            _header(record_el, config, rec)
+            _metadata(record_el, prefix, rec)
+
+    if has_more:
+        last = page[-1]
+        next_state = {
+            "p": prefix,
+            "f": frm.isoformat() if frm else None,
+            "u": until.isoformat() if until else None,
+            "ats": last.cursor_ts.isoformat(),
+            "aid": last.identifier,
+        }
+        SubElement(container, f"{{{OAI_NS}}}resumptionToken").text = encode_token(next_state)
+    elif token is not None:
+        # Issued a token earlier in the sequence: close it with an empty token.
+        SubElement(container, f"{{{OAI_NS}}}resumptionToken").text = ""
+
+
+def _get_record(root: Element, params: dict, *, source, config) -> None:
+    identifier = params.get("identifier")
+    prefix = params.get("metadataPrefix")
+    if not identifier or not prefix:
+        raise OaiError("badArgument", "identifier and metadataPrefix are required")
+    if prefix not in _VALID_PREFIXES:
+        raise OaiError("cannotDisseminateFormat", prefix)
+    local = _strip_oai_id(config, identifier)
+    rec = source.get(local)
+    if rec is None:
+        raise OaiError("idDoesNotExist", identifier)
+    container = SubElement(root, f"{{{OAI_NS}}}GetRecord")
+    record_el = SubElement(container, f"{{{OAI_NS}}}record")
+    _header(record_el, config, rec)
+    _metadata(record_el, prefix, rec)
