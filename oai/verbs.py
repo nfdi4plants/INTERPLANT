@@ -197,16 +197,33 @@ def _parse_window(value: str | None) -> datetime | None:
         raise OaiError("badArgument", f"bad date: {value!r}") from exc
 
 
+def _parse_until(value: str | None) -> datetime | None:
+    """Like _parse_window, but a day-granularity until is inclusive of the
+    whole UTC day (bumped to 23:59:59Z) so same-day records are not dropped."""
+    if value is None:
+        return None
+    try:
+        dt = parse_oai_datetime(value)
+    except ValueError as exc:
+        raise OaiError("badArgument", f"bad date: {value!r}") from exc
+    if "T" not in value:
+        dt = dt.replace(hour=23, minute=59, second=59)
+    return dt
+
+
 def _list_records(root: Element, verb: str, params: dict, *, source, config) -> None:
     token = params.get("resumptionToken")
     if token is not None:
         if any(k in params for k in ("metadataPrefix", "from", "until", "set")):
             raise OaiError("badArgument", "resumptionToken must be the only argument")
         state = decode_token(token)
-        prefix = state["p"]
-        frm = datetime.fromisoformat(state["f"]) if state.get("f") else None
-        until = datetime.fromisoformat(state["u"]) if state.get("u") else None
-        after = (datetime.fromisoformat(state["ats"]), state["aid"])
+        try:
+            prefix = state["p"]
+            frm = datetime.fromisoformat(state["f"]) if state.get("f") else None
+            until = datetime.fromisoformat(state["u"]) if state.get("u") else None
+            after = (datetime.fromisoformat(state["ats"]), state["aid"])
+        except (KeyError, ValueError) as exc:
+            raise OaiError("badResumptionToken", "invalid resumptionToken") from exc
     else:
         if "set" in params:
             raise OaiError("noSetHierarchy", "this repository does not support sets")
@@ -214,7 +231,7 @@ def _list_records(root: Element, verb: str, params: dict, *, source, config) -> 
         if not prefix:
             raise OaiError("badArgument", "metadataPrefix is required")
         frm = _parse_window(params.get("from"))
-        until = _parse_window(params.get("until"))
+        until = _parse_until(params.get("until"))
         after = None
     if prefix not in _VALID_PREFIXES:
         raise OaiError("cannotDisseminateFormat", prefix)

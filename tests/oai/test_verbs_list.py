@@ -116,6 +116,30 @@ def test_bad_resumption_token(make_record):
     assert root.find(f"{{{OAI}}}error").get("code") == "badResumptionToken"
 
 
+def test_resumption_token_wrong_shape_returns_bad_resumption_token(make_record):
+    # structurally valid base64+JSON, but not the expected token shape
+    from oai.verbs import encode_token
+
+    root = _call(
+        {"verb": "ListRecords", "resumptionToken": encode_token({"hello": "world"})},
+        FakeSource(_records(make_record, 1)),
+    )
+    assert root.find(f"{{{OAI}}}error").get("code") == "badResumptionToken"
+
+
+def test_day_granularity_until_includes_later_same_day_record(make_record):
+    # a record at 09:00 on the 3rd; day-granularity until=2026-06-03 must
+    # be inclusive of the whole UTC day
+    morning = make_record("rec03a", datetime(2026, 6, 3, 9, 0, 0, tzinfo=UTC))
+    src = FakeSource(_records(make_record, 2) + [morning])
+    root = _call(
+        {"verb": "ListIdentifiers", "metadataPrefix": "oai_dc", "until": "2026-06-03"},
+        src,
+    )
+    ids = [e.text for e in root.iter(f"{{{OAI}}}identifier")]
+    assert "oai:interplant:rec03a" in ids
+
+
 def test_from_until_filter(make_record):
     root = _call(
         {"verb": "ListIdentifiers", "metadataPrefix": "oai_dc",
