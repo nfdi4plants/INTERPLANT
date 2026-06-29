@@ -1,0 +1,34 @@
+"""Pure (no-DB) tests for the Flask HTTP layer: protocol-arg handling."""
+from __future__ import annotations
+
+from xml.etree.ElementTree import fromstring
+
+OAI = "http://www.openarchives.org/OAI/2.0/"
+
+
+def test_duplicate_verb_is_bad_verb(monkeypatch):
+    # A repeated verb is badVerb per OAI-PMH 2.0, not badArgument.
+    # Unreachable DSN on purpose: rejected before any source dispatch.
+    monkeypatch.setenv("INTERPLANT_DSN", "postgresql://u:p@localhost:1/none")
+    from oai.app import create_app
+
+    client = create_app().test_client()
+    resp = client.get("/oai?verb=Identify&verb=ListRecords")
+    root = fromstring(resp.data)
+    err = root.find(f"{{{OAI}}}error")
+    assert err is not None
+    assert err.get("code") == "badVerb"
+
+
+def test_duplicate_metadata_prefix_is_bad_argument(monkeypatch):
+    monkeypatch.setenv("INTERPLANT_DSN", "postgresql://u:p@localhost:1/none")
+    from oai.app import create_app
+
+    client = create_app().test_client()
+    resp = client.get(
+        "/oai?verb=ListRecords&metadataPrefix=oai_dc&metadataPrefix=documentschema"
+    )
+    root = fromstring(resp.data)
+    err = root.find(f"{{{OAI}}}error")
+    assert err is not None
+    assert err.get("code") == "badArgument"

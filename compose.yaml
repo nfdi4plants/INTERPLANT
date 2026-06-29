@@ -52,5 +52,19 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  oai:
+    build:
+      context: .
+      dockerfile: oai/Dockerfile
+    container_name: interplant-oai
+    environment:
+      INTERPLANT_DSN: postgresql://interplant:interplant@db:5432/interplant
+    ports:
+      - "8001:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   interplant_pgdata:
