@@ -9,7 +9,7 @@ import os
 from flask import Flask, Response, request
 
 from oai.source import RecordSource
-from oai.verbs import RepoConfig, handle
+from oai.verbs import DUP_VERB_MARKER, RepoConfig, handle
 
 _DEFAULT_DSN = "postgresql://interplant:interplant@localhost:5432/interplant"
 
@@ -18,21 +18,23 @@ _DUP_MARKER = "__duplicateArgument__"
 
 def _flatten_args(values) -> dict[str, str]:
     """Flatten the request MultiDict to a single-value dict. A repeated
-    argument is a protocol error; signal it by carrying a marker key that
-    oai.verbs.handle rejects via per-verb argument validation (no verb's
-    allowed-argument set contains it), which renders a badArgument response.
+    argument is a protocol error. A repeated `verb` is badVerb per OAI-PMH 2.0,
+    signalled with DUP_VERB_MARKER; any other repeated argument is badArgument,
+    signalled with a marker key that no verb's allowed-argument set contains, so
+    oai.verbs.handle rejects it via per-verb argument validation.
 
-    The first value of every key is kept (including a duplicated verb) so that
-    a duplicate verb still dispatches far enough to reach argument validation,
-    where the marker raises badArgument rather than collapsing to badVerb."""
+    The first value of every key is kept (including a duplicated verb) so a
+    duplicated verb still dispatches far enough to reach the badVerb check."""
     params: dict[str, str] = {}
-    duplicate = False
+    dup_keys: list[str] = []
     for key in values:
         vals = values.getlist(key)
         if len(vals) > 1:
-            duplicate = True
+            dup_keys.append(key)
         params[key] = vals[0]
-    if duplicate:
+    if "verb" in dup_keys:
+        params[DUP_VERB_MARKER] = ""
+    elif dup_keys:
         params[_DUP_MARKER] = ""
     return params
 

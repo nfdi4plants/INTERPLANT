@@ -27,6 +27,10 @@ XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
 PAGE_SIZE = 100
 _VALID_PREFIXES = ("oai_dc", "documentschema")
 
+# Sentinel injected by the HTTP layer (oai.app) when the `verb` argument is
+# repeated; per OAI-PMH 2.0 a repeated verb is badVerb, not badArgument.
+DUP_VERB_MARKER = "__duplicateVerb__"
+
 register_namespace("", OAI_NS)
 register_namespace("xsi", XSI_NS)
 
@@ -173,7 +177,7 @@ def handle(params: dict, *, base_url: str, source, config: RepoConfig) -> bytes:
     request.text = base_url
     verb = params.get("verb")
     try:
-        if verb not in _VALID_VERBS:
+        if DUP_VERB_MARKER in params or verb not in _VALID_VERBS:
             raise OaiError("badVerb", "illegal or missing verb")
         _validate_args(verb, params)
         # echo request args only once the verb and its arguments are legal
