@@ -2,6 +2,7 @@
 docs/superpowers/
 .remember/
 ARCs/
+.codegraph
 
 # python
 __pycache__/
