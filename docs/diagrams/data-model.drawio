@@ -1,0 +1,105 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="data-model-001" name="Page-1">
+    <mxGraphModel dx="1094" dy="547" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="900" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fillColor=none;strokeColor=none;" value="Data Model and Serving Transformations" vertex="1">
+          <mxGeometry height="40" width="1700" x="100" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="geom-note" parent="1" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#555555;fillColor=#fffbe6;strokeColor=#d6b656;rounded=1;" value="geometry/geom null today - real geometry is future work." vertex="1">
+          <mxGeometry height="25" width="500" x="600" y="65" as="geometry" />
+        </mxCell>
+        <mxCell id="arc" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;" value="ARC (ISA-Tab)&#xa;isa.investigation.xlsx via arctrl&#xa;&#xa;Investigation&#xa;  |-- Study(s)&#xa;       |-- Assay(s)" vertex="1">
+          <mxGeometry height="300" width="220" x="30" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="arc-label" parent="1" style="text;html=1;align=center;fontSize=9;fontStyle=2;fontColor=#6c8ebf;fillColor=none;strokeColor=none;" value="Governing: arctrl ISA parser" vertex="1">
+          <mxGeometry height="20" width="220" x="30" y="505" as="geometry" />
+        </mxCell>
+        <mxCell id="invest" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;" value="Investigation (dataclass)&#xa;harvester/isa_reader.py&#xa;&#xa;identifier&#xa;title&#xa;description&#xa;dois&#xa;contacts[]&#xa;studies[ (assays[]) ]&#xa;organisms[]&#xa;license" vertex="1">
+          <mxGeometry height="300" width="240" x="300" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="invest-label" parent="1" style="text;html=1;align=center;fontSize=9;fontStyle=2;fontColor=#d6b656;fillColor=none;strokeColor=none;" value="Governing: isa_reader.py dataclass" vertex="1">
+          <mxGeometry height="20" width="240" x="300" y="505" as="geometry" />
+        </mxCell>
+        <mxCell id="ogcrec" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=10;verticalAlign=top;" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;OGC API - Records &#39;record&#39; (GeoJSON Feature)&lt;br&gt;harvester/build.py:build_record&lt;br&gt;&lt;br&gt;{ id, type:Feature, conformsTo,&lt;br&gt;  time{ interval },&lt;br&gt;  geometry (null today),&lt;br&gt;  properties{ ... },&lt;br&gt;  links }&lt;br&gt;&lt;br&gt;properties:&lt;br&gt;  title, description, created&lt;br&gt;  omics_domains[], experiment_context&lt;br&gt;  organism[], keywords[]&lt;br&gt;  arc_source_uri&lt;br&gt;  assays[] (+omics ext fields)&lt;br&gt;  studies[], contacts[], creators[]&lt;br&gt;  publications[], doi, uniqueId&lt;br&gt;  harvester_version, record_quality&lt;br&gt;  harvested_at, project[]" vertex="1">
+          <mxGeometry height="490" width="290" x="590" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="ogcrec-label" parent="1" style="text;html=1;align=center;fontSize=9;fontStyle=2;fontColor=#9673a6;fillColor=none;strokeColor=none;" value="Validated by: record.schema.json + assay-extensions.schema.json" vertex="1">
+          <mxGeometry height="20" width="290" x="590" y="605" as="geometry" />
+        </mxCell>
+        <mxCell id="pgrecords" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=14;verticalAlign=middle;" value="records table (Postgres)&#xa;harvester/schema.sql&#xa;&#xa;id  PK&#xa;payload  JSONB&#xa;source_etag&#xa;ingested_at (indexed)" vertex="1">
+          <mxGeometry height="200" width="240" x="940" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="pgrecords-label" parent="1" style="text;html=1;align=center;fontSize=9;fontStyle=2;fontColor=#82b366;fillColor=none;strokeColor=none;" value="Governing: harvester/schema.sql" vertex="1">
+          <mxGeometry height="20" width="240" x="940" y="435" as="geometry" />
+        </mxCell>
+        <mxCell id="arcview" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;verticalAlign=top;" value="arc_records VIEW&#xa;sql/catalog_views.sql&#xa;&#xa;title, description, created&#xa;omics_domains, experiment_context&#xa;organism, keywords, arc_source_uri&#xa;geom (PostGIS, null today)" vertex="1">
+          <mxGeometry height="190" width="240" x="1250" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="omicsviews" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;verticalAlign=top;" value="7 per-omics views: arc_records_&lt;domain&gt;&#xa;sql/catalog_collections.generated.sql&#xa;&#xa;WHERE &#39;&lt;domain&gt;&#39; = ANY(omics_domains)&#xa;&#xa;[genomics, imaging, metabolomics,&#xa; microbiome, phenotyping,&#xa; proteomics, transcriptomics]" vertex="1">
+          <mxGeometry height="190" width="240" x="1250" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="pygeoapi" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=10;verticalAlign=top;" value="pygeoapi - OGC API Records (JSON)&#xa;&#xa;arc-records + 7 omics collections&#xa;PostgreSQL record provider&#xa;over the views&#xa;&#xa;collections from:&#xa;catalog/collections/*.yaml&#xa;-&gt; pygeoapi-config.yml" vertex="1">
+          <mxGeometry height="230" width="240" x="1560" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="oai" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=10;verticalAlign=top;" value="OAI-PMH (XML)&#xa;oai/  reads records table&#xa;&#xa;- oai_dc: Dublin Core&#xa;  (oai/formats.py:oai_dc_element)&#xa;&#xa;- documentschema: map_record(payload)&#xa;  -&gt; AWI DocumentSchema JSON&#xa;  embedded as escaped XML text&#xa;  (oai/formats.py:documentschema_element,&#xa;   oai/mapping.py:map_record)" vertex="1">
+          <mxGeometry height="250" width="240" x="1560" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="arc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#6c8ebf;fontSize=10;" target="invest" value="arctrl.ARC.load">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="invest" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=10;" target="ogcrec" value="build_record">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="ogcrec" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#9673a6;fontSize=10;" target="pgrecords" value="upsert_record">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="pgrecords" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#82b366;fontSize=10;" target="arcview" value="CREATE VIEW">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="pgrecords" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#82b366;fontSize=10;" target="omicsviews" value="CREATE VIEW">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="arcview" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#b85450;fontSize=10;" target="pygeoapi" value="reads views">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="omicsviews" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#b85450;fontSize=10;" target="pygeoapi" value="reads views">
+          <mxGeometry relative="1" x="0.1818" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="1540" y="495" />
+              <mxPoint x="1540" y="235" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="pgrecords" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#b85450;fontSize=10;" target="oai" value="reads records">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1520" y="370" />
+              <mxPoint x="1520" y="515" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-title" parent="1" style="text;html=1;align=left;fontSize=11;fontStyle=1;fillColor=none;strokeColor=none;" value="Legend" vertex="1">
+          <mxGeometry height="20" width="80" x="30" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="ARC / ISA-Tab source" vertex="1">
+          <mxGeometry height="25" width="160" x="30" y="665" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="Python dataclass" vertex="1">
+          <mxGeometry height="25" width="160" x="30" y="695" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" value="OGC Record / schema" vertex="1">
+          <mxGeometry height="25" width="160" x="30" y="725" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="Postgres / SQL views" vertex="1">
+          <mxGeometry height="25" width="160" x="30" y="755" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" value="Serving layer" vertex="1">
+          <mxGeometry height="25" width="160" x="30" y="785" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

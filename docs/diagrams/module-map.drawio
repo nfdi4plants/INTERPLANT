@@ -1,0 +1,275 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="module-map-001" name="Page-1">
+    <mxGraphModel dx="1586" dy="933" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1300" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" value="Module / Import Map" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1">
+          <mxGeometry x="100" y="20" width="1600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" value="Edges = imports (A -&gt; B means A imports B). Top = entrypoints, bottom = external deps." style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555555;fillColor=none;strokeColor=none;" vertex="1">
+          <mxGeometry x="100" y="58" width="1600" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="entry-band" parent="1" value="ENTRYPOINTS" style="swimlane;startSize=28;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;fontColor=#00447a;" vertex="1">
+          <mxGeometry x="40" y="95" width="1720" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="main" parent="entry-band" value="harvester/__main__.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1">
+          <mxGeometry x="30" y="40" width="200" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="cli-ep" parent="entry-band" value="harvester/cli.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1">
+          <mxGeometry x="250" y="40" width="200" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="oai-app-ep" parent="entry-band" value="oai/app.py&#xa;(Flask app)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1">
+          <mxGeometry x="470" y="40" width="200" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="gen-cat-ep" parent="entry-band" value="scripts/generate_catalog.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1">
+          <mxGeometry x="690" y="40" width="220" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="apply-cat-ep" parent="entry-band" value="scripts/apply_catalog_views.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1">
+          <mxGeometry x="930" y="40" width="240" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="harv-band" parent="1" value="harvester/" style="swimlane;startSize=28;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;fontColor=#7d5a00;" vertex="1">
+          <mxGeometry x="40" y="225" width="1060" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="batch" parent="harv-band" value="batch.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="30" y="50" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="pipeline" parent="harv-band" value="pipeline.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="190" y="50" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="acquire" parent="harv-band" value="acquire.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="350" y="50" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="enumerate-m" parent="harv-band" value="enumerate.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="510" y="50" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="isa-reader" parent="harv-band" value="isa_reader.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="670" y="50" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="build-m" parent="harv-band" value="build.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="830" y="50" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="omics-cls" parent="harv-band" value="classifiers/omics.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="30" y="140" width="160" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-file" parent="harv-band" value="extractors/file_counts.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="210" y="140" width="180" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-lic" parent="harv-band" value="extractors/license.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="410" y="140" width="160" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-org" parent="harv-band" value="extractors/organism.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="590" y="140" width="160" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ids-m" parent="harv-band" value="ids.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="770" y="140" width="120" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="db-m" parent="harv-band" value="db.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="910" y="140" width="120" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="audit-m" parent="harv-band" value="audit.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1">
+          <mxGeometry x="30" y="215" width="140" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="oai-band" parent="1" value="oai/" style="swimlane;startSize=28;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;fontColor=#4a235a;" vertex="1">
+          <mxGeometry x="1120" y="225" width="640" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="oai-app" parent="oai-band" value="app.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1">
+          <mxGeometry x="30" y="50" width="120" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="oai-verbs" parent="oai-band" value="verbs.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1">
+          <mxGeometry x="170" y="50" width="120" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="oai-source" parent="oai-band" value="source.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1">
+          <mxGeometry x="310" y="50" width="120" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="oai-formats" parent="oai-band" value="formats.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1">
+          <mxGeometry x="450" y="50" width="120" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="oai-mapping" parent="oai-band" value="mapping.py&#xa;(pinned by portal-mapping spec)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1">
+          <mxGeometry x="30" y="110" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="catalog-band" parent="1" value="catalog + sql + config" style="swimlane;startSize=28;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;fontColor=#1a5c2a;" vertex="1">
+          <mxGeometry x="40" y="530" width="1720" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="cat-yamls" parent="catalog-band" value="catalog/collections/*.yaml&#xa;(7 collection descriptors)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1">
+          <mxGeometry x="30" y="50" width="240" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="sql-views" parent="catalog-band" value="sql/catalog_views.sql" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1">
+          <mxGeometry x="290" y="50" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="sql-gen" parent="catalog-band" value="sql/catalog_collections.generated.sql" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1">
+          <mxGeometry x="530" y="50" width="280" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="schema-sql" parent="catalog-band" value="harvester/schema.sql" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1">
+          <mxGeometry x="830" y="50" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="pyg-config" parent="catalog-band" value="pygeoapi-config.base.yml&#xa;-&gt; pygeoapi-config.yml (generated)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1">
+          <mxGeometry x="1050" y="50" width="260" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="specs-band" parent="1" value="docs/specs/schemas (shared)" style="swimlane;startSize=28;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;fontColor=#7a1a1a;" vertex="1">
+          <mxGeometry x="40" y="730" width="1720" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="rec-schema" parent="specs-band" value="record.schema.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1">
+          <mxGeometry x="30" y="45" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="assay-schema" parent="specs-band" value="assay-extensions.schema.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1">
+          <mxGeometry x="250" y="45" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="portal-schema" parent="specs-band" value="portal-document-schema.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1">
+          <mxGeometry x="510" y="45" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="coll-schema" parent="specs-band" value="collection-descriptor.schema.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1">
+          <mxGeometry x="770" y="45" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext-band" parent="1" value="External dependencies (leaf nodes)" style="swimlane;startSize=28;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=12;fontColor=#333333;" vertex="1">
+          <mxGeometry x="40" y="880" width="1720" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-arctrl" parent="ext-band" value="arctrl&#xa;(ISA parsing)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1">
+          <mxGeometry x="30" y="45" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-psycopg" parent="ext-band" value="psycopg&#xa;(Postgres driver)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1">
+          <mxGeometry x="200" y="45" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-httpx" parent="ext-band" value="httpx&#xa;(GitLab API)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1">
+          <mxGeometry x="370" y="45" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-flask" parent="ext-band" value="flask + gunicorn&#xa;(OAI HTTP server)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1">
+          <mxGeometry x="530" y="45" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-jsonschema" parent="ext-band" value="jsonschema + referencing&#xa;(record validation)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1">
+          <mxGeometry x="710" y="45" width="190" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-pyyaml" parent="ext-band" value="pyyaml&#xa;(catalog YAML)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1">
+          <mxGeometry x="920" y="45" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-lxml" parent="ext-band" value="lxml&#xa;(test-only)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;dashed=1;" vertex="1">
+          <mxGeometry x="1080" y="45" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ie-main-cli" parent="1" source="main" target="cli-ep" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#6c8ebf;fontSize=10;" value="imports">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-cli-acq" parent="1" source="cli-ep" target="acquire" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-cli-audit" parent="1" source="cli-ep" target="audit-m" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-cli-batch" parent="1" source="cli-ep" target="batch" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-cli-db" parent="1" source="cli-ep" target="db-m" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-cli-pipe" parent="1" source="cli-ep" target="pipeline" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-batch-acq" parent="1" source="batch" target="acquire" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-batch-pipe" parent="1" source="batch" target="pipeline" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-pipe-db" parent="1" source="pipeline" target="db-m" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-pipe-build" parent="1" source="pipeline" target="build-m" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-pipe-cls" parent="1" source="pipeline" target="omics-cls" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-pipe-isa" parent="1" source="pipeline" target="isa-reader" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-acq-enum" parent="1" source="acquire" target="enumerate-m" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-build-extf" parent="1" source="build-m" target="ext-file" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-build-extl" parent="1" source="build-m" target="ext-lic" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-build-exto" parent="1" source="build-m" target="ext-org" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-build-ids" parent="1" source="build-m" target="ids-m" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-pipe-recschema" parent="1" source="pipeline" target="rec-schema" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#b85450;fontSize=10;dashed=1;" value="validates against">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-pipe-assayschema" parent="1" source="pipeline" target="assay-schema" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#b85450;fontSize=10;dashed=1;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-db-sqlschema" parent="1" source="db-m" target="schema-sql" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#82b366;fontSize=10;dashed=1;" value="applies">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-db-sqlviews" parent="1" source="db-m" target="sql-views" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#82b366;fontSize=10;dashed=1;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-db-sqlgen" parent="1" source="db-m" target="sql-gen" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#82b366;fontSize=10;dashed=1;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-oaiapp-verbs" parent="1" source="oai-app-ep" target="oai-verbs" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#9673a6;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-oaiapp-source" parent="1" source="oai-app-ep" target="oai-source" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#9673a6;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-verbs-formats" parent="1" source="oai-verbs" target="oai-formats" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#9673a6;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-verbs-mapping" parent="1" source="oai-verbs" target="oai-mapping" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#9673a6;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-verbs-source" parent="1" source="oai-verbs" target="oai-source" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#9673a6;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-gencat-yamls" parent="1" source="gen-cat-ep" target="cat-yamls" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#82b366;fontSize=10;dashed=1;" value="reads">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-gencat-collschema" parent="1" source="gen-cat-ep" target="coll-schema" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#82b366;fontSize=10;dashed=1;" value="validates">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-gencat-sqlgen" parent="1" source="gen-cat-ep" target="sql-gen" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#82b366;fontSize=10;dashed=1;" value="writes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-gencat-pygcfg" parent="1" source="gen-cat-ep" target="pyg-config" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#82b366;fontSize=10;dashed=1;" value="writes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-applycat-db" parent="1" source="apply-cat-ep" target="db-m" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-isa-arctrl" parent="1" source="isa-reader" target="ext-arctrl" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#666666;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-db-psycopg" parent="1" source="db-m" target="ext-psycopg" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#666666;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-source-psycopg" parent="1" source="oai-source" target="ext-psycopg" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#666666;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-enum-httpx" parent="1" source="enumerate-m" target="ext-httpx" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#666666;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-oaiapp-flask" parent="1" source="oai-app-ep" target="ext-flask" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#666666;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-pipe-jsonschema" parent="1" source="pipeline" target="ext-jsonschema" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#666666;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ie-gencat-pyyaml" parent="1" source="gen-cat-ep" target="ext-pyyaml" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;strokeColor=#666666;fontSize=10;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

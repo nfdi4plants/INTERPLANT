@@ -1,0 +1,105 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="oai-flow-001" name="Page-1">
+    <mxGraphModel dx="1867" dy="933" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1100" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fillColor=none;strokeColor=none;" value="OAI-PMH Serving - Request Flow" vertex="1">
+          <mxGeometry height="40" width="1200" x="100" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="http-entry" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;fontStyle=1;" value="HTTP GET/POST /oai?verb=...&#xa;oai/app.py:create_app (/oai route)" vertex="1">
+          <mxGeometry height="60" width="380" x="330" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="flatten" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;" value="_flatten_args (MultiDict -&gt; dict)&#xa;oai/app.py:_flatten_args&#xa;repeated verb -&gt; DUP_VERB_MARKER;&#xa;other repeat -&gt; _DUP_MARKER" vertex="1">
+          <mxGeometry height="80" width="380" x="330" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="handle" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;" value="handle(params, base_url, source, config)&#xa;oai/verbs.py:handle&#xa;build envelope (responseDate, request);&#xa;verb in _VALID_VERBS else badVerb;&#xa;_validate_args per-verb args else badArgument" vertex="1">
+          <mxGeometry height="90" width="380" x="330" y="285" as="geometry" />
+        </mxCell>
+        <mxCell id="dispatch" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=center;" value="Dispatch to verb handler&#xa;(oai/verbs.py)" vertex="1">
+          <mxGeometry height="80" width="240" x="400" y="405" as="geometry" />
+        </mxCell>
+        <mxCell id="v-identify" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;" value="Identify&#xa;oai/verbs.py" vertex="1">
+          <mxGeometry height="60" width="140" x="30" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="v-listmeta" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;" value="ListMetadataFormats&#xa;oai/verbs.py" vertex="1">
+          <mxGeometry height="60" width="140" x="190" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="v-listsets" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;" value="ListSets&#xa;-&gt; noSetHierarchy&#xa;oai/verbs.py" vertex="1">
+          <mxGeometry height="60" width="140" x="350" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="v-getrec" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;" value="GetRecord&#xa;oai/verbs.py" vertex="1">
+          <mxGeometry height="60" width="140" x="510" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="v-listid" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;" value="ListIdentifiers&#xa;oai/verbs.py" vertex="1">
+          <mxGeometry height="60" width="140" x="670" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="v-listrec" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;" value="ListRecords&#xa;resumption tokens,&#xa;from/until&#xa;oai/verbs.py" vertex="1">
+          <mxGeometry height="70" width="140" x="830" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="source" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=center;" value="RecordSource (Postgres)&#xa;oai/source.py:RecordSource&#xa;&#xa;earliest_datestamp / get(id) / list(frm, until, after, limit)&#xa;resumption cursor on (ingested_at, id);&#xa;parse/format OAI datetime" vertex="1">
+          <mxGeometry height="90" width="480" x="280" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="formats" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;" value="metadata builders&#xa;oai/formats.py: oai_dc_element | documentschema_element&#xa;oai/mapping.py: map_record" vertex="1">
+          <mxGeometry height="70" width="480" x="280" y="775" as="geometry" />
+        </mxCell>
+        <mxCell id="output" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=center;fontStyle=1;" value="OAI-PMH XML response&#xa;(ElementTree, xml declaration)&#xa;tests validate vs pinned OAI-PMH XSDs" vertex="1">
+          <mxGeometry height="70" width="380" x="330" y="875" as="geometry" />
+        </mxCell>
+        <mxCell id="error-legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;" value="Error codes&#xa;&#xa;badVerb&#xa;badArgument&#xa;cannotDisseminateFormat&#xa;idDoesNotExist&#xa;noRecordsMatch&#xa;noSetHierarchy&#xa;badResumptionToken" vertex="1">
+          <mxGeometry height="200" width="240" x="850" y="205" as="geometry" />
+        </mxCell>
+        <mxCell id="error-title" parent="1" style="text;html=1;align=left;fontSize=11;fontStyle=1;fillColor=none;strokeColor=none;" value="Error codes legend" vertex="1">
+          <mxGeometry height="20" width="200" x="860" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="http-entry" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="flatten" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="flatten" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="handle" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="handle" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="dispatch" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4a" edge="1" parent="1" source="dispatch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="v-identify" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4b" edge="1" parent="1" source="dispatch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="v-listmeta" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4c" edge="1" parent="1" source="dispatch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="v-listsets" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4d" edge="1" parent="1" source="dispatch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="v-getrec" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4e" edge="1" parent="1" source="dispatch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="v-listid" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4f" edge="1" parent="1" source="dispatch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="v-listrec" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5a" edge="1" parent="1" source="v-getrec" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="source" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5b" edge="1" parent="1" source="v-listid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="source" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5c" edge="1" parent="1" source="v-listrec" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="source" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="900" y="630" />
+              <mxPoint x="520" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="source" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="formats" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="formats" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" target="output" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

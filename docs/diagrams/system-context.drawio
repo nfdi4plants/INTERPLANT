@@ -1,0 +1,79 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="sys-ctx-001" name="Page-1">
+    <mxGraphModel dx="1867" dy="933" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fillColor=none;strokeColor=none;" value="INTERPLANT - System Context and Deployment" vertex="1">
+          <mxGeometry height="40" width="1400" x="100" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="boundary" parent="1" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=13;fontColor=#333333;html=1;" value="INTERPLANT (compose.yaml)" vertex="1">
+          <mxGeometry height="740" width="980" x="290" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="harvester" parent="boundary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=center;" value="Harvester&#xa;(Python CLI, harvester/)&#xa;batch job (nightly)" vertex="1">
+          <mxGeometry height="100" width="240" x="60" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="catinit" parent="boundary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#aaaaaa;fontSize=11;align=center;dashed=1;" value="catalog-init&#xa;[catalog-init]&#xa;applies SQL views&#xa;(depends_on: db)" vertex="1">
+          <mxGeometry height="90" width="240" x="60" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="postgres" parent="boundary" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=middle;" value="Postgres 17 + PostGIS 3.6&#xa;[db]  port 5432&#xa;&#xa;records (JSONB)&#xa;arc_records views" vertex="1">
+          <mxGeometry height="200" width="240" x="360" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="pygeoapi" parent="boundary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;" value="pygeoapi - OGC API Records&#xa;[pygeoapi]  :5000&#xa;(geopython/pygeoapi:0.23.4)" vertex="1">
+          <mxGeometry height="100" width="260" x="670" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="oai" parent="boundary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;" value="OAI-PMH service&#xa;(Flask+gunicorn, oai/)&#xa;[oai]  :8001" vertex="1">
+          <mxGeometry height="100" width="260" x="670" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="gitlab" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=middle;" value="DataPLANT GitLab&#xa;(git.nfdi4plants.org)&#xa;&#xa;Source of public ARCs&#xa;(ISA-Tab in XLSX)" vertex="1">
+          <mxGeometry height="160" width="200" x="30" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="awi" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=center;" value="AWI Earth Data Portal&#xa;(o2a / DocumentSchema)&#xa;&#xa;Consumes OAI-PMH&#xa;metadata nightly" vertex="1">
+          <mxGeometry height="120" width="220" x="1330" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="geoclient" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=center;dashed=1;" value="Geospatial / OGC clients&#xa;(optional)" vertex="1">
+          <mxGeometry height="80" width="220" x="1330" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="note" parent="1" style="text;html=1;align=left;fontSize=10;fontStyle=2;fontColor=#555555;fillColor=none;strokeColor=none;" value="Deployment = compose.yaml services.&#xa;Prod hosting/TLS/scheduled harvest = TODO." vertex="1">
+          <mxGeometry height="40" width="240" x="30" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" parent="1" style="text;html=1;align=left;fontSize=11;fontStyle=1;fillColor=none;strokeColor=none;" value="Legend" vertex="1">
+          <mxGeometry height="20" width="80" x="1330" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="External system" vertex="1">
+          <mxGeometry height="30" width="130" x="1330" y="585" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" value="Serving layer" vertex="1">
+          <mxGeometry height="30" width="130" x="1330" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="Datastore" vertex="1">
+          <mxGeometry height="35" width="130" x="1330" y="655" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="Ingestion layer" vertex="1">
+          <mxGeometry height="30" width="130" x="1330" y="695" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="gitlab" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;endArrow=block;endFill=1;fontSize=10;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="harvester" value="GitLab API enumerate;&#xa;git clone --depth 1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="harvester" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;endArrow=block;endFill=1;fontSize=10;" target="postgres" value="upsert JSONB&#xa;(ON CONFLICT)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="catinit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#aaaaaa;endArrow=block;endFill=1;fontSize=10;" target="postgres" value="CREATE VIEW arc_records&#xa;+ 7 omics views">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="pygeoapi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#9673a6;endArrow=block;endFill=1;fontSize=10;" target="postgres" value="reads arc_records* views&#xa;(PostgreSQL record provider)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="oai" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#9673a6;endArrow=block;endFill=1;fontSize=10;" target="postgres" value="reads records table">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="awi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#b85450;endArrow=block;endFill=1;fontSize=10;" target="oai" value="harvests /oai&#xa;(OAI-PMH 2.0, nightly)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="geoclient" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#999999;endArrow=block;endFill=1;fontSize=10;dashed=1;" target="pygeoapi" value="OGC API - Records (JSON)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
