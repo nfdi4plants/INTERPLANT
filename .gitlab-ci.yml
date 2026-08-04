@@ -35,7 +35,10 @@ harvest-nightly:
   variables:
     INTERPLANT_LIVE_HARVEST: "1"
   script:
-    - uv run python -m harvester harvest --source live --dry-run --out-dir artifacts/
+    # --parse-timeout is mandatory here: arctrl can spend tens of minutes on a
+    # single assay-heavy ARC, which would burn the job's wall clock and produce
+    # no artifact at all. Bounded, those ARCs land in the report as failures.
+    - uv run python -m harvester harvest --source live --dry-run --parse-timeout 300 --out-dir artifacts/
   artifacts:
     paths:
       - artifacts/

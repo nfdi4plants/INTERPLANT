@@ -61,6 +61,15 @@ def _build_parser() -> argparse.ArgumentParser:
     harvest.add_argument("--out-dir", default="./harvest-runs")
     harvest.add_argument("--limit", type=int, default=None)
     harvest.add_argument("--provider", default="dataplant")
+    harvest.add_argument(
+        "--parse-timeout",
+        type=int,
+        default=None,
+        help=(
+            "Per-ARC parse budget in seconds (default: no limit). An ARC that "
+            "exceeds it is recorded as a ParseTimeout failure and the run continues."
+        ),
+    )
     return parser
 
 
@@ -144,7 +153,7 @@ def _harvest(args) -> int:
     report = batch.run_batch(
         identities, conn=conn, provider=args.provider, now_iso=now_iso,
         run_timestamp=run_timestamp, source=source, gitlab_base=gitlab_base,
-        limit=args.limit,
+        limit=args.limit, parse_timeout=args.parse_timeout,
     )
     json_path, md_path = audit.write_run_report(report, args.out_dir)
     logger.info("Audit report: %s (json: %s)", md_path, json_path)

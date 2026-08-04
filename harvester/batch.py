@@ -47,6 +47,7 @@ def run_batch(
     limit: int | None = None,
     clone_timeout: int = 60,
     clone_retries: int = 2,
+    parse_timeout: float | None = None,
 ) -> BatchReport:
     report = BatchReport(source=source, run_timestamp=run_timestamp, gitlab_base=gitlab_base)
     validator = pipeline.build_validator()
@@ -59,6 +60,7 @@ def run_batch(
                 Path(ident.local_dir), conn=conn, provider=provider,
                 source_uri=ident.web_url, now_iso=now_iso, validator=validator,
                 source_etag=ident.last_activity_at or None,
+                parse_timeout=parse_timeout,
             )
             report.outcomes.append(_merge_identity(outcome, ident))
             continue
@@ -76,6 +78,7 @@ def run_batch(
                 Path(tmp), conn=conn, provider=provider,
                 source_uri=ident.web_url, now_iso=now_iso, validator=validator,
                 source_etag=ident.last_activity_at or None,
+                parse_timeout=parse_timeout,
             )
             report.outcomes.append(_merge_identity(outcome, ident))
 

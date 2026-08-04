@@ -13,7 +13,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
-from harvester import db
+from harvester import db, timeouts
 from harvester.build import build_record
 from harvester.classifiers.omics import classify_omics
 from harvester.isa_reader import IsaReader
@@ -91,15 +91,23 @@ def ingest_arc(
     now_iso: str,
     validator: Draft202012Validator,
     source_etag: str | None = None,
+    parse_timeout: float | None = None,
 ) -> ArcOutcome:
-    """Run one ARC through the pipeline. Never raises on bad data; records the failure."""
+    """Run one ARC through the pipeline. Never raises on bad data; records the failure.
+
+    `parse_timeout` bounds the arctrl parse in seconds; None means no limit.
+    """
     out = ArcOutcome(clone_ok=True)
 
+    guard = timeouts.TimeoutState()
     try:
-        investigation = IsaReader().read(arc_path)
+        with timeouts.parse_timeout(parse_timeout, state=guard):
+            investigation = IsaReader().read(arc_path)
         out.parse_ok = True
     except Exception as exc:  # noqa: BLE001 - any arctrl failure is captured per-ARC
-        out.parse_exc_type = type(exc).__name__
+        # arctrl wraps our ParseTimeout into a generic error, so trust the flag
+        # over the exception type to keep timeouts distinct in the audit report.
+        out.parse_exc_type = "ParseTimeout" if guard.fired else type(exc).__name__
         out.parse_error = str(exc)[:300]
         return out
 

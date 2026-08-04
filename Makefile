@@ -2,6 +2,10 @@
 
 DSN ?= postgresql://interplant:interplant@localhost:5432/interplant
 
+# Per-ARC arctrl parse budget for diagnostic dry runs. Empty means no limit,
+# which is what harvest-all uses: a slow ARC is still valid data.
+DRYRUN_PARSE_TIMEOUT ?= 300
+
 help:
 	@echo "INTERPLANT - local development targets"
 	@echo ""
@@ -19,6 +23,7 @@ help:
 	@echo "  make harvest-prototype   Ingest ARCs/ArcPrototype-main into the local Postgres"
 	@echo "  make harvest-all         Batch-harvest all live public ARCs into the local Postgres"
 	@echo "  make harvest-dryrun      Batch-harvest live ARCs in dry-run mode (validate only)"
+	@echo "                           Bounded by DRYRUN_PARSE_TIMEOUT=$(DRYRUN_PARSE_TIMEOUT)s per ARC"
 	@echo "  make catalog-views       Apply the catalog serving views to the local Postgres"
 	@echo "  make catalog-gen         Regenerate catalog views + pygeoapi config from descriptors"
 	@echo "  make catalog-up          Up + harvest fixtures + apply views (serving stack)"
@@ -67,7 +72,7 @@ harvest-all:
 	uv run python -m harvester harvest --source live --dsn $(DSN)
 
 harvest-dryrun:
-	uv run python -m harvester harvest --source live --dry-run
+	uv run python -m harvester harvest --source live --dry-run --parse-timeout $(DRYRUN_PARSE_TIMEOUT)
 
 catalog-views:
 	uv run python scripts/apply_catalog_views.py $(DSN)

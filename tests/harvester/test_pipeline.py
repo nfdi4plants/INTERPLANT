@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from harvester import pipeline
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "arcs" / "ArcPrototype"
@@ -25,6 +27,48 @@ def test_ingest_arc_validate_only_no_conn_builds_valid_record():
     assert outcome.record_id == "dataplant-arcprototype"
     assert outcome.upsert_ok is False  # no conn -> no upsert attempted
     assert outcome.n_studies == 2
+
+
+def _ingest(**kwargs):
+    return pipeline.ingest_arc(
+        FIXTURE,
+        conn=None,
+        provider="dataplant",
+        source_uri="https://example.org/arc",
+        now_iso="2026-06-22T00:00:00Z",
+        validator=pipeline.build_validator(),
+        **kwargs,
+    )
+
+
+def test_unmet_parse_budget_is_reported_as_parse_timeout():
+    """A budget arctrl cannot meet degrades to a recorded failure, not a stall.
+
+    Runs the real arctrl path deliberately: arctrl catches our ParseTimeout and
+    re-raises a generic "Could not load ARC" error, so this pins the behaviour we
+    depend on to keep timeouts distinct from malformed data in the audit report.
+    """
+    outcome = _ingest(parse_timeout=0.01)
+    assert outcome.parse_ok is False
+    assert outcome.parse_exc_type == "ParseTimeout"
+    assert outcome.build_ok is False
+    assert outcome.upsert_ok is False
+    assert outcome.record_id == ""
+
+
+@pytest.mark.parametrize("disabled", [None, 0])
+def test_disabled_parse_budget_still_ingests(disabled):
+    """The opt-in default must never drop a slow-but-valid ARC."""
+    outcome = _ingest(parse_timeout=disabled)
+    assert outcome.parse_ok is True
+    assert outcome.validate_ok is True
+
+
+def test_generous_parse_budget_does_not_interfere():
+    outcome = _ingest(parse_timeout=120)
+    assert outcome.parse_ok is True
+    assert outcome.validate_ok is True
+    assert outcome.record_id == "dataplant-arcprototype"
 
 
 def test_ingest_arc_parse_failure_is_captured_not_raised(tmp_path):
