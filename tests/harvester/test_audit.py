@@ -39,3 +39,91 @@ def test_write_run_report_emits_json_and_md(tmp_path):
     md = md_path.read_text("utf-8")
     assert "Batch Harvest Report" in md
     assert "a/good" in md
+
+
+def test_aggregate_counts_filtered_and_suppressed():
+    from harvester import audit
+    from harvester.pipeline import ArcOutcome
+
+    class R:
+        source, run_timestamp, gitlab_base = "fixtures", "20260804T000000Z", ""
+        verdict, verdict_reason = "ok", ""
+        registry = None
+        outcomes = [
+            ArcOutcome(clone_ok=True, parse_ok=True, filtered=True, filter_rule="template-assays"),
+            ArcOutcome(clone_ok=True, parse_ok=True, build_ok=True, validate_ok=True,
+                       upsert_ok=True, record_id="dataplant-x", path="ceplas/X"),
+            ArcOutcome(clone_ok=True, parse_ok=True, build_ok=True, validate_ok=True,
+                       record_id="dataplant-x", path="sbasu1/X", suppressed_by="ceplas"),
+        ]
+
+    agg = audit.aggregate(R())
+    assert agg["n_filtered"] == 1
+    assert agg["n_suppressed"] == 1
+    assert agg["n_valid"] == agg["n_upserted"] + agg["n_suppressed"], "the funnel must add up"
+
+
+def test_report_lists_excluded_and_deduped_sections(tmp_path):
+    from harvester import audit
+    from harvester.pipeline import ArcOutcome
+
+    class R:
+        source, run_timestamp, gitlab_base = "fixtures", "20260804T000000Z", ""
+        verdict, verdict_reason = "ok", ""
+        registry = None
+        outcomes = [
+            ArcOutcome(clone_ok=True, parse_ok=True, path="arc_templates/arc",
+                       filtered=True, filter_rule="template-assays"),
+            ArcOutcome(clone_ok=True, parse_ok=True, build_ok=True, validate_ok=True,
+                       record_id="dataplant-x", path="sbasu1/X", suppressed_by="ceplas"),
+        ]
+
+    _json_path, md_path = audit.write_run_report(R(), tmp_path)
+    text = md_path.read_text(encoding="utf-8")
+    assert "## Excluded by policy" in text
+    assert "arc_templates/arc" in text
+    assert "template-assays" in text
+    assert "## Deduped mirrors" in text
+    assert "sbasu1/X" in text
+
+
+def test_collisions_table_escapes_pipes_in_titles(tmp_path):
+    from harvester import audit
+    from harvester.dedup import Candidate
+
+    held = Candidate(
+        record_id="dataplant-wheat", title="Wheat | Drought Trial",
+        has_doi=False, last_activity_at="", namespace="ceplas",
+        unique_id="11111111-1111-1111-1111-111111111111",
+    )
+    incoming = Candidate(
+        record_id="dataplant-wheat", title="Barley | Salt Trial",
+        has_doi=False, last_activity_at="", namespace="otherlab",
+        unique_id="22222222-2222-2222-2222-222222222222",
+    )
+
+    class _Registry:
+        reviews = [(held, incoming, "dataplant-wheat-222222")]
+
+    class R:
+        source, run_timestamp, gitlab_base = "fixtures", "20260810T000000Z", ""
+        verdict, verdict_reason = "ok", ""
+        registry = _Registry()
+        outcomes = []
+
+    _json_path, md_path = audit.write_run_report(R(), tmp_path)
+    text = md_path.read_text(encoding="utf-8")
+
+    import re
+
+    unescaped_pipe = re.compile(r"(?<!\\)\|")
+
+    header_line = next(
+        line for line in text.splitlines() if line.startswith("| Kept ARC |")
+    )
+    row_line = next(
+        line for line in text.splitlines() if "dataplant-wheat-222222" in line
+    )
+    assert len(unescaped_pipe.findall(header_line)) == len(unescaped_pipe.findall(row_line)), (
+        "an unescaped pipe in a title must not add columns to the row"
+    )

@@ -13,7 +13,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
-from harvester import db, timeouts
+from harvester import db, dedup, filters, timeouts
 from harvester.build import build_record
 from harvester.classifiers.omics import classify_omics
 from harvester.isa_reader import IsaReader
@@ -32,6 +32,8 @@ class ArcOutcome:
     parse_ok: bool = False
     parse_error: str = ""
     parse_exc_type: str = ""
+    filtered: bool = False
+    filter_rule: str = ""
     build_ok: bool = False
     build_error: str = ""
     validate_ok: bool = False
@@ -39,6 +41,9 @@ class ArcOutcome:
     upsert_ok: bool = False
     upsert_error: str = ""
     record_id: str = ""
+    title: str = ""
+    suppressed_by: str = ""
+    disambiguated_to: str = ""
     n_studies: int = 0
     n_assays: int = 0
     omics_classified: int = 0
@@ -92,10 +97,14 @@ def ingest_arc(
     validator: Draft202012Validator,
     source_etag: str | None = None,
     parse_timeout: float | None = None,
+    apply_filters: bool = False,
+    registry: dedup.CollisionRegistry | None = None,
 ) -> ArcOutcome:
     """Run one ARC through the pipeline. Never raises on bad data; records the failure.
 
     `parse_timeout` bounds the arctrl parse in seconds; None means no limit.
+    `apply_filters` enables the policy exclusions in filters.py; off by default so
+    single-ARC ingests and fixture tests are unaffected.
     """
     out = ArcOutcome(clone_ok=True)
 
@@ -110,6 +119,13 @@ def ingest_arc(
         out.parse_exc_type = "ParseTimeout" if guard.fired else type(exc).__name__
         out.parse_error = str(exc)[:300]
         return out
+
+    if apply_filters:
+        verdict = filters.evaluate(investigation)
+        if verdict.excluded:
+            out.filtered = True
+            out.filter_rule = verdict.rule
+            return out
 
     out.n_studies = len(investigation.studies)
     out.n_assays = sum(len(s.assays) for s in investigation.studies)
@@ -140,6 +156,18 @@ def ingest_arc(
     out.validate_ok = not out.validate_errors
     if not out.validate_ok:
         return out
+
+    if registry is not None:
+        candidate = dedup.candidate_from_record(record, last_activity_at=source_etag or "")
+        out.title = candidate.title
+        resolution = registry.resolve(candidate, out)
+        if resolution.action == "suppress":
+            out.suppressed_by = resolution.suppressed_by
+            return out
+        if resolution.action == "disambiguate":
+            record = {**record, "id": resolution.record_id}
+            out.record_id = resolution.record_id
+            out.disambiguated_to = resolution.record_id
 
     if conn is not None:
         try:

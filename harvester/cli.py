@@ -70,6 +70,14 @@ def _build_parser() -> argparse.ArgumentParser:
             "exceeds it is recorded as a ParseTimeout failure and the run continues."
         ),
     )
+    harvest.add_argument(
+        "--no-filter",
+        action="store_true",
+        help=(
+            "Skip the template/placeholder exclusions. Filtering is ON for "
+            "harvests; this is the escape hatch for diagnosing what got dropped."
+        ),
+    )
     return parser
 
 
@@ -154,6 +162,7 @@ def _harvest(args) -> int:
         identities, conn=conn, provider=args.provider, now_iso=now_iso,
         run_timestamp=run_timestamp, source=source, gitlab_base=gitlab_base,
         limit=args.limit, parse_timeout=args.parse_timeout,
+        apply_filters=not args.no_filter,
     )
     json_path, md_path = audit.write_run_report(report, args.out_dir)
     logger.info("Audit report: %s (json: %s)", md_path, json_path)

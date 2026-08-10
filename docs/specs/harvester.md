@@ -8,11 +8,11 @@
 
 The harvester runs five stages in sequence. Each stage takes a structured input and emits a structured output; each stage is independently testable.
 
-1. **Enumerate** — list candidate ARCs from DataPLANT GitLab.
-2. **Filter** — apply quality and dedup rules.
-3. **Parse** — read ISA investigation + studies + assays.
-4. **Classify** — compute `omics_domains` and `experiment_context`.
-5. **Upsert** — write the L2 record into Postgres.
+1. **Enumerate** - list candidate ARCs from DataPLANT GitLab.
+2. **Parse** - read ISA investigation + studies + assays.
+3. **Filter** - apply quality rules to the parsed ARC.
+4. **Classify** - compute `omics_domains` and `experiment_context`.
+5. **Upsert** - write the L2 record into Postgres, resolving record-id collisions.
 
 ## 2. Stage 1 — Enumerate
 
@@ -33,29 +33,7 @@ Per-project records of the shape `{project_id, path_with_namespace, default_bran
 - Must respect GitLab pagination semantics (follow `Link` header).
 - Network failure for a single project is logged but does not abort enumeration.
 
-## 3. Stage 2 — Filter
-
-### Input
-The enumerate-stage output.
-
-### Rules
-Applied in order; first rule that excludes wins. Each excluded ARC is emitted to the audit log with the rule name.
-
-1. **Empty:** ARC has no entries under `assays/` in the GitLab tree listing → exclude.
-2. **Template:** any assay folder name matches `^(yourAssayName|Assay[0-9]*|measurement[0-9]*)$` (case-insensitive) AND the ARC has no other non-template assays → exclude.
-3. **QC-only:** every assay folder matches a QC-only pattern (`nanodrop`, `bioanalyzer`, `fastqc`, `qrtpcr`, `qc`) → exclude.
-4. **Duplicate:** two or more ARCs share a normalized title or investigation DOI → keep one (preference order: has DOI > most recent `last_activity_at` > lexicographically first namespace).
-
-Normalized title = lowercase, strip whitespace, replace punctuation with `-`, collapse consecutive `-`.
-
-### Output
-The same record shape as enumerate, less filtered ARCs.
-
-### Contract
-- Stable under reruns — same input set must produce the same kept / excluded partition.
-- Dedup policy is logged per kept ARC with the list of suppressed duplicates.
-
-## 4. Stage 3 — Parse
+## 3. Stage 2 — Parse
 
 ### Input
 An ARC record. The stage retrieves:
@@ -82,6 +60,29 @@ ParsedARC(
 - Missing required ISA fields are replaced with `None` and flagged in the quality audit; the stage does not raise.
 - Per-assay fields unknown to the schema (beyond core) are retained in a `raw_extras` blob — never dropped. (Named `raw_extras` rather than `raw` to avoid overload with `file_counts.raw`.)
 - Encoding edge cases (BOM, UTF-16) are handled.
+
+## 4. Stage 3 — Filter
+
+### Input
+A `ParsedARC` (the parse-stage output). The template rule needs parsed assay folders, so filtering runs after parse, not on the raw enumerate output.
+
+### Rules
+Applied in order; first rule that excludes wins. Each excluded ARC is emitted to the audit log with the rule name.
+
+1. **Empty:** ARC has no entries under `assays/` → exclude. *(not implemented)*
+2. **Template:** all assay folders match `^(yourAssayName|Assay[0-9]*|measurement[0-9]*)$` (case-insensitive) AND the ARC has no non-template assay → exclude. *(implemented: `template-assays`)*
+3. **QC-only:** every assay folder matches a QC-only pattern → exclude. *(not implemented)*
+4. **Placeholder identifier:** the investigation identifier is `yourInvestigationName`, or begins with `MinExample` or `SampleARC` → exclude. *(implemented: `placeholder-identifier`)*
+5. **Duplicate:** two or more ARCs share a record id → keep one (preference: has DOI > most recent `last_activity_at` > lexicographically first namespace > lexicographically first `uniqueId`). Resolved at upsert, not at filter time. Where normalized titles disagree the ARCs are NOT mirrors: both are kept, the loser re-minted as `<id>-<6 hex of uniqueId>` and flagged for review. *(implemented)*
+
+Normalized title = lowercase, strip whitespace, replace punctuation with `-`, collapse consecutive `-`.
+
+### Output
+The same record shape as parse (`ParsedARC`), less filtered ARCs.
+
+### Contract
+- Stable under reruns - same input set must produce the same kept / excluded partition.
+- Rule 5 (Duplicate) is resolved at upsert (§ 6), not here; the upsert stage logs the resolution with the list of suppressed duplicates.
 
 ## 5. Stage 4 — Classify
 
@@ -129,9 +130,20 @@ A `ClassifiedARC`.
 - `record_quality = complete` when: DOI present, license present, ≥ 1 assay with core fields complete (`id`, `domain`, `technology_type`, `measurement_type`, `file_counts` — see `record-schema.md` § 2.5 `AssayCore`), ≥ 1 study, at least one contact with ORCID.
 - Otherwise `record_quality = partial`.
 
+### Collision resolution
+Runs here, against a per-run in-memory registry of record ids shared across every ARC in the run, and after schema validation — an invalid record can never claim an id.
+
+When a second ARC claims a held id, normalized titles are compared:
+- Matching titles are genuine mirrors: the § 4 rule 5 preference order (has DOI > most recent `last_activity_at` > lexicographically first namespace > lexicographically first `uniqueId`) picks the winner. The loser is suppressed — never written to `arc_records` — and the suppression is logged naming the winner. A later, stronger mirror displaces a held one retroactively, so the run reports exactly one upserted record per id.
+- Disagreeing titles mean the ARCs are NOT mirrors: both are kept, the loser re-minted as `<id>-<6 hex of uniqueId>` and flagged for human review rather than dropped — a visible duplicate beats a silent loss.
+
+The order is total (no ties), so the surviving record never depends on enumeration order.
+
 ### Contract
 - Idempotent on the same input.
 - Must validate the record against `record.schema.json` before upsert. Invalid records go to an `arc_errors` table and are NOT written to `arc_records`.
+- Collision resolution runs after that validation, so an invalid record can never claim or hold a record id.
+- Suppressed records are never written to `arc_records`; disambiguated records are written under their re-minted id and flagged for review.
 - Transaction boundaries: one transaction per ARC (a single record failure does not roll back the run).
 
 ## 7. Run modes

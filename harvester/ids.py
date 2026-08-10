@@ -10,7 +10,7 @@ import re
 _SLUG_NON_ALPHANUM = re.compile(r"[^a-z0-9]+")
 
 
-def _normalize(value: str) -> str:
+def normalize(value: str) -> str:
     lowered = value.lower()
     return _SLUG_NON_ALPHANUM.sub("-", lowered).strip("-")
 
@@ -24,7 +24,22 @@ def mint_id(provider: str, slug: str) -> str:
         raise ValueError("provider must be non-empty")
     if not slug:
         raise ValueError("slug must be non-empty")
-    normalized_slug = _normalize(slug)
+    normalized_slug = normalize(slug)
     if not normalized_slug:
         raise ValueError(f"slug normalized to empty string: {slug!r}")
     return f"{provider}-{normalized_slug}"
+
+
+def disambiguate_id(record_id: str, unique_id: str) -> str:
+    """Return a collision-free variant of `record_id` for a non-mirror ARC.
+
+    Suffix is the first 6 hex chars of the record's uniqueId (a uuid5 over the
+    ARC source URI), so the result is stable across runs rather than depending
+    on enumeration order. The suffix is lowercased so the result always stays
+    inside the schema pattern `^[a-z0-9][a-z0-9-]*$`, regardless of the case
+    of the incoming unique_id.
+    """
+    suffix = unique_id.replace("-", "").lower()[:6]
+    if not suffix:
+        raise ValueError(f"unique_id yielded no suffix: {unique_id!r}")
+    return f"{record_id}-{suffix}"
