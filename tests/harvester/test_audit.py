@@ -39,3 +39,49 @@ def test_write_run_report_emits_json_and_md(tmp_path):
     md = md_path.read_text("utf-8")
     assert "Batch Harvest Report" in md
     assert "a/good" in md
+
+
+def test_aggregate_counts_filtered_and_suppressed():
+    from harvester import audit
+    from harvester.pipeline import ArcOutcome
+
+    class R:
+        source, run_timestamp, gitlab_base = "fixtures", "20260804T000000Z", ""
+        verdict, verdict_reason = "ok", ""
+        registry = None
+        outcomes = [
+            ArcOutcome(clone_ok=True, parse_ok=True, filtered=True, filter_rule="template-assays"),
+            ArcOutcome(clone_ok=True, parse_ok=True, build_ok=True, validate_ok=True,
+                       upsert_ok=True, record_id="dataplant-x", path="ceplas/X"),
+            ArcOutcome(clone_ok=True, parse_ok=True, build_ok=True, validate_ok=True,
+                       record_id="dataplant-x", path="sbasu1/X", suppressed_by="ceplas"),
+        ]
+
+    agg = audit.aggregate(R())
+    assert agg["n_filtered"] == 1
+    assert agg["n_suppressed"] == 1
+    assert agg["n_valid"] == agg["n_upserted"] + agg["n_suppressed"], "the funnel must add up"
+
+
+def test_report_lists_excluded_and_deduped_sections(tmp_path):
+    from harvester import audit
+    from harvester.pipeline import ArcOutcome
+
+    class R:
+        source, run_timestamp, gitlab_base = "fixtures", "20260804T000000Z", ""
+        verdict, verdict_reason = "ok", ""
+        registry = None
+        outcomes = [
+            ArcOutcome(clone_ok=True, parse_ok=True, path="arc_templates/arc",
+                       filtered=True, filter_rule="template-assays"),
+            ArcOutcome(clone_ok=True, parse_ok=True, build_ok=True, validate_ok=True,
+                       record_id="dataplant-x", path="sbasu1/X", suppressed_by="ceplas"),
+        ]
+
+    _json_path, md_path = audit.write_run_report(R(), tmp_path)
+    text = md_path.read_text(encoding="utf-8")
+    assert "## Excluded by policy" in text
+    assert "arc_templates/arc" in text
+    assert "template-assays" in text
+    assert "## Deduped mirrors" in text
+    assert "sbasu1/X" in text

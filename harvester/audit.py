@@ -19,6 +19,8 @@ def aggregate(report) -> dict:
         "n_parsed": sum(1 for r in o if r.parse_ok),
         "n_built": sum(1 for r in o if r.build_ok),
         "n_valid": sum(1 for r in o if r.validate_ok),
+        "n_filtered": sum(1 for r in o if r.filtered),
+        "n_suppressed": sum(1 for r in o if r.suppressed_by),
         "n_upserted": sum(1 for r in o if r.upsert_ok),
         "omics_classified": sum(r.omics_classified for r in o),
         "omics_total": sum(r.omics_total for r in o),
@@ -56,8 +58,9 @@ def write_run_report(report, out_dir) -> tuple[Path, Path]:
     a(f"- Run: `{stamp}`  Source: `{report.source}`  Verdict: **{report.verdict}**")
     a(
         f"- Totals: enumerated {agg['n_total']}, cloned {agg['n_cloned']}, "
-        f"parsed {agg['n_parsed']}, built {agg['n_built']}, "
-        f"validated {agg['n_valid']}, upserted {agg['n_upserted']}"
+        f"parsed {agg['n_parsed']}, filtered {agg['n_filtered']}, "
+        f"built {agg['n_built']}, validated {agg['n_valid']}, "
+        f"suppressed {agg['n_suppressed']}, upserted {agg['n_upserted']}"
     )
     omics = (
         f"{agg['omics_classified']}/{agg['omics_total']}"
@@ -67,16 +70,18 @@ def write_run_report(report, out_dir) -> tuple[Path, Path]:
     a("")
     a("## Per-ARC outcomes")
     a("")
-    a("| ARC | Clone | Parse | Build | Valid | Upsert | Record id | Errors |")
-    a("|-----|-------|-------|-------|-------|--------|-----------|--------|")
+    a("| ARC | Clone | Parse | Build | Valid | Upsert | Title | Record id | Errors |")
+    a("|-----|-------|-------|-------|-------|--------|-------|-----------|--------|")
     for r in report.outcomes:
         err = r.clone_error or r.parse_error or r.build_error or (
             "; ".join(r.validate_errors[:2]) if r.validate_errors else r.upsert_error
         )
         err_cell = (err or "-").replace("|", "\\|")[:120]
+        title_cell = (r.title or "-").replace("|", "\\|")[:60]
         a(
             f"| {r.path} | {_b(r.clone_ok)} | {_b(r.parse_ok)} | {_b(r.build_ok)} | "
-            f"{_b(r.validate_ok)} | {_b(r.upsert_ok)} | {r.record_id or '-'} | {err_cell} |"
+            f"{_b(r.validate_ok)} | {_b(r.upsert_ok)} | {title_cell} | "
+            f"{r.record_id or '-'} | {err_cell} |"
         )
     a("")
 
@@ -91,6 +96,39 @@ def write_run_report(report, out_dir) -> tuple[Path, Path]:
         a("")
         for exc_type, cnt in parse_fails.most_common():
             a(f"- `{exc_type}`: {cnt}")
+        a("")
+
+    excluded = [r for r in report.outcomes if r.filtered]
+    if excluded:
+        a("## Excluded by policy")
+        a("")
+        a("| ARC | Rule |")
+        a("|-----|------|")
+        for r in excluded:
+            a(f"| {r.path} | {r.filter_rule} |")
+        a("")
+
+    suppressed = [r for r in report.outcomes if r.suppressed_by]
+    if suppressed:
+        a("## Deduped mirrors")
+        a("")
+        a("| Suppressed ARC | Record id | Kept namespace |")
+        a("|----------------|-----------|----------------|")
+        for r in suppressed:
+            a(f"| {r.path} | {r.record_id} | {r.suppressed_by} |")
+        a("")
+
+    registry = getattr(report, "registry", None)
+    if registry is not None and registry.reviews:
+        a("## Collisions needing review")
+        a("")
+        a("| Kept ARC | Title | Colliding ARC | Title | New id |")
+        a("|----------|-------|---------------|-------|--------|")
+        for held, incoming, new_id in registry.reviews:
+            a(
+                f"| {held.namespace} | {held.title[:40]} | {incoming.namespace} | "
+                f"{incoming.title[:40]} | {new_id} |"
+            )
         a("")
 
     md_path.write_text("\n".join(lines), encoding="utf-8")
