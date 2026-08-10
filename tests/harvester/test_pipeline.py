@@ -118,3 +118,58 @@ def test_real_arc_survives_the_filter():
     )
     assert outcome.filtered is False
     assert outcome.build_ok is True
+
+
+def _ingest_from(source_uri: str, *, registry, last_activity_at: str = ""):
+    """Ingest the same fixture as if it lived at two different namespaces.
+
+    The source_uri must differ per call: namespace is derived from it and is the
+    final tiebreaker, so reusing one uri would leave both candidates identical
+    and `prefer` would keep the incumbent with an empty suppressed_by.
+    """
+    return pipeline.ingest_arc(
+        FIXTURE,
+        conn=None,
+        provider="dataplant",
+        source_uri=source_uri,
+        now_iso="2026-06-22T00:00:00Z",
+        validator=pipeline.build_validator(),
+        source_etag=last_activity_at,
+        registry=registry,
+    )
+
+
+def test_second_mirror_is_suppressed_and_names_the_winner():
+    from harvester import dedup
+
+    registry = dedup.CollisionRegistry()
+    first = _ingest_from(
+        "https://git.nfdi4plants.org/ceplas/ArcPrototype",
+        registry=registry, last_activity_at="2026-07-01T00:00:00Z",
+    )
+    second = _ingest_from(
+        "https://git.nfdi4plants.org/muehlhaus/ArcPrototype",
+        registry=registry, last_activity_at="2026-01-01T00:00:00Z",
+    )
+
+    assert first.suppressed_by == ""
+    assert second.suppressed_by == "ceplas", "the more recent mirror is kept"
+    assert second.record_id == first.record_id
+    # `upsert_ok` cannot carry this signal: conn=None makes it False either way.
+    # Assert the resolution itself instead - suppressed, not re-minted.
+    assert second.disambiguated_to == "", "a mirror is suppressed, not disambiguated"
+    assert registry.winner(first.record_id).namespace == "ceplas"
+
+
+def test_registry_records_the_title_for_the_report():
+    from harvester import dedup
+
+    outcome = _ingest(registry=dedup.CollisionRegistry())
+    assert outcome.title != ""
+
+
+def test_no_registry_preserves_todays_behavior():
+    outcome = _ingest()
+    assert outcome.suppressed_by == ""
+    assert outcome.disambiguated_to == ""
+    assert outcome.validate_ok is True

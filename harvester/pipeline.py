@@ -13,7 +13,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
-from harvester import db, filters, timeouts
+from harvester import db, dedup, filters, timeouts
 from harvester.build import build_record
 from harvester.classifiers.omics import classify_omics
 from harvester.isa_reader import IsaReader
@@ -41,6 +41,9 @@ class ArcOutcome:
     upsert_ok: bool = False
     upsert_error: str = ""
     record_id: str = ""
+    title: str = ""
+    suppressed_by: str = ""
+    disambiguated_to: str = ""
     n_studies: int = 0
     n_assays: int = 0
     omics_classified: int = 0
@@ -95,6 +98,7 @@ def ingest_arc(
     source_etag: str | None = None,
     parse_timeout: float | None = None,
     apply_filters: bool = False,
+    registry: "dedup.CollisionRegistry | None" = None,
 ) -> ArcOutcome:
     """Run one ARC through the pipeline. Never raises on bad data; records the failure.
 
@@ -152,6 +156,18 @@ def ingest_arc(
     out.validate_ok = not out.validate_errors
     if not out.validate_ok:
         return out
+
+    if registry is not None:
+        candidate = dedup.candidate_from_record(record, last_activity_at=source_etag or "")
+        out.title = candidate.title
+        resolution = registry.resolve(candidate, out)
+        if resolution.action == "suppress":
+            out.suppressed_by = resolution.suppressed_by
+            return out
+        if resolution.action == "disambiguate":
+            record = {**record, "id": resolution.record_id}
+            out.record_id = resolution.record_id
+            out.disambiguated_to = resolution.record_id
 
     if conn is not None:
         try:
