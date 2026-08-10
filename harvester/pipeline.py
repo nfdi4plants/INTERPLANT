@@ -13,7 +13,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
-from harvester import db, timeouts
+from harvester import db, filters, timeouts
 from harvester.build import build_record
 from harvester.classifiers.omics import classify_omics
 from harvester.isa_reader import IsaReader
@@ -32,6 +32,8 @@ class ArcOutcome:
     parse_ok: bool = False
     parse_error: str = ""
     parse_exc_type: str = ""
+    filtered: bool = False
+    filter_rule: str = ""
     build_ok: bool = False
     build_error: str = ""
     validate_ok: bool = False
@@ -92,10 +94,13 @@ def ingest_arc(
     validator: Draft202012Validator,
     source_etag: str | None = None,
     parse_timeout: float | None = None,
+    apply_filters: bool = False,
 ) -> ArcOutcome:
     """Run one ARC through the pipeline. Never raises on bad data; records the failure.
 
     `parse_timeout` bounds the arctrl parse in seconds; None means no limit.
+    `apply_filters` enables the policy exclusions in filters.py; off by default so
+    single-ARC ingests and fixture tests are unaffected.
     """
     out = ArcOutcome(clone_ok=True)
 
@@ -110,6 +115,13 @@ def ingest_arc(
         out.parse_exc_type = "ParseTimeout" if guard.fired else type(exc).__name__
         out.parse_error = str(exc)[:300]
         return out
+
+    if apply_filters:
+        verdict = filters.evaluate(investigation)
+        if verdict.excluded:
+            out.filtered = True
+            out.filter_rule = verdict.rule
+            return out
 
     out.n_studies = len(investigation.studies)
     out.n_assays = sum(len(s.assays) for s in investigation.studies)

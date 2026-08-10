@@ -85,3 +85,36 @@ def test_ingest_arc_parse_failure_is_captured_not_raised(tmp_path):
     assert outcome.parse_ok is False
     assert outcome.parse_exc_type != ""
     assert outcome.build_ok is False
+
+
+IMAGING = Path(__file__).parent.parent / "fixtures" / "arcs" / "ArcImaging"
+
+
+def test_filters_off_by_default_keeps_the_template_shaped_prototype():
+    """ArcPrototype's assays are measurement1/2, so this pins the opt-in default."""
+    outcome = _ingest()
+    assert outcome.filtered is False
+    assert outcome.build_ok is True
+
+
+def test_template_arc_is_filtered_when_filters_are_enabled():
+    outcome = _ingest(apply_filters=True)
+    assert outcome.filtered is True
+    assert outcome.filter_rule == "template-assays"
+    assert outcome.parse_ok is True, "policy exclusion is not a parse failure"
+    assert outcome.build_ok is False
+    assert outcome.record_id == ""
+
+
+def test_real_arc_survives_the_filter():
+    outcome = pipeline.ingest_arc(
+        IMAGING,
+        conn=None,
+        provider="dataplant",
+        source_uri="https://example.org/arc",
+        now_iso="2026-06-22T00:00:00Z",
+        validator=pipeline.build_validator(),
+        apply_filters=True,
+    )
+    assert outcome.filtered is False
+    assert outcome.build_ok is True
