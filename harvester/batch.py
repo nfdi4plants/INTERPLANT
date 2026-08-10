@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from itertools import islice
 from pathlib import Path
 
-from harvester import acquire, pipeline
+from harvester import acquire, dedup, pipeline
 from harvester.pipeline import ArcOutcome
 
 logger = logging.getLogger("harvester.batch")
@@ -25,6 +25,7 @@ class BatchReport:
     outcomes: list[ArcOutcome] = field(default_factory=list)
     verdict: str = "ok"
     verdict_reason: str = ""
+    registry: dedup.CollisionRegistry = field(default_factory=dedup.CollisionRegistry)
 
 
 def _merge_identity(outcome: ArcOutcome, ident: acquire.ArcIdentity) -> ArcOutcome:
@@ -48,6 +49,7 @@ def run_batch(
     clone_timeout: int = 60,
     clone_retries: int = 2,
     parse_timeout: float | None = None,
+    apply_filters: bool = False,
 ) -> BatchReport:
     report = BatchReport(source=source, run_timestamp=run_timestamp, gitlab_base=gitlab_base)
     validator = pipeline.build_validator()
@@ -61,6 +63,8 @@ def run_batch(
                 source_uri=ident.web_url, now_iso=now_iso, validator=validator,
                 source_etag=ident.last_activity_at or None,
                 parse_timeout=parse_timeout,
+                apply_filters=apply_filters,
+                registry=report.registry,
             )
             report.outcomes.append(_merge_identity(outcome, ident))
             continue
@@ -79,6 +83,8 @@ def run_batch(
                 source_uri=ident.web_url, now_iso=now_iso, validator=validator,
                 source_etag=ident.last_activity_at or None,
                 parse_timeout=parse_timeout,
+                apply_filters=apply_filters,
+                registry=report.registry,
             )
             report.outcomes.append(_merge_identity(outcome, ident))
 
