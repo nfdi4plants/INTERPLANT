@@ -52,3 +52,14 @@ def test_disambiguated_id_matches_the_record_schema_pattern():
         "abcdef01-2345-6789-abcd-ef0123456789",
     )
     assert re.fullmatch(r"^[a-z0-9][a-z0-9-]*$", new_id)
+
+
+def test_disambiguate_id_lowercases_an_uppercase_unique_id():
+    import re
+
+    new_id = ids.disambiguate_id(
+        "dataplant-quinoa-chileanfieldtrial",
+        "ABCDEF01-2345-6789-ABCD-EF0123456789",
+    )
+    assert new_id == "dataplant-quinoa-chileanfieldtrial-abcdef"
+    assert re.fullmatch(r"^[a-z0-9][a-z0-9-]*$", new_id)

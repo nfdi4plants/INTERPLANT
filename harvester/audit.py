@@ -125,9 +125,11 @@ def write_run_report(report, out_dir) -> tuple[Path, Path]:
         a("| Kept ARC | Title | Colliding ARC | Title | New id |")
         a("|----------|-------|---------------|-------|--------|")
         for held, incoming, new_id in registry.reviews:
+            held_title_cell = held.title.replace("|", "\\|")[:40]
+            incoming_title_cell = incoming.title.replace("|", "\\|")[:40]
             a(
-                f"| {held.namespace} | {held.title[:40]} | {incoming.namespace} | "
-                f"{incoming.title[:40]} | {new_id} |"
+                f"| {held.namespace} | {held_title_cell} | {incoming.namespace} | "
+                f"{incoming_title_cell} | {new_id} |"
             )
         a("")
 

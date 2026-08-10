@@ -173,3 +173,45 @@ def test_no_registry_preserves_todays_behavior():
     assert outcome.suppressed_by == ""
     assert outcome.disambiguated_to == ""
     assert outcome.validate_ok is True
+
+
+def test_non_mirror_collision_is_disambiguated_not_dropped():
+    """Two different datasets sharing an investigation identifier must both survive.
+
+    Pre-seeds the registry with a differently-titled dataset already holding
+    ArcPrototype's id. The fixture set has no natural pair like this, so the
+    collision is staged directly on the registry rather than via a new fixture.
+    """
+    import re
+
+    from harvester import dedup
+
+    registry = dedup.CollisionRegistry()
+
+    class _Held:
+        suppressed_by = ""
+        upsert_ok = True
+        disambiguated_to = ""
+
+    registry.resolve(
+        dedup.Candidate(
+            record_id="dataplant-arcprototype",
+            title="Something Completely Different",
+            has_doi=True,
+            last_activity_at="2026-09-01T00:00:00Z",
+            namespace="otherlab",
+            unique_id="11111111-1111-1111-1111-111111111111",
+        ),
+        _Held(),
+    )
+
+    outcome = _ingest_from(
+        "https://git.nfdi4plants.org/ceplas/ArcPrototype",
+        registry=registry, last_activity_at="2026-01-01T00:00:00Z",
+    )
+
+    assert outcome.record_id != "dataplant-arcprototype", "must not reuse the held id"
+    assert outcome.disambiguated_to == outcome.record_id
+    assert outcome.suppressed_by == "", "a non-mirror is kept, not suppressed"
+    assert re.fullmatch(r"^[a-z0-9][a-z0-9-]*$", outcome.record_id), "must satisfy the record schema pattern"
+    assert len(registry.reviews) == 1, "the pair must be flagged for a human"
