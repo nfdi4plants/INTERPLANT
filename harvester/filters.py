@@ -1,8 +1,8 @@
 """Policy exclusions applied after parse and before build.
 
-Spec: docs/specs/harvester.md section 3. Only the Template rule (3.2) plus an
-explicit placeholder-identifier set are implemented here; Empty (3.1) and
-QC-only (3.3) are deliberately deferred.
+Spec: docs/specs/harvester.md section 4. Only the Template rule (4.2) and the
+Placeholder-identifier rule (4.4) are implemented here; Empty (4.1) and
+QC-only (4.3) are deliberately deferred.
 
 Exclusion is NOT a parse failure. "Excluded by policy" and "broken data" are
 different facts about an ARC, and collapsing them would make the audit report
