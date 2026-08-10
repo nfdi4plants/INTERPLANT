@@ -6,8 +6,10 @@ dataset and must collapse to one record - but the collapse has to be a stated
 policy, not whichever ARC the enumeration happened to reach last.
 
 Preference order is spec 3.4: has DOI > most recent activity > lexicographically
-first namespace. Namespace is unique per ARC, so the order is total and the
-winner never depends on arrival order.
+first namespace > lexicographically first unique_id. unique_id is a uuid5 over
+the ARC source uri, so it is the only signal here that is unique per ARC,
+which is what makes the order total and the winner independent of arrival
+order.
 """
 from __future__ import annotations
 
@@ -49,8 +51,8 @@ def candidate_from_record(record: dict, *, last_activity_at: str) -> Candidate:
 def prefer(incoming: Candidate, existing: Candidate) -> bool:
     """True if `incoming` should replace `existing` as the record for this id.
 
-    Total order with no ties (namespace is unique per ARC), which is what makes
-    the batch result independent of enumeration order.
+    Total order with no ties (unique_id is unique per ARC), which is what
+    makes the batch result independent of enumeration order.
     """
     if incoming.has_doi != existing.has_doi:
         return incoming.has_doi
@@ -59,8 +61,11 @@ def prefer(incoming: Candidate, existing: Candidate) -> bool:
     if incoming.last_activity_at != existing.last_activity_at:
         return incoming.last_activity_at > existing.last_activity_at
 
-    # Same ARC seen twice: keep the incumbent rather than churn the row.
-    if incoming.namespace == existing.namespace:
-        return False
+    if incoming.namespace != existing.namespace:
+        return incoming.namespace < existing.namespace
 
-    return incoming.namespace < existing.namespace
+    # Namespace is NOT unique per ARC: two repos in one namespace can carry the
+    # same investigation identifier. uniqueId is a uuid5 over the ARC source
+    # uri, so it is the only signal here that is unique per ARC, which is what
+    # makes this order total rather than merely near-total.
+    return incoming.unique_id < existing.unique_id

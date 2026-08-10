@@ -41,6 +41,20 @@ def test_lexicographically_first_namespace_wins_the_final_tiebreak():
     assert dedup.prefer(later, first) is False
 
 
+def test_prefer_falls_back_to_unique_id_when_namespace_and_recency_tie():
+    """Namespace is not unique per ARC: two repos in one namespace can share it.
+
+    Two ARCs in the same namespace with the same recency and DOI status must
+    still resolve to a total order, so the final tiebreak has to reach past
+    namespace to unique_id (a uuid5 over the ARC source uri, genuinely unique
+    per ARC).
+    """
+    lower = _cand(unique_id="00000000-0000-0000-0000-000000000001")
+    higher = _cand(unique_id="00000000-0000-0000-0000-000000000002")
+    assert dedup.prefer(lower, higher) is True
+    assert dedup.prefer(higher, lower) is False
+
+
 def test_prefer_is_order_independent_over_every_pair():
     """The property that matters: the winner never depends on arrival order."""
     candidates = [
