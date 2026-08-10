@@ -16,6 +16,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
+from harvester import ids
+
 
 @dataclass(frozen=True)
 class Candidate:
@@ -69,3 +71,58 @@ def prefer(incoming: Candidate, existing: Candidate) -> bool:
     # uri, so it is the only signal here that is unique per ARC, which is what
     # makes this order total rather than merely near-total.
     return incoming.unique_id < existing.unique_id
+
+
+@dataclass(frozen=True)
+class Resolution:
+    """What the pipeline should do with a candidate that reached the registry."""
+
+    action: str  # "insert" | "replace" | "suppress" | "disambiguate"
+    record_id: str
+    suppressed_by: str = ""
+
+
+class CollisionRegistry:
+    """Per-run winner table for record ids.
+
+    Stateful on purpose: it holds the winning candidate AND that ARC's outcome
+    so a later, stronger mirror can retroactively mark the displaced one
+    suppressed. Without that back-reference the audit report would show two
+    ARCs upserted under one id and the funnel would not add up.
+
+    In-memory rather than DB-backed so dry runs (conn=None) exercise exactly the
+    same resolution path as a real harvest. The real run starts from an empty
+    table, so there is no prior state to reconcile against.
+    """
+
+    def __init__(self) -> None:
+        self._winners: dict[str, tuple[Candidate, object]] = {}
+        self.reviews: list[tuple[Candidate, Candidate, str]] = []
+
+    def winner(self, record_id: str) -> Candidate | None:
+        entry = self._winners.get(record_id)
+        return entry[0] if entry else None
+
+    def resolve(self, candidate: Candidate, outcome) -> Resolution:
+        entry = self._winners.get(candidate.record_id)
+        if entry is None:
+            self._winners[candidate.record_id] = (candidate, outcome)
+            return Resolution("insert", candidate.record_id)
+
+        held, held_outcome = entry
+
+        if ids.normalize(candidate.title) != ids.normalize(held.title):
+            # Not a mirror: two different datasets sharing an investigation
+            # identifier. Keep both - a visible duplicate is always better than
+            # silent loss - and flag the pair for a human.
+            new_id = ids.disambiguate_id(candidate.record_id, candidate.unique_id)
+            self.reviews.append((held, candidate, new_id))
+            return Resolution("disambiguate", new_id)
+
+        if prefer(candidate, held):
+            held_outcome.suppressed_by = candidate.namespace
+            held_outcome.upsert_ok = False
+            self._winners[candidate.record_id] = (candidate, outcome)
+            return Resolution("replace", candidate.record_id)
+
+        return Resolution("suppress", candidate.record_id, suppressed_by=held.namespace)

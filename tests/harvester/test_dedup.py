@@ -104,3 +104,75 @@ def test_candidate_has_no_doi_when_no_publication_carries_one():
         },
     }
     assert dedup.candidate_from_record(record, last_activity_at="").has_doi is False
+
+
+class FakeOutcome:
+    """Stand-in for ArcOutcome; dedup only touches these three fields."""
+
+    def __init__(self):
+        self.suppressed_by = ""
+        self.upsert_ok = False
+        self.disambiguated_to = ""
+
+
+def test_first_arc_for_an_id_is_inserted():
+    reg = dedup.CollisionRegistry()
+    res = reg.resolve(_cand(namespace="ceplas"), FakeOutcome())
+    assert res.action == "insert"
+    assert res.record_id == "dataplant-tga-basu26"
+
+
+def test_weaker_mirror_is_suppressed_and_names_its_winner():
+    reg = dedup.CollisionRegistry()
+    reg.resolve(_cand(namespace="ceplas", has_doi=True), FakeOutcome())
+    res = reg.resolve(_cand(namespace="sbasu1", has_doi=False), FakeOutcome())
+    assert res.action == "suppress"
+    assert res.suppressed_by == "ceplas"
+
+
+def test_stronger_mirror_replaces_and_retroactively_suppresses_the_incumbent():
+    reg = dedup.CollisionRegistry()
+    first = FakeOutcome()
+    first.upsert_ok = True
+    reg.resolve(_cand(namespace="sbasu1", has_doi=False), first)
+
+    res = reg.resolve(_cand(namespace="ceplas", has_doi=True), FakeOutcome())
+    assert res.action == "replace"
+    assert first.suppressed_by == "ceplas"
+    assert first.upsert_ok is False, "the displaced record must stop counting as upserted"
+
+
+def test_disagreeing_titles_keep_both_under_a_disambiguated_id():
+    reg = dedup.CollisionRegistry()
+    reg.resolve(_cand(namespace="ceplas", title="Historical Potato Genomes"), FakeOutcome())
+    res = reg.resolve(
+        _cand(namespace="cdent", title="Potato Assembly ARC",
+              unique_id="abcdef01-2345-6789-abcd-ef0123456789"),
+        FakeOutcome(),
+    )
+    assert res.action == "disambiguate"
+    assert res.record_id == "dataplant-tga-basu26-abcdef"
+    assert len(reg.reviews) == 1
+
+
+def test_title_comparison_ignores_punctuation_and_case():
+    reg = dedup.CollisionRegistry()
+    reg.resolve(_cand(namespace="ceplas", title="TGA  Basu-26!"), FakeOutcome())
+    res = reg.resolve(_cand(namespace="sbasu1", title="tga basu 26"), FakeOutcome())
+    assert res.action == "suppress", "same title modulo punctuation is a mirror"
+
+
+def test_batch_result_is_independent_of_arrival_order():
+    """Same three mirrors, every order, same surviving record."""
+    mirrors = [
+        _cand(namespace="ceplas", has_doi=True, last_activity_at="2026-01-01T00:00:00Z"),
+        _cand(namespace="sbasu1", has_doi=False, last_activity_at="2026-07-01T00:00:00Z"),
+        _cand(namespace="usadellab", has_doi=False, last_activity_at="2025-01-01T00:00:00Z"),
+    ]
+    winners = set()
+    for order in itertools.permutations(mirrors):
+        reg = dedup.CollisionRegistry()
+        for cand in order:
+            reg.resolve(cand, FakeOutcome())
+        winners.add(reg.winner("dataplant-tga-basu26").namespace)
+    assert winners == {"ceplas"}
