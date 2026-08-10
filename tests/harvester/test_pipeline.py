@@ -213,5 +213,7 @@ def test_non_mirror_collision_is_disambiguated_not_dropped():
     assert outcome.record_id != "dataplant-arcprototype", "must not reuse the held id"
     assert outcome.disambiguated_to == outcome.record_id
     assert outcome.suppressed_by == "", "a non-mirror is kept, not suppressed"
-    assert re.fullmatch(r"^[a-z0-9][a-z0-9-]*$", outcome.record_id), "must satisfy the record schema pattern"
+    assert re.fullmatch(r"^[a-z0-9][a-z0-9-]*$", outcome.record_id), (
+        "must satisfy the record schema pattern"
+    )
     assert len(registry.reviews) == 1, "the pair must be flagged for a human"

@@ -98,7 +98,7 @@ def ingest_arc(
     source_etag: str | None = None,
     parse_timeout: float | None = None,
     apply_filters: bool = False,
-    registry: "dedup.CollisionRegistry | None" = None,
+    registry: dedup.CollisionRegistry | None = None,
 ) -> ArcOutcome:
     """Run one ARC through the pipeline. Never raises on bad data; records the failure.
 
