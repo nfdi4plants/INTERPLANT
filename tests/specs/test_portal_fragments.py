@@ -5,6 +5,7 @@ a clone of the AWI harvester repo.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from xml.etree.ElementTree import fromstring
 
@@ -50,6 +51,13 @@ def test_endpoint_placeholder_is_identical_in_script_and_services():
     service = yaml.safe_load((PORTAL / "services.yaml.fragment").read_text(encoding="utf-8"))
     entry = service["interplant-dataplant"]
 
+    match = re.search(r"^ENDPOINT = '([^']+)'", script, re.M)
+    assert match is not None, "could not find ENDPOINT = '...' in the harvester script"
+    endpoint = match.group(1)
+
+    # Unconditional: this is the actual drift detector and must survive even
+    # after the REPLACE-ME tripwire below is removed at deployment time.
+    assert endpoint == entry["url"] == entry["provider"]["metadata"]["apiUrl"]
+
     assert "REPLACE-ME" in script, "the host is still unresolved; see portal/README.md"
-    assert entry["url"] == entry["provider"]["metadata"]["apiUrl"]
     assert "REPLACE-ME" in entry["url"]
