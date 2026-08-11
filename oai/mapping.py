@@ -5,7 +5,30 @@ Governed by docs/specs/portal-mapping.md.
 """
 from __future__ import annotations
 
+import copy
 from typing import Any
+
+# Constant per record. AWI confirmed we populate this ourselves rather than them
+# adding a services.yaml entry for us. Provider is the source repository, datacenter
+# is the institution operating the service - the same split their
+# harvest-repository-fzj-publications.py uses. Kept in sync with
+# portal/services.yaml.fragment.
+ORGANISATIONS: dict[str, list[dict[str, Any]]] = {
+    "provider": [
+        {
+            "abbreviation": "DataPLANT",
+            "name": "DataPLANT - NFDI for Plant Sciences",
+            "url": "https://nfdi4plants.org/",
+        }
+    ],
+    "datacenter": [
+        {
+            "abbreviation": "FZJ",
+            "name": "Forschungszentrum Jülich",
+            "url": "https://www.fz-juelich.de/",
+        }
+    ],
+}
 
 
 def map_record(record: dict[str, Any]) -> dict[str, Any]:
@@ -98,6 +121,7 @@ def map_record(record: dict[str, Any]) -> dict[str, Any]:
         "expeditions": [],
         "events":      events,
         "persons":     persons,
+        "organisations": copy.deepcopy(ORGANISATIONS),
         "resources":   resources,
         "metadata": {
             "record_quality": p["record_quality"],

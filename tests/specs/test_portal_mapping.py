@@ -40,3 +40,38 @@ def test_mapper_reference_impl_matches_fixture(load_json):
 
 def test_portal_schema_is_valid(schema_portal):
     Draft202012Validator.check_schema(schema_portal)
+
+
+def test_mapper_emits_organisations_for_provider_and_datacenter(load_json):
+    """Records must be attributable in the portal's provider/datacenter facets."""
+    from oai.mapping import map_record
+
+    produced = map_record(load_json("examples/record-complete.json"))
+    orgs = produced["organisations"]
+
+    assert [o["abbreviation"] for o in orgs["provider"]] == ["DataPLANT"]
+    assert [o["abbreviation"] for o in orgs["datacenter"]] == ["FZJ"]
+    assert orgs["provider"][0]["url"] == "https://nfdi4plants.org/"
+    assert orgs["datacenter"][0]["url"] == "https://www.fz-juelich.de/"
+
+
+def test_organisations_is_the_same_object_shape_for_every_record_fixture(load_json):
+    """It is a constant, so every record carries an identical block."""
+    from oai.mapping import map_record
+
+    produced = [
+        map_record(load_json(f"examples/{name}"))["organisations"]
+        for name in ("record-complete.json", "record-partial.json", "record-fieldtrial.json")
+    ]
+    assert produced[0] == produced[1] == produced[2]
+
+
+def test_mapper_does_not_alias_the_organisations_constant(load_json):
+    """Mutating one record's output must not corrupt every later record."""
+    from oai import mapping
+
+    first = mapping.map_record(load_json("examples/record-complete.json"))
+    first["organisations"]["provider"][0]["abbreviation"] = "MUTATED"
+
+    second = mapping.map_record(load_json("examples/record-complete.json"))
+    assert second["organisations"]["provider"][0]["abbreviation"] == "DataPLANT"
