@@ -61,7 +61,9 @@ def test_endpoint_placeholder_is_identical_in_script_and_services():
     assert match is not None, "could not find ENDPOINT = '...' in the harvester script"
     endpoint = match.group(1)
 
-    # Unconditional: this is the actual drift detector between the script and the
-    # services entry. It survives deployment, when the REPLACE-ME placeholder that
-    # used to be tripwired here is replaced with the real host (see portal/README.md).
+    # Unconditional: this is the actual drift detector and must survive even
+    # after the REPLACE-ME tripwire below is removed at deployment time.
     assert endpoint == entry["url"] == entry["provider"]["metadata"]["apiUrl"]
+
+    assert "REPLACE-ME" in script, "the host is still unresolved; see portal/README.md"
+    assert "REPLACE-ME" in entry["url"]
