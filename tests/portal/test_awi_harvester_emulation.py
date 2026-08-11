@@ -6,6 +6,7 @@ and no network are involved.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import UTC, datetime
 
@@ -15,6 +16,12 @@ from oai.verbs import RepoConfig, handle
 from tests.oai.conftest import FakeSource
 
 BASE = "https://interplant.example/oai"
+
+
+def _unique_id(identifier: str) -> str:
+    """A valid-shaped UUID that varies by identifier, so per-record mix-ups are detectable."""
+    suffix = hashlib.sha1(identifier.encode(), usedforsecurity=False).hexdigest()[:12]
+    return f"00000000-0000-5000-8000-{suffix}"
 
 
 def _payload(identifier: str) -> dict:
@@ -27,7 +34,7 @@ def _payload(identifier: str) -> dict:
             "title": f"Title {identifier}",
             "description": "desc",
             "created": "2026-06-24T00:00:00Z",
-            "uniqueId": "00000000-0000-5000-8000-000000000000",
+            "uniqueId": _unique_id(identifier),
             "harvester_version": "0.1.0",
             "arc_source_uri": f"https://git.nfdi4plants.org/x/{identifier}",
             "experiment_context": "lab",
@@ -119,6 +126,7 @@ def test_emitted_documents_pass_the_portal_validator(awi_harvester_module, tmp_p
     documents = _run(awi_harvester_module, tmp_path, [_record("rec00", 1)], capsys)
 
     validator = Validator()
+    assert documents
     for document in documents:
         assert validator.validate(document, return_validation=True) is True
 
@@ -126,7 +134,11 @@ def test_emitted_documents_pass_the_portal_validator(awi_harvester_module, tmp_p
 def test_document_missing_a_mandatory_field_is_skipped_not_crashed(
     awi_harvester_module, tmp_path
 ):
-    """Without our guard this reaches store_original_record and raises KeyError."""
+    """The fake element carries uniqueId but not resources, one of our _MANDATORY keys.
+
+    Without our guard, a document missing resources would reach the index as an
+    invalid document instead of being skipped here.
+    """
 
     class _FakeElement:
         text = json.dumps({"id": "dataplant-x", "uniqueId": "u", "title": "T"})

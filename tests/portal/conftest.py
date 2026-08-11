@@ -40,6 +40,20 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             item.add_marker(skip_marker)
 
 
+@pytest.fixture(autouse=True)
+def _scrub_awi_env(monkeypatch):
+    """AWI's AbstractHarvester reads these two settings straight from the process env.
+
+    STORE_ORIGINAL_RECORD=true makes the harvester write data/store/<hashed path>.gz
+    relative to CWD - under pytest that is our repo root, and data/ is not gitignored.
+    A bare lowercase validate makes their code print an extra "validate <result>" line
+    to stdout, which would slip past _run's startswith("{") filter. Scrub both so the
+    emulation is insulated from a developer's shell.
+    """
+    monkeypatch.delenv("STORE_ORIGINAL_RECORD", raising=False)
+    monkeypatch.delenv("validate", raising=False)
+
+
 @pytest.fixture
 def awi_harvester_module():
     """Import portal/harvest-repository-dataplant-arcs.py with their helper package available.

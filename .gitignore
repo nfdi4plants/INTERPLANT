@@ -19,3 +19,4 @@ dist/
 !.env.example
 /harvest-runs/
 /docs/progress
+data/

@@ -27,8 +27,14 @@ def test_xml_fragment_is_well_formed_and_targets_the_extern_index():
     assert harvester.get("id") == "dataplant-arc-harvester"
     assert harvester.findtext(f"{{{C_NS}}}index") == "harvest-extern"
     assert harvester.findtext(f"{{{C_NS}}}mapping") == "EMPTY"
+    assert harvester.findtext(f"{{{C_NS}}}class") == "de.awi.index.harvester.sh.ShellHarvester"
+    assert (
+        harvester.findtext(f"{{{C_NS}}}interceptor")
+        == "de.awi.index.harvester.interceptors.PersonDomainInterceptor"
+    )
 
     script = harvester.find(f'{{{C_NS}}}parameter[@name="script"]')
+    assert script is not None
     assert "harvest-repository-dataplant-arcs.py" in script.text
 
 
@@ -55,9 +61,7 @@ def test_endpoint_placeholder_is_identical_in_script_and_services():
     assert match is not None, "could not find ENDPOINT = '...' in the harvester script"
     endpoint = match.group(1)
 
-    # Unconditional: this is the actual drift detector and must survive even
-    # after the REPLACE-ME tripwire below is removed at deployment time.
+    # Unconditional: this is the actual drift detector between the script and the
+    # services entry. It survives deployment, when the REPLACE-ME placeholder that
+    # used to be tripwired here is replaced with the real host (see portal/README.md).
     assert endpoint == entry["url"] == entry["provider"]["metadata"]["apiUrl"]
-
-    assert "REPLACE-ME" in script, "the host is still unresolved; see portal/README.md"
-    assert "REPLACE-ME" in entry["url"]
