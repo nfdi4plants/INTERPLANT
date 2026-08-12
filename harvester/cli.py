@@ -71,6 +71,17 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     harvest.add_argument(
+        "--clone-timeout",
+        type=int,
+        default=batch.DEFAULT_CLONE_TIMEOUT,
+        help=(
+            "Per-ARC git clone budget in seconds (default: "
+            f"{batch.DEFAULT_CLONE_TIMEOUT}). Raise it for large repositories; "
+            "an ARC that exceeds it never reaches parse, so a mirror of it "
+            "cannot be deduped against."
+        ),
+    )
+    harvest.add_argument(
         "--no-filter",
         action="store_true",
         help=(
@@ -162,6 +173,7 @@ def _harvest(args) -> int:
         identities, conn=conn, provider=args.provider, now_iso=now_iso,
         run_timestamp=run_timestamp, source=source, gitlab_base=gitlab_base,
         limit=args.limit, parse_timeout=args.parse_timeout,
+        clone_timeout=args.clone_timeout,
         apply_filters=not args.no_filter,
     )
     json_path, md_path = audit.write_run_report(report, args.out_dir)

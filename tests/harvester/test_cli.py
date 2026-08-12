@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from harvester import cli
+from harvester import batch, cli
 from harvester.isa_reader import Assay, Contact, Investigation, Study
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "arcs" / "ArcPrototype"
@@ -79,6 +79,38 @@ def test_cli_harvest_local_dry_run_writes_report(tmp_path):
     assert exit_code == 0
     reports = list(tmp_path.glob("harvest-*.json"))
     assert len(reports) == 1
+
+
+def _capture_run_batch(monkeypatch) -> dict:
+    """Replace batch.run_batch with a recorder that returns a minimal report."""
+    captured: dict[str, object] = {}
+
+    def fake_run_batch(identities, **kwargs):
+        captured.update(kwargs)
+        return batch.BatchReport(source="local", run_timestamp="20260812T000000Z")
+
+    monkeypatch.setattr("harvester.cli.batch.run_batch", fake_run_batch)
+    return captured
+
+
+def test_cli_harvest_clone_timeout_defaults_to_batch_default(monkeypatch, tmp_path):
+    captured = _capture_run_batch(monkeypatch)
+    exit_code = cli.main([
+        "harvest", "--local-dir", str(FIXTURE.parent),
+        "--dry-run", "--out-dir", str(tmp_path),
+    ])
+    assert exit_code == 0
+    assert captured["clone_timeout"] == 60
+
+
+def test_cli_harvest_forwards_clone_timeout(monkeypatch, tmp_path):
+    captured = _capture_run_batch(monkeypatch)
+    exit_code = cli.main([
+        "harvest", "--local-dir", str(FIXTURE.parent),
+        "--dry-run", "--out-dir", str(tmp_path), "--clone-timeout", "180",
+    ])
+    assert exit_code == 0
+    assert captured["clone_timeout"] == 180
 
 
 def test_cli_harvest_rejects_dry_run_with_dsn():
