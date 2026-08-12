@@ -1,0 +1,349 @@
+#!/usr/bin/env python3
+"""Reconcile a harvest run report against the record-id collision policy.
+
+Reads a `harvest-<stamp>.json` audit artifact and answers the questions the
+audit Markdown leaves to the reader:
+
+1. Does the funnel add up? Every enumerated ARC must land in exactly one
+   terminal state, and the states must sum to `n_total`.
+2. What did the policy filters exclude? Listed in full, because over-filtering
+   is the one failure mode that loses data instead of merely duplicating it.
+3. Which mirrors collapsed, and onto whom?
+4. Which collisions were held apart by the title guard?
+5. Did any winner actually need the `uniqueId` tiebreak? Sharing a namespace is
+   only a precondition - `prefer` reaches that key just when the DOI flag and
+   `last_activity_at` tie as well.
+
+Exit code is 1 if the funnel does not reconcile, else 0. Everything else is
+reported for a human to judge - this script deliberately does not decide
+whether an exclusion was *correct*.
+
+Usage:
+    python scripts/verify_collision_run.py harvest-runs/harvest-<stamp>.json
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from collections import defaultdict
+from pathlib import Path
+from urllib.parse import urlsplit
+
+
+def namespace_of(web_url: str) -> str:
+    """Everything in the GitLab path except the repository segment.
+
+    Mirrors harvester.dedup.namespace_of but takes the ARC web url straight
+    from the report, so this script stays runnable against an old artifact
+    whose code no longer matches HEAD.
+    """
+    parts = [p for p in urlsplit(web_url).path.strip("/").split("/") if p]
+    return "/".join(parts[:-1]) if len(parts) > 1 else ""
+
+
+def terminal_state(rec: dict) -> str:
+    """The single bucket an ARC ended in. Order matches the pipeline's."""
+    if not rec.get("clone_ok"):
+        return "clone_failed"
+    if rec.get("filtered"):
+        return "filtered"
+    if not rec.get("parse_ok"):
+        return "parse_failed"
+    if not rec.get("build_ok"):
+        return "build_failed"
+    if not rec.get("validate_ok"):
+        return "validation_failed"
+    if rec.get("suppressed_by"):
+        return "suppressed"
+    return "would_write"
+
+
+def load(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def baseline_twin(arc_path: str, baseline: dict | None, outcomes: list[dict]) -> str:
+    """Does excluding `arc_path` lose a dataset, or only a copy of a kept one?
+
+    Filtered ARCs carry no `record_id`, so the id has to come from an earlier
+    report taken before the filters existed. Having had a twin is NOT reassuring
+    on its own: when every ARC sharing an id is also excluded, the dataset
+    disappears from the corpus regardless of how many copies of it there were.
+    So the twins are resolved against THIS run's terminal states.
+    """
+    if baseline is None:
+        return "unknown (no baseline given)"
+    rows = {r["path"]: r for r in baseline["outcomes"]}
+    row = rows.get(arc_path)
+    if row is None:
+        return "absent from baseline"
+    rid = row.get("record_id")
+    if not rid:
+        return "no id in baseline either"
+    twins = [
+        r["path"] for r in baseline["outcomes"]
+        if r.get("record_id") == rid and r["path"] != arc_path
+    ]
+    if not twins:
+        return f"**DATASET LOST** - no twin (`{rid}`)"
+
+    here = {r["path"]: terminal_state(r) for r in outcomes}
+    survivors = [t for t in twins if here.get(t) == "would_write"]
+    if survivors:
+        return f"copy kept as: {', '.join(survivors)}"
+    return (
+        f"**DATASET LOST** - all {len(twins) + 1} copies excluded "
+        f"({', '.join(twins)})"
+    )
+
+
+def report(data: dict, baseline: dict | None = None) -> int:
+    outcomes = data["outcomes"]
+    totals = data["totals"]
+    out: list[str] = []
+    a = out.append
+    problems: list[str] = []
+
+    buckets: dict[str, list[dict]] = defaultdict(list)
+    for rec in outcomes:
+        buckets[terminal_state(rec)].append(rec)
+
+    a(f"# Collision verification - run {data['run_timestamp']} ({data['source']})")
+    a("")
+
+    # --- Q1: funnel reconciliation -------------------------------------
+    a("## Q1 Funnel")
+    a("")
+    n_total = totals["n_total"]
+    if len(outcomes) != n_total:
+        problems.append(f"n_total={n_total} but {len(outcomes)} outcome rows")
+    order = [
+        "clone_failed", "parse_failed", "build_failed", "validation_failed",
+        "filtered", "suppressed", "would_write",
+    ]
+    a("| Terminal state | ARCs |")
+    a("|---|---|")
+    for state in order:
+        a(f"| {state} | {len(buckets[state])} |")
+    summed = sum(len(buckets[s]) for s in order)
+    a(f"| **sum** | **{summed}** |")
+    a(f"| enumerated | {n_total} |")
+    a("")
+    if summed != n_total:
+        problems.append(
+            f"terminal states sum to {summed}, enumerated {n_total} - "
+            f"{n_total - summed} ARC(s) unaccounted for"
+        )
+
+    would_write = len(buckets["would_write"])
+    upserted = totals["n_upserted"]
+    a(f"- would-write records: **{would_write}**")
+    a(f"- omics classified: {totals['omics_classified']}/{totals['omics_total']}")
+    a("")
+
+    # The report does not record whether --dry-run was passed, so infer it.
+    # A dry run has conn=None and cannot upsert, which makes n_upserted 0 and
+    # would-write the only meaningful count. In a real run the two must match:
+    # any shortfall is an upsert that raised, i.e. silent data loss.
+    if upserted == 0 and would_write > 0:
+        a(f"- `n_upserted` is 0 with {would_write} records ready: this is a "
+          f"**dry run** (or every upsert failed). The would-write count is "
+          f"`n_valid - n_suppressed`; do not expect it to equal `n_upserted`.")
+    elif upserted != would_write:
+        problems.append(
+            f"{would_write} records reached upsert but only {upserted} "
+            f"succeeded - {would_write - upserted} upsert(s) failed"
+        )
+        a(f"- `n_upserted` {upserted} does not match {would_write} ready "
+          f"records: **{would_write - upserted} upsert(s) failed**")
+    else:
+        a(f"- `n_upserted` {upserted} matches the {would_write} ready records.")
+    a("")
+
+    # Distinct-id sanity: no two ARCs may reach would_write under one id.
+    written_ids: dict[str, list[str]] = defaultdict(list)
+    for rec in buckets["would_write"]:
+        written_ids[rec["record_id"]].append(rec["path"])
+    clashes = {rid: paths for rid, paths in written_ids.items() if len(paths) > 1}
+    if clashes:
+        problems.append(f"{len(clashes)} record id(s) still claimed by >1 ARC")
+        a("### Unresolved id clashes (POLICY FAILURE)")
+        a("")
+        for rid, paths in sorted(clashes.items()):
+            a(f"- `{rid}`: {', '.join(paths)}")
+        a("")
+    else:
+        a(f"- distinct would-write ids: {len(written_ids)} (no clashes)")
+        a("")
+
+    # --- Q2: exclusions -------------------------------------------------
+    a("## Q2 Excluded by policy - judge each one")
+    a("")
+    excluded = buckets["filtered"]
+    if not excluded:
+        a("None.")
+    else:
+        # Exclusion happens before build, so no id is minted and `record_id` is
+        # empty. Collision-group membership therefore CANNOT be read off this
+        # report - it has to come from a baseline run that predates the filters.
+        a("| ARC | Rule | Does the dataset survive elsewhere? |")
+        a("|---|---|---|")
+        for rec in sorted(excluded, key=lambda r: r["path"]):
+            a(f"| {rec['path']} | {rec.get('filter_rule', '-')} | "
+              f"{baseline_twin(rec['path'], baseline, outcomes)} |")
+        a("")
+        a("Filtering runs before build, so filtered ARCs have **no minted record "
+          "id**. Pass `--baseline <earlier-report.json>` to resolve the last "
+          "column against a run that predates the filters.")
+        a("")
+        a("`DATASET LOST` means no copy of that investigation reaches the "
+          "database - every row so marked needs a human to confirm the ARC "
+          "really is an unedited template and not real research data.")
+    a("")
+
+    # --- Q3: mirror collapses -------------------------------------------
+    a("## Q3 Deduped mirrors")
+    a("")
+    suppressed = buckets["suppressed"]
+    if not suppressed:
+        a("None.")
+    else:
+        a("| Suppressed ARC | Record id | Kept namespace | Suppressed last_activity_at |")
+        a("|---|---|---|---|")
+        for rec in sorted(suppressed, key=lambda r: r["record_id"]):
+            a(f"| {rec['path']} | {rec['record_id']} | {rec['suppressed_by']} | "
+              f"{rec.get('last_activity_at') or '-'} |")
+        a("")
+        a(f"{len(suppressed)} ARC(s) collapsed into a mirror.")
+    a("")
+
+    # --- Q4: title guard ------------------------------------------------
+    a("## Q4 Held apart by the title guard")
+    a("")
+    disambiguated = [r for r in outcomes if r.get("disambiguated_to")]
+    if not disambiguated:
+        a("None. Every collision this run saw was judged a mirror.")
+    else:
+        a("| ARC | Original id | Disambiguated to | Title |")
+        a("|---|---|---|---|")
+        for rec in sorted(disambiguated, key=lambda r: r["path"]):
+            base = rec["disambiguated_to"].rsplit("-", 1)[0]
+            title = (rec.get("title") or "-").replace("|", r"\|")[:50]
+            a(f"| {rec['path']} | {base} | {rec['disambiguated_to']} | {title} |")
+        a("")
+    a("")
+
+    # --- Q5: same-namespace ties ----------------------------------------
+    a("## Q5 Did any winner need the uniqueId tiebreak?")
+    a("")
+    groups = _collision_groups(outcomes)
+    a(f"Collision groups observed (pre-resolution): **{len(groups)}** covering "
+      f"{sum(len(v) for v in groups.values())} ARCs.")
+    a("")
+    # Sharing a namespace is necessary but NOT sufficient: `prefer` only reaches
+    # the uniqueId key when has_doi AND last_activity_at AND namespace all tie.
+    # has_doi is absent from the report, so a full tie here is reported as
+    # "reaches the tiebreak unless the DOI flags differ".
+    ns_shared, fully_tied = [], []
+    for rid, recs in sorted(groups.items()):
+        seen: dict[tuple[str, str], list[dict]] = defaultdict(list)
+        for rec in recs:
+            key = (namespace_of(rec.get("web_url") or ""),
+                   rec.get("last_activity_at") or "")
+            seen[key].append(rec)
+        space_only = defaultdict(list)
+        for rec in recs:
+            space_only[namespace_of(rec.get("web_url") or "")].append(rec)
+        if any(len(v) > 1 for v in space_only.values()):
+            ns_shared.append((rid, recs))
+        if any(len(v) > 1 for v in seen.values()):
+            fully_tied.append((rid, [r for v in seen.values() if len(v) > 1 for r in v]))
+
+    if not ns_shared:
+        a("No group contains a same-namespace pair, so the `uniqueId` tiebreak "
+          "was not reached. That path stays unit-proven and corpus-unexercised.")
+    else:
+        a("Groups with a same-namespace pair (a *precondition* for the tiebreak):")
+        a("")
+        a("| Record id | ARCs sharing a namespace |")
+        a("|---|---|")
+        for rid, recs in ns_shared:
+            a(f"| `{rid}` | {', '.join(r['path'] for r in recs)} |")
+        a("")
+        if not fully_tied:
+            a("None of them also tie on `last_activity_at`, so **recency decided "
+              "every winner** and the `uniqueId` tiebreak was still not reached. "
+              "That path remains unit-proven and corpus-unexercised.")
+        else:
+            a("| Record id | ARCs tied on namespace AND last_activity_at |")
+            a("|---|---|")
+            for rid, recs in fully_tied:
+                a(f"| `{rid}` | {', '.join(r['path'] for r in recs)} |")
+            a("")
+            a("These reach the `uniqueId` tiebreak unless their DOI flags differ "
+              "(`has_doi` is not recorded in the report, so it cannot be checked "
+              "here). Confirm the kept ARC is the intended one - lexicographic "
+              "uuid order is stable but arbitrary.")
+    a("")
+
+    a("## Verdict")
+    a("")
+    if problems:
+        a("**FAILED** - the funnel does not reconcile:")
+        a("")
+        for p in problems:
+            a(f"- {p}")
+    else:
+        a("**Funnel reconciles.** Every enumerated ARC lands in exactly one "
+          "terminal state and no id is claimed twice. Q2-Q5 above still need "
+          "human judgement.")
+
+    print("\n".join(out))
+    return 1 if problems else 0
+
+
+def _collision_groups(outcomes: list[dict]) -> dict[str, list[dict]]:
+    """ARCs grouped by the id they *minted*, keeping only contested ids.
+
+    Keyed on the pre-disambiguation id so a group stays visible after the
+    registry has split it: a disambiguated ARC reports the suffixed id in
+    `record_id`, and grouping on that would hide the collision it came from.
+    """
+    groups: dict[str, list[dict]] = defaultdict(list)
+    for rec in outcomes:
+        rid = rec.get("record_id")
+        if not rid:
+            continue
+        if rec.get("disambiguated_to") == rid:
+            rid = rid.rsplit("-", 1)[0]
+        groups[rid].append(rec)
+    return {rid: recs for rid, recs in groups.items() if len(recs) > 1}
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("report", type=Path, help="Path to harvest-<stamp>.json")
+    parser.add_argument(
+        "--baseline",
+        type=Path,
+        default=None,
+        help=(
+            "An earlier harvest report, ideally one taken before the policy "
+            "filters existed. Used only to resolve whether an excluded ARC had "
+            "a surviving twin, which the current report cannot say."
+        ),
+    )
+    args = parser.parse_args(argv)
+    if not args.report.exists():
+        print(f"No such report: {args.report}", file=sys.stderr)
+        return 2
+    if args.baseline is not None and not args.baseline.exists():
+        print(f"No such baseline: {args.baseline}", file=sys.stderr)
+        return 2
+    baseline = load(args.baseline) if args.baseline else None
+    return report(load(args.report), baseline)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
