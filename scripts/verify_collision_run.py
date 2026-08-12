@@ -62,7 +62,42 @@ def load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def report(data: dict) -> int:
+def baseline_twin(arc_path: str, baseline: dict | None, outcomes: list[dict]) -> str:
+    """Does excluding `arc_path` lose a dataset, or only a copy of a kept one?
+
+    Filtered ARCs carry no `record_id`, so the id has to come from an earlier
+    report taken before the filters existed. Having had a twin is NOT reassuring
+    on its own: when every ARC sharing an id is also excluded, the dataset
+    disappears from the corpus regardless of how many copies of it there were.
+    So the twins are resolved against THIS run's terminal states.
+    """
+    if baseline is None:
+        return "unknown (no baseline given)"
+    rows = {r["path"]: r for r in baseline["outcomes"]}
+    row = rows.get(arc_path)
+    if row is None:
+        return "absent from baseline"
+    rid = row.get("record_id")
+    if not rid:
+        return "no id in baseline either"
+    twins = [
+        r["path"] for r in baseline["outcomes"]
+        if r.get("record_id") == rid and r["path"] != arc_path
+    ]
+    if not twins:
+        return f"**DATASET LOST** - no twin (`{rid}`)"
+
+    here = {r["path"]: terminal_state(r) for r in outcomes}
+    survivors = [t for t in twins if here.get(t) == "would_write"]
+    if survivors:
+        return f"copy kept as: {', '.join(survivors)}"
+    return (
+        f"**DATASET LOST** - all {len(twins) + 1} copies excluded "
+        f"({', '.join(twins)})"
+    )
+
+
+def report(data: dict, baseline: dict | None = None) -> int:
     outcomes = data["outcomes"]
     totals = data["totals"]
     out: list[str] = []
@@ -132,17 +167,22 @@ def report(data: dict) -> int:
     if not excluded:
         a("None.")
     else:
-        colliding = _collision_groups(outcomes)
-        a("| ARC | Rule | Record id | In a collision group? |")
-        a("|---|---|---|---|")
+        # Exclusion happens before build, so no id is minted and `record_id` is
+        # empty. Collision-group membership therefore CANNOT be read off this
+        # report - it has to come from a baseline run that predates the filters.
+        a("| ARC | Rule | Does the dataset survive elsewhere? |")
+        a("|---|---|---|")
         for rec in sorted(excluded, key=lambda r: r["path"]):
-            rid = rec.get("record_id") or "-"
-            shared = "yes" if rid in colliding else "**no - unique record**"
-            a(f"| {rec['path']} | {rec.get('filter_rule', '-')} | {rid} | {shared} |")
+            a(f"| {rec['path']} | {rec.get('filter_rule', '-')} | "
+              f"{baseline_twin(rec['path'], baseline, outcomes)} |")
         a("")
-        a("An excluded ARC that is **not** in a collision group is data the run "
-          "drops outright rather than deduplicates. Those rows need a human to "
-          "confirm the ARC really is an unedited template.")
+        a("Filtering runs before build, so filtered ARCs have **no minted record "
+          "id**. Pass `--baseline <earlier-report.json>` to resolve the last "
+          "column against a run that predates the filters.")
+        a("")
+        a("`DATASET LOST` means no copy of that investigation reaches the "
+          "database - every row so marked needs a human to confirm the ARC "
+          "really is an unedited template and not real research data.")
     a("")
 
     # --- Q3: mirror collapses -------------------------------------------
@@ -178,29 +218,56 @@ def report(data: dict) -> int:
     a("")
 
     # --- Q5: same-namespace ties ----------------------------------------
-    a("## Q5 Groups needing the uniqueId tiebreak")
+    a("## Q5 Did any winner need the uniqueId tiebreak?")
     a("")
     groups = _collision_groups(outcomes)
-    tied = []
-    for rid, recs in sorted(groups.items()):
-        spaces = [namespace_of(r.get("web_url") or "") for r in recs]
-        if len(set(spaces)) < len(spaces):
-            tied.append((rid, recs))
     a(f"Collision groups observed (pre-resolution): **{len(groups)}** covering "
       f"{sum(len(v) for v in groups.values())} ARCs.")
     a("")
-    if not tied:
-        a("No group contains a same-namespace pair, so no winner in this run "
-          "was decided by the `uniqueId` tiebreak. That path stays unit-proven "
-          "and corpus-unexercised.")
+    # Sharing a namespace is necessary but NOT sufficient: `prefer` only reaches
+    # the uniqueId key when has_doi AND last_activity_at AND namespace all tie.
+    # has_doi is absent from the report, so a full tie here is reported as
+    # "reaches the tiebreak unless the DOI flags differ".
+    ns_shared, fully_tied = [], []
+    for rid, recs in sorted(groups.items()):
+        seen: dict[tuple[str, str], list[dict]] = defaultdict(list)
+        for rec in recs:
+            key = (namespace_of(rec.get("web_url") or ""),
+                   rec.get("last_activity_at") or "")
+            seen[key].append(rec)
+        space_only = defaultdict(list)
+        for rec in recs:
+            space_only[namespace_of(rec.get("web_url") or "")].append(rec)
+        if any(len(v) > 1 for v in space_only.values()):
+            ns_shared.append((rid, recs))
+        if any(len(v) > 1 for v in seen.values()):
+            fully_tied.append((rid, [r for v in seen.values() if len(v) > 1 for r in v]))
+
+    if not ns_shared:
+        a("No group contains a same-namespace pair, so the `uniqueId` tiebreak "
+          "was not reached. That path stays unit-proven and corpus-unexercised.")
     else:
+        a("Groups with a same-namespace pair (a *precondition* for the tiebreak):")
+        a("")
         a("| Record id | ARCs sharing a namespace |")
         a("|---|---|")
-        for rid, recs in tied:
+        for rid, recs in ns_shared:
             a(f"| `{rid}` | {', '.join(r['path'] for r in recs)} |")
         a("")
-        a("These winners depend on the `uniqueId` tiebreak. Confirm the kept ARC "
-          "is the intended one - lexicographic uuid order is stable but arbitrary.")
+        if not fully_tied:
+            a("None of them also tie on `last_activity_at`, so **recency decided "
+              "every winner** and the `uniqueId` tiebreak was still not reached. "
+              "That path remains unit-proven and corpus-unexercised.")
+        else:
+            a("| Record id | ARCs tied on namespace AND last_activity_at |")
+            a("|---|---|")
+            for rid, recs in fully_tied:
+                a(f"| `{rid}` | {', '.join(r['path'] for r in recs)} |")
+            a("")
+            a("These reach the `uniqueId` tiebreak unless their DOI flags differ "
+              "(`has_doi` is not recorded in the report, so it cannot be checked "
+              "here). Confirm the kept ARC is the intended one - lexicographic "
+              "uuid order is stable but arbitrary.")
     a("")
 
     a("## Verdict")
@@ -240,11 +307,25 @@ def _collision_groups(outcomes: list[dict]) -> dict[str, list[dict]]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report", type=Path, help="Path to harvest-<stamp>.json")
+    parser.add_argument(
+        "--baseline",
+        type=Path,
+        default=None,
+        help=(
+            "An earlier harvest report, ideally one taken before the policy "
+            "filters existed. Used only to resolve whether an excluded ARC had "
+            "a surviving twin, which the current report cannot say."
+        ),
+    )
     args = parser.parse_args(argv)
     if not args.report.exists():
         print(f"No such report: {args.report}", file=sys.stderr)
         return 2
-    return report(load(args.report))
+    if args.baseline is not None and not args.baseline.exists():
+        print(f"No such baseline: {args.baseline}", file=sys.stderr)
+        return 2
+    baseline = load(args.baseline) if args.baseline else None
+    return report(load(args.report), baseline)
 
 
 if __name__ == "__main__":

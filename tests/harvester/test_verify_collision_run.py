@@ -100,16 +100,72 @@ def test_missing_outcome_rows_fail_the_run(capsys):
     assert "unaccounted for" in capsys.readouterr().out
 
 
-def test_unique_exclusion_is_flagged_as_outright_data_loss(capsys):
-    """An excluded ARC in no collision group is dropped, not deduplicated."""
+def test_exclusion_survival_is_unknown_without_a_baseline(capsys):
+    """Filtered ARCs mint no id, so this run alone cannot answer the question.
+
+    Claiming "unique record" from an empty record_id was a real defect: it
+    reported every exclusion as unique because the field is always empty.
+    """
     data = _data([
         _outcome("perelo/samplearc_nfcore", filtered=True,
-                 filter_rule="placeholder-identifier",
-                 record_id="dataplant-samplearc-nfcore"),
-        _outcome("other/real", record_id="dataplant-real"),
+                 filter_rule="placeholder-identifier", record_id=""),
     ])
     vcr.report(data)
-    assert "no - unique record" in capsys.readouterr().out
+    assert "unknown (no baseline given)" in capsys.readouterr().out
+
+
+def test_exclusion_with_no_baseline_twin_is_reported_lost(capsys):
+    data = _data([
+        _outcome("perelo/samplearc_nfcore", filtered=True,
+                 filter_rule="placeholder-identifier", record_id=""),
+    ])
+    baseline = _data([
+        _outcome("perelo/samplearc_nfcore", record_id="dataplant-samplearc-nfcore"),
+    ])
+    vcr.report(data, baseline)
+    out = capsys.readouterr().out
+    assert "DATASET LOST" in out
+    assert "no twin" in out
+
+
+def test_exclusion_whose_every_copy_is_excluded_is_reported_lost(capsys):
+    """Having had a twin is not reassuring when the twin is excluded too.
+
+    Both ArcPrototype copies are filtered, so the investigation disappears from
+    the corpus even though it existed twice.
+    """
+    data = _data([
+        _outcome("kMutagene/ArcPrototype", filtered=True,
+                 filter_rule="template-assays", record_id=""),
+        _outcome("muehlhaus/ArcPrototype", filtered=True,
+                 filter_rule="template-assays", record_id=""),
+    ])
+    baseline = _data([
+        _outcome("kMutagene/ArcPrototype", record_id="dataplant-arcprototype"),
+        _outcome("muehlhaus/ArcPrototype", record_id="dataplant-arcprototype"),
+    ])
+    vcr.report(data, baseline)
+    out = capsys.readouterr().out
+    assert "DATASET LOST" in out
+    assert "all 2 copies excluded" in out
+
+
+def test_exclusion_is_safe_when_a_copy_still_reaches_the_database(capsys):
+    data = _data([
+        _outcome("template/copy", filtered=True,
+                 filter_rule="template-assays", record_id=""),
+        _outcome("real/copy", record_id="dataplant-shared"),
+    ])
+    baseline = _data([
+        _outcome("template/copy", record_id="dataplant-shared"),
+        _outcome("real/copy", record_id="dataplant-shared"),
+    ])
+    vcr.report(data, baseline)
+    out = capsys.readouterr().out
+    assert "copy kept as: real/copy" in out
+    # The bolded form only ever appears in a table cell; the legend below the
+    # table mentions the phrase in backticks, so match on the bold marker.
+    assert "**DATASET LOST**" not in out
 
 
 def test_disambiguated_group_still_reports_as_one_collision(capsys):
@@ -126,15 +182,36 @@ def test_disambiguated_group_still_reports_as_one_collision(capsys):
     assert "Held apart by the title guard" in capsys.readouterr().out
 
 
-def test_same_namespace_group_is_reported_as_needing_the_tiebreak(capsys):
+def test_group_tied_on_namespace_and_recency_reaches_the_tiebreak(capsys):
     data = _data([
         _outcome("ns/one", web_url="https://git.nfdi4plants.org/ns/one",
-                 record_id="dataplant-tie"),
+                 record_id="dataplant-tie", last_activity_at="2026-01-01T00:00:00Z"),
         _outcome("ns/two", web_url="https://git.nfdi4plants.org/ns/two",
-                 record_id="dataplant-tie", suppressed_by="ns"),
+                 record_id="dataplant-tie", last_activity_at="2026-01-01T00:00:00Z",
+                 suppressed_by="ns"),
     ])
     assert vcr.report(data) == 0
     assert "uniqueId` tiebreak" in capsys.readouterr().out
+
+
+def test_same_namespace_but_different_recency_does_not_reach_the_tiebreak(capsys):
+    """A shared namespace is a precondition, not proof.
+
+    `prefer` only reaches uniqueId when DOI and recency also tie. Reporting the
+    tiebreak as "used" on namespace alone overstated what the corpus exercised -
+    the real AthalianaColdStressSugar group was decided by recency.
+    """
+    data = _data([
+        _outcome("ns/one", web_url="https://git.nfdi4plants.org/ns/one",
+                 record_id="dataplant-tie", last_activity_at="2026-08-05T00:00:00Z"),
+        _outcome("ns/two", web_url="https://git.nfdi4plants.org/ns/two",
+                 record_id="dataplant-tie", last_activity_at="2026-07-29T00:00:00Z",
+                 suppressed_by="ns"),
+    ])
+    assert vcr.report(data) == 0
+    out = capsys.readouterr().out
+    assert "recency decided every winner" in out
+    assert "corpus-unexercised" in out
 
 
 def test_namespace_of_matches_the_dedup_rule():
