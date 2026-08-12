@@ -93,6 +93,36 @@ def test_two_arcs_writing_one_id_fails_the_run(capsys):
     assert "FAILED" in out
 
 
+def test_zero_upserts_with_ready_records_reads_as_a_dry_run(capsys):
+    data = _data([_outcome("a/b", record_id="dataplant-one")])
+    assert vcr.report(data) == 0
+    assert "**dry run**" in capsys.readouterr().out
+
+
+def test_a_real_run_matching_its_upsert_count_passes(capsys):
+    data = _data([
+        _outcome("a/b", record_id="dataplant-one", upsert_ok=True),
+        _outcome("c/d", record_id="dataplant-two", upsert_ok=True),
+    ])
+    data["totals"]["n_upserted"] = 2
+    assert vcr.report(data) == 0
+    assert "matches the 2 ready records" in capsys.readouterr().out
+
+
+def test_a_real_run_losing_records_to_failed_upserts_fails(capsys):
+    """The real Postgres load's failure mode: records built but never written."""
+    data = _data([
+        _outcome("a/b", record_id="dataplant-one", upsert_ok=True),
+        _outcome("c/d", record_id="dataplant-two", upsert_ok=False),
+        _outcome("e/f", record_id="dataplant-three", upsert_ok=False),
+    ])
+    data["totals"]["n_upserted"] = 1
+    assert vcr.report(data) == 1
+    out = capsys.readouterr().out
+    assert "2 upsert(s) failed" in out
+    assert "FAILED" in out
+
+
 def test_missing_outcome_rows_fail_the_run(capsys):
     data = _data([_outcome("a/b")])
     data["totals"]["n_total"] = 5  # report claims 5 ARCs, carries 1

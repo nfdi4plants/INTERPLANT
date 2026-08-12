@@ -10,8 +10,9 @@ audit Markdown leaves to the reader:
    is the one failure mode that loses data instead of merely duplicating it.
 3. Which mirrors collapsed, and onto whom?
 4. Which collisions were held apart by the title guard?
-5. Does any collision group contain a same-namespace pair? That is the only
-   group shape whose winner depends on the `uniqueId` tiebreak.
+5. Did any winner actually need the `uniqueId` tiebreak? Sharing a namespace is
+   only a precondition - `prefer` reaches that key just when the DOI flag and
+   `last_activity_at` tie as well.
 
 Exit code is 1 if the funnel does not reconcile, else 0. Everything else is
 reported for a human to judge - this script deliberately does not decide
@@ -135,13 +136,29 @@ def report(data: dict, baseline: dict | None = None) -> int:
             f"{n_total - summed} ARC(s) unaccounted for"
         )
 
-    # A dry run cannot upsert: conn is None, so n_upserted is always 0 and the
-    # would-write count is n_valid - n_suppressed rather than n_upserted.
     would_write = len(buckets["would_write"])
+    upserted = totals["n_upserted"]
     a(f"- would-write records: **{would_write}**")
-    a(f"- `n_upserted` in report: {totals['n_upserted']}"
-      f"{' (expected 0 for a dry run)' if data['source'] else ''}")
     a(f"- omics classified: {totals['omics_classified']}/{totals['omics_total']}")
+    a("")
+
+    # The report does not record whether --dry-run was passed, so infer it.
+    # A dry run has conn=None and cannot upsert, which makes n_upserted 0 and
+    # would-write the only meaningful count. In a real run the two must match:
+    # any shortfall is an upsert that raised, i.e. silent data loss.
+    if upserted == 0 and would_write > 0:
+        a(f"- `n_upserted` is 0 with {would_write} records ready: this is a "
+          f"**dry run** (or every upsert failed). The would-write count is "
+          f"`n_valid - n_suppressed`; do not expect it to equal `n_upserted`.")
+    elif upserted != would_write:
+        problems.append(
+            f"{would_write} records reached upsert but only {upserted} "
+            f"succeeded - {would_write - upserted} upsert(s) failed"
+        )
+        a(f"- `n_upserted` {upserted} does not match {would_write} ready "
+          f"records: **{would_write - upserted} upsert(s) failed**")
+    else:
+        a(f"- `n_upserted` {upserted} matches the {would_write} ready records.")
     a("")
 
     # Distinct-id sanity: no two ARCs may reach would_write under one id.

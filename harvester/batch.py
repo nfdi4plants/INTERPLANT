@@ -18,7 +18,9 @@ logger = logging.getLogger("harvester.batch")
 
 # Per-ARC clone budget in seconds. Named so the CLI default cannot drift from
 # this one: the 2026-07-29 full-corpus run lost 4 ARCs to a 60s ceiling that was
-# reachable only from Python, and one of them was half of a mirror pair.
+# reachable only from Python. Raising it to 180s on 2026-08-12 recovered 2 of
+# the 4. Note the cost multiplies by clone_retries (3 attempts), so an
+# unreachable repository burns 3x this budget before the run moves on.
 DEFAULT_CLONE_TIMEOUT = 60
 
 
