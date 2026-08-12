@@ -118,6 +118,22 @@
     "harvested_at": "2026-05-14T03:00:00Z",
     "record_quality": "complete"
   },
+  "organisations": {
+    "provider": [
+      {
+        "abbreviation": "DataPLANT",
+        "name": "DataPLANT - NFDI for Plant Sciences",
+        "url": "https://nfdi4plants.org/"
+      }
+    ],
+    "datacenter": [
+      {
+        "abbreviation": "FZJ",
+        "name": "Forschungszentrum Jülich",
+        "url": "https://www.fz-juelich.de/"
+      }
+    ]
+  },
   "persons": {
     "author": [
       {
