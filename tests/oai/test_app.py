@@ -62,7 +62,11 @@ def test_base_url_falls_back_to_request_when_unset(monkeypatch):
 
 def test_missing_dsn_is_fatal(monkeypatch):
     monkeypatch.delenv("INTERPLANT_DSN", raising=False)
-    from oai.app import create_app
-
+    # The import must sit inside pytest.raises: oai/app.py instantiates `app` at
+    # module level, so on a fresh interpreter the RuntimeError fires during the
+    # import itself. Outside the block this test passes only when an earlier test
+    # already cached oai.app in sys.modules.
     with pytest.raises(RuntimeError, match="INTERPLANT_DSN"):
+        from oai.app import create_app
+
         create_app()
