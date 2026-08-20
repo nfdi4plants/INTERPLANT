@@ -2,7 +2,7 @@
 -- Flattens payload jsonb into typed, queryable columns for the pygeoapi
 -- PostgreSQL record provider. Idempotent: safe to re-run after every harvest.
 
-CREATE OR REPLACE VIEW arc_records AS
+CREATE OR REPLACE VIEW public.arc_records AS
 SELECT
   id,
   payload->'properties'->>'title'                                  AS title,
@@ -17,4 +17,4 @@ SELECT
     WHEN payload->'geometry' = 'null'::jsonb OR payload->'geometry' IS NULL THEN NULL
     ELSE ST_SetSRID(ST_GeomFromGeoJSON(payload->'geometry'), 4326)
   END                                                              AS geom
-FROM records;
+FROM public.records;
