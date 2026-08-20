@@ -11,15 +11,16 @@ CREATE TABLE IF NOT EXISTS public.records (
 
 CREATE INDEX IF NOT EXISTS records_ingested_at_idx ON public.records (ingested_at);
 
--- The harvest writes here, never to public.records. A run that dies partway
--- leaves this table inconsistent and the endpoint unaffected.
 CREATE SCHEMA IF NOT EXISTS staging;
 
+-- The harvest writes here, never to public.records. A run that dies partway
+-- leaves this table inconsistent and the endpoint unaffected. Declared FROM
+-- public.records so the two can never drift apart. The swap copies between
+-- them, so a column added to one and not the other would be a silent data
+-- defect. INCLUDING INDEXES carries the primary key that upsert_record's
+-- ON CONFLICT (id) needs.
 CREATE TABLE IF NOT EXISTS staging.records (
-  id          text PRIMARY KEY,
-  payload     jsonb       NOT NULL,
-  source_etag text,
-  ingested_at timestamptz NOT NULL DEFAULT now()
+  LIKE public.records INCLUDING DEFAULTS INCLUDING INDEXES
 );
 
 -- The GitLab enumeration as of the last successful publish. Cannot be derived

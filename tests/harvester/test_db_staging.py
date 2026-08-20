@@ -12,15 +12,13 @@ def test_connect_with_schema_routes_writes_to_staging(pg_dsn):
     db.apply_schema(conn)
     db.truncate_staging(conn)
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM public.records WHERE id = 'staging-probe'")
+        cur.execute("TRUNCATE public.records")
 
     staged = db.connect(pg_dsn, schema="staging")
     db.upsert_record(staged, "staging-probe", {"id": "staging-probe"})
 
     assert db.count_records(staged, schema="staging") == 1
-    with conn.cursor() as cur:
-        cur.execute("SELECT count(*) FROM public.records WHERE id = 'staging-probe'")
-        assert cur.fetchone()[0] == 0
+    assert db.count_records(staged, schema="public") == 0
 
 
 @pytest.mark.db
