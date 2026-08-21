@@ -103,3 +103,32 @@ def evaluate(
         f"staged {staged_count} rows, floor {floor}, minimum {min_records}",
         KIND_OK,
     )
+
+
+def swap(conn, *, enumeration: dict[str, str]) -> int:
+    """Replace the published corpus and the enumeration snapshot atomically.
+
+    Readers see the old corpus or the new one, never a mixture: TRUNCATE takes
+    an ACCESS EXCLUSIVE lock, held for milliseconds at this scale. The snapshot
+    advances in the same transaction as the records, so a rolled-back swap also
+    leaves the snapshot behind and the next run retries the same change.
+    """
+    with conn.transaction():
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE public.records")
+            # Columns named explicitly: a positional SELECT * would silently
+            # transpose values if the two table definitions ever drift, and
+            # id/source_etag are both text so Postgres would not reject it.
+            cur.execute(
+                "INSERT INTO public.records (id, payload, source_etag, ingested_at) "
+                "SELECT id, payload, source_etag, ingested_at FROM staging.records"
+            )
+            cur.execute("TRUNCATE public.published_projects")
+            if enumeration:
+                cur.executemany(
+                    "INSERT INTO public.published_projects "
+                    "(project_path, last_activity_at) VALUES (%s, %s)",
+                    list(enumeration.items()),
+                )
+            cur.execute("SELECT count(*) FROM public.records")
+            return cur.fetchone()[0]
