@@ -27,7 +27,7 @@ def test_a_collapsed_corpus_is_refused():
     # A night when git.nfdi4plants.org was unreachable for most ARCs.
     r = publish.evaluate(staged_count=20, reported_upserts=20, published_count=144)
     assert not r.ok
-    assert "floor" in r.reason
+    assert "below the floor of 129" in r.reason
 
 
 def test_the_floor_is_inclusive():

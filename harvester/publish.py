@@ -16,7 +16,10 @@ DEFAULT_FLOOR_RATIO = 0.9
 # down to 66, with every night individually passing, and the portal's 5-day TTL
 # follows it all the way down. The ratio catches a cliff; this catches a slide.
 # 120 is about 83% of the verified 144-record corpus. Raise it as the corpus
-# grows; override per run with --min-records.
+# grows; override per run with --min-records. Raising it is deliberately not
+# free: test_healthy_run_passes pins "minimum 120" in the success reason and
+# test_the_floor_is_inclusive pins the 129/128 boundary, so moving this
+# constant trips tests on purpose and forces a human to review the change.
 DEFAULT_MIN_RECORDS = 120
 
 
@@ -75,8 +78,9 @@ def evaluate(
         return GateResult(
             False,
             f"staged {staged_count} rows, below the absolute minimum of "
-            f"{min_records}; a relative floor alone would let repeated small "
-            "losses ratchet the corpus down unrefused",
+            f"{min_records} (override with min_records=); a relative threshold "
+            "alone cannot catch repeated small losses, nor protect a table that "
+            "is already empty",
         )
 
     return GateResult(
