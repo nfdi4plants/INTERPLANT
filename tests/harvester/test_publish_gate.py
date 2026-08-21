@@ -25,6 +25,16 @@ def test_staged_rows_disagreeing_with_the_report_is_refused():
     assert r.kind == publish.KIND_MISMATCH
 
 
+def test_a_mismatch_below_the_floor_is_still_reported_as_a_mismatch():
+    # staged_count=140 above clears the floor (129) regardless of check order,
+    # so it cannot tell mismatch-before-floor apart from floor-before-mismatch.
+    # This one is both a mismatch (50 != 60) and below the floor (129), so it
+    # only comes out as KIND_MISMATCH if the mismatch check truly runs first.
+    r = publish.evaluate(staged_count=50, reported_upserts=60, published_count=144)
+    assert not r.ok
+    assert r.kind == publish.KIND_MISMATCH
+
+
 def test_a_collapsed_corpus_is_refused():
     # A night when git.nfdi4plants.org was unreachable for most ARCs.
     r = publish.evaluate(staged_count=20, reported_upserts=20, published_count=144)
