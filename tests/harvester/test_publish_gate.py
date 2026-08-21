@@ -9,35 +9,42 @@ from harvester import publish
 def test_healthy_run_passes():
     r = publish.evaluate(staged_count=144, reported_upserts=144, published_count=144)
     assert r.ok, r.reason
+    assert r.kind == publish.KIND_OK
     assert "floor 129" in r.reason and "minimum 120" in r.reason
 
 
 def test_growth_passes():
     r = publish.evaluate(staged_count=160, reported_upserts=160, published_count=144)
     assert r.ok, r.reason
+    assert r.kind == publish.KIND_OK
 
 
 def test_staged_rows_disagreeing_with_the_report_is_refused():
     r = publish.evaluate(staged_count=140, reported_upserts=144, published_count=144)
     assert not r.ok
-    assert "140" in r.reason and "144" in r.reason
+    assert r.kind == publish.KIND_MISMATCH
 
 
 def test_a_collapsed_corpus_is_refused():
     # A night when git.nfdi4plants.org was unreachable for most ARCs.
     r = publish.evaluate(staged_count=20, reported_upserts=20, published_count=144)
     assert not r.ok
-    assert "below the floor of 129" in r.reason
+    assert r.kind == publish.KIND_FLOOR
 
 
 def test_the_floor_is_inclusive():
     # 90% of 144 is 129.6, floored to 129.
-    assert publish.evaluate(
+    ok_result = publish.evaluate(
         staged_count=129, reported_upserts=129, published_count=144
-    ).ok
-    assert not publish.evaluate(
+    )
+    assert ok_result.ok
+    assert ok_result.kind == publish.KIND_OK
+
+    refused_result = publish.evaluate(
         staged_count=128, reported_upserts=128, published_count=144
-    ).ok
+    )
+    assert not refused_result.ok
+    assert refused_result.kind == publish.KIND_FLOOR
 
 
 def test_an_empty_corpus_is_always_refused():
@@ -45,12 +52,13 @@ def test_an_empty_corpus_is_always_refused():
     # pass. Publishing nothing must still be impossible.
     r = publish.evaluate(staged_count=0, reported_upserts=0, published_count=0)
     assert not r.ok
-    assert "empty" in r.reason
+    assert r.kind == publish.KIND_EMPTY
 
 
 def test_first_publish_of_a_real_corpus_passes():
     r = publish.evaluate(staged_count=144, reported_upserts=144, published_count=0)
     assert r.ok, r.reason
+    assert r.kind == publish.KIND_OK
 
 
 def test_floor_ratio_is_honoured_when_passed_explicitly():
@@ -60,6 +68,7 @@ def test_floor_ratio_is_honoured_when_passed_explicitly():
         floor_ratio=0.5, min_records=0,
     )
     assert r.ok, r.reason
+    assert r.kind == publish.KIND_OK
 
 
 def test_an_invalid_floor_ratio_raises_rather_than_failing_open():
@@ -82,7 +91,7 @@ def test_a_ratchet_step_that_clears_the_ratio_is_still_refused():
     # catalogue with every night reporting success.
     r = publish.evaluate(staged_count=100, reported_upserts=100, published_count=110)
     assert not r.ok
-    assert "minimum" in r.reason
+    assert r.kind == publish.KIND_MINIMUM
 
 
 def test_a_single_record_after_the_table_was_emptied_is_refused():
@@ -90,7 +99,7 @@ def test_a_single_record_after_the_table_was_emptied_is_refused():
     # stands between a wiped table and publishing one record.
     r = publish.evaluate(staged_count=1, reported_upserts=1, published_count=0)
     assert not r.ok
-    assert "minimum" in r.reason
+    assert r.kind == publish.KIND_MINIMUM
 
 
 def test_min_records_zero_allows_a_deliberately_tiny_corpus():
@@ -98,3 +107,4 @@ def test_min_records_zero_allows_a_deliberately_tiny_corpus():
         staged_count=3, reported_upserts=3, published_count=3, min_records=0
     )
     assert r.ok, r.reason
+    assert r.kind == publish.KIND_OK

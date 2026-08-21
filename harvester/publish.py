@@ -17,16 +17,26 @@ DEFAULT_FLOOR_RATIO = 0.9
 # follows it all the way down. The ratio catches a cliff; this catches a slide.
 # 120 is about 83% of the verified 144-record corpus. Raise it as the corpus
 # grows; override per run with --min-records. Raising it is deliberately not
-# free: test_healthy_run_passes pins "minimum 120" in the success reason and
+# free: test_healthy_run_passes pins the success message ("minimum 120") and
 # test_the_floor_is_inclusive pins the 129/128 boundary, so moving this
 # constant trips tests on purpose and forces a human to review the change.
 DEFAULT_MIN_RECORDS = 120
+
+# Machine-readable verdict kinds. Tests and callers branch on these; `reason`
+# is prose for humans and must never be load-bearing. Two fix rounds were spent
+# on collisions between refusal messages and tests that substring-matched them.
+KIND_OK = "ok"
+KIND_EMPTY = "empty"
+KIND_MISMATCH = "mismatch"
+KIND_FLOOR = "floor"
+KIND_MINIMUM = "minimum"
 
 
 @dataclass(frozen=True)
 class GateResult:
     ok: bool
     reason: str
+    kind: str
 
 
 def evaluate(
@@ -56,13 +66,16 @@ def evaluate(
         raise ValueError(f"min_records must not be negative, got {min_records!r}")
 
     if staged_count <= 0:
-        return GateResult(False, "staged corpus is empty; refusing to publish nothing")
+        return GateResult(
+            False, "staged corpus is empty; refusing to publish nothing", KIND_EMPTY
+        )
 
     if staged_count != reported_upserts:
         return GateResult(
             False,
             f"staged {staged_count} rows but the run report claims "
             f"{reported_upserts} upserts; the database and the report disagree",
+            KIND_MISMATCH,
         )
 
     floor = int(published_count * floor_ratio)
@@ -72,6 +85,7 @@ def evaluate(
             f"staged {staged_count} rows, below the floor of {floor} "
             f"({floor_ratio:.0%} of the published {published_count}); "
             "this looks like a failed harvest, not a shrunken corpus",
+            KIND_FLOOR,
         )
 
     if staged_count < min_records:
@@ -81,8 +95,11 @@ def evaluate(
             f"{min_records} (override with min_records=); a relative threshold "
             "alone cannot catch repeated small losses, nor protect a table that "
             "is already empty",
+            KIND_MINIMUM,
         )
 
     return GateResult(
-        True, f"staged {staged_count} rows, floor {floor}, minimum {min_records}"
+        True,
+        f"staged {staged_count} rows, floor {floor}, minimum {min_records}",
+        KIND_OK,
     )
