@@ -1,6 +1,7 @@
 """The staging-to-public swap: atomic, pruning, and snapshot-consistent."""
 from __future__ import annotations
 
+import psycopg
 import pytest
 
 from harvester import db, publish
@@ -65,11 +66,19 @@ def test_a_failed_swap_leaves_public_records_untouched(pg_dsn, monkeypatch):
         cur.execute("INSERT INTO public.records (id, payload) VALUES ('old', '{}'::jsonb)")
         cur.execute("INSERT INTO staging.records (id, payload) VALUES ('new', '{}'::jsonb)")
 
-    # A snapshot row that violates NOT NULL aborts the transaction after
-    # public.records has already been truncated inside it.
-    with pytest.raises(Exception):  # noqa: B017
+    with pytest.raises(psycopg.errors.NotNullViolation):
+        # The None value violates published_projects.last_activity_at NOT NULL,
+        # aborting the transaction after public.records was already truncated
+        # inside it. Typed dict[str, str] deliberately: the violation is the point.
         publish.swap(conn, enumeration={"ns/bad": None})
 
     with conn.cursor() as cur:
-        cur.execute("SELECT id FROM public.records")
+        cur.execute("SELECT id FROM public.records ORDER BY id")
         assert [r[0] for r in cur.fetchall()] == ["old"]
+        # The session must survive the abort: a poisoned connection would break
+        # the next nightly run.
+        cur.execute("SELECT 1")
+        assert cur.fetchone()[0] == 1
+        # The rollback must be whole, not partial: staging is untouched.
+        cur.execute("SELECT id FROM staging.records ORDER BY id")
+        assert [r[0] for r in cur.fetchall()] == ["new"]

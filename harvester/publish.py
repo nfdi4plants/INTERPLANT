@@ -108,13 +108,33 @@ def evaluate(
 def swap(conn, *, enumeration: dict[str, str]) -> int:
     """Replace the published corpus and the enumeration snapshot atomically.
 
-    Readers see the old corpus or the new one, never a mixture: TRUNCATE takes
-    an ACCESS EXCLUSIVE lock, held for milliseconds at this scale. The snapshot
-    advances in the same transaction as the records, so a rolled-back swap also
-    leaves the snapshot behind and the next run retries the same change.
+    Each individual statement here sees one corpus and never a half-swapped
+    table, and the snapshot advances in the same transaction as the records,
+    so a rolled-back swap leaves both behind together and the next run
+    retries the same change rather than the two drifting apart. That
+    guarantee is per-statement, not per-reader: oai/source.py pages a
+    ListRecords walk across multiple connections with a resumption token in
+    between, so a swap landing mid-walk can still straddle old and new pages.
+    In normal nightly operation this only over-delivers, because the new
+    corpus's ingested_at sorts after the walk's cursor; the nightly timer also
+    runs at 02:00, well after the portal's 21:03 harvest, so even a long run
+    finishes before the next walk starts. A corpus staged with timestamps
+    earlier than what is already published could still be skipped by a
+    cursor already past them.
+
+    The ACCESS EXCLUSIVE lock TRUNCATE takes is held until COMMIT, spanning
+    every statement in this block, not just the TRUNCATE itself. A slow
+    reader holding ACCESS SHARE on public.records would otherwise queue the
+    swap behind it and then queue every later reader behind the swap,
+    stalling the endpoint for as long as that reader runs. lock_timeout turns
+    that into a fast, retryable failure instead.
     """
     with conn.transaction():
         with conn.cursor() as cur:
+            # A queued ACCESS EXCLUSIVE blocks every reader behind it, so an
+            # unbounded wait would stall the public endpoint. Failing fast turns
+            # that into a clean rollback the next run retries.
+            cur.execute("SET LOCAL lock_timeout = '5s'")
             cur.execute("TRUNCATE public.records")
             # Columns named explicitly: a positional SELECT * would silently
             # transpose values if the two table definitions ever drift, and
