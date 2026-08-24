@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the INTERPLANT refresh nightly
+
+[Timer]
+# AWI's repository harvesters run at 21:03. Starting at 02:00 means even a
+# 4-hour run finishes long before they pull, so they never read mid-swap.
+OnCalendar=*-*-* 02:00:00
+RandomizedDelaySec=900
+Persistent=true
+
+[Install]
+WantedBy=timers.target

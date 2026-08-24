@@ -1,0 +1,28 @@
+[Unit]
+Description=INTERPLANT OAI-PMH endpoint
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=interplant
+Group=interplant
+WorkingDirectory=/opt/interplant
+EnvironmentFile=/etc/interplant/env
+# Binds the internal interface, not loopback: the TLS proxy for www.plabipd.de
+# runs on another host. Not every interface either; ufw admits only the proxy.
+ExecStart=/opt/interplant/.venv/bin/gunicorn \
+    --bind 192.0.2.10:8000 \
+    --workers 2 \
+    --access-logfile - \
+    oai.app:app
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/interplant
+
+[Install]
+WantedBy=multi-user.target

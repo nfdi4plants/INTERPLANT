@@ -101,3 +101,19 @@ uv run python -m harvester ingest /path/to/some/ARC --dsn postgresql://...
 ```
 
 `arctrl` (DataPLANT's ISA-XLSX library) handles parsing. The pipeline is: `IsaReader.read()` -> minimal omics classifier (folder-name + regex vocab) -> `build_record()` -> JSON-schema validation against `docs/specs/schemas/record.schema.json` -> idempotent `INSERT ... ON CONFLICT` upsert into the `records` table.
+
+## Production
+
+The public endpoint runs on `interplant-live` and is served natively, not under
+Docker. See [`deploy/README.md`](deploy/README.md) for install, upgrade and
+verification steps.
+
+`compose.yaml` remains the local development and CI stack. It is not the
+production mechanism, and its published Postgres port and default password are
+acceptable only on a laptop.
+
+Stale records are pruned automatically: `harvester refresh` stages a full harvest
+and swaps it into `public.records` in one transaction, so records for ARCs that
+vanished upstream disappear on the next publish. Do not run a manual
+`DELETE FROM records` against production - a truncated corpus is what AWI would
+publish, and their harvester expires entries on a 5-day TTL.
