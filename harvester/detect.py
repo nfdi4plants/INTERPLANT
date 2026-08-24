@@ -17,6 +17,19 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class EnumerationDiff:
+    """Project paths that appeared, vanished, or changed since the last publish.
+
+    Each field is a sorted tuple of project paths for one bucket: `appeared`
+    is in live but not published, `vanished` is published but not live, and
+    `changed` is in both but with a different last_activity_at.
+
+    These tuples exist for LOGGING and diagnostics only - answering "which
+    ARC moved" at 3am. Do NOT use them to select a subset of projects to
+    harvest: harvester/dedup.py resolves mirrored ARCs from a per-run
+    candidate map, so harvesting only this diff's subset could let a
+    DOI-less mirror overwrite a DOI-holding one seen only on a prior run.
+    """
+
     appeared: tuple[str, ...]
     vanished: tuple[str, ...]
     changed: tuple[str, ...]

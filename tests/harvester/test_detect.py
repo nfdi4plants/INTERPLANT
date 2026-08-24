@@ -32,8 +32,21 @@ def test_a_pushed_project_changes():
 
 
 def test_results_are_sorted_so_logs_are_stable():
-    d = detect.diff_enumeration({"ns/z": _T0, "ns/a": _T0}, {})
-    assert d.appeared == ("ns/a", "ns/z")
+    # 4 elements per bucket, inserted in scrambled/reverse order, so an
+    # unsorted implementation (e.g. relying on set iteration order) cannot
+    # pass by luck the way a 1- or 2-element bucket could.
+    live = {
+        "ns/z": _T0, "ns/q": _T0, "ns/m": _T0, "ns/a": _T0,  # appeared
+        "ns/x": _T1, "ns/o": _T1, "ns/k": _T1, "ns/c": _T1,  # changed
+    }
+    published = {
+        "ns/y": _T0, "ns/p": _T0, "ns/l": _T0, "ns/b": _T0,  # vanished
+        "ns/x": _T0, "ns/o": _T0, "ns/k": _T0, "ns/c": _T0,  # changed
+    }
+    d = detect.diff_enumeration(live, published)
+    assert d.appeared == ("ns/a", "ns/m", "ns/q", "ns/z")
+    assert d.vanished == ("ns/b", "ns/l", "ns/p", "ns/y")
+    assert d.changed == ("ns/c", "ns/k", "ns/o", "ns/x")
 
 
 def test_an_empty_published_snapshot_makes_everything_new():
