@@ -6,7 +6,11 @@ Description=Run the INTERPLANT refresh nightly
 # 4-hour run finishes long before they pull, so they never read mid-swap.
 OnCalendar=*-*-* 02:00:00
 RandomizedDelaySec=900
-Persistent=true
+# Deliberately no Persistent=true: a missed trigger would otherwise fire at
+# the next boot instead of waiting for 02:00, and a catch-up run starting at,
+# say, 20:00 could still be mid-swap when AWI pulls at 21:03 - exactly the
+# collision the 02:00 slot exists to avoid. A skipped night is already
+# covered by --max-age-days 7, so losing Persistent costs nothing.
 
 [Install]
 WantedBy=timers.target

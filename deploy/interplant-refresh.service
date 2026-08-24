@@ -33,5 +33,7 @@ ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/var/lib/interplant
 
-[Install]
-WantedBy=multi-user.target
+# No [Install] section: this is a oneshot activated only by
+# interplant-refresh.timer. `systemctl enable` on THIS unit (a plausible typo
+# for the timer) would schedule a full unattended 4-hour harvest at every
+# boot; without an [Install] section there is nothing for enable to hook.

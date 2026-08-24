@@ -30,13 +30,22 @@ git_auth() {
 echo "== database =="
 # listen_addresses stays at the Ubuntu default of localhost. The endpoint
 # reaches Postgres over loopback and nothing off-box ever should.
-sudo -u postgres psql -tAc \
-    "SELECT 1 FROM pg_roles WHERE rolname='interplant'" | grep -q 1 || {
-    echo "Create the role first with a real password:"
+# Checks the role AND the database: a role-exists/database-missing state
+# (half-finished first install, or a dropdb) used to sail past a role-only
+# check and die at the schema step with a raw "database does not exist"
+# error. A Postgres that is simply down also lands in this branch, so the
+# message below does not assert the role is definitely missing.
+role_ok=$(sudo -u postgres psql -tAc \
+    "SELECT 1 FROM pg_roles WHERE rolname='interplant'")
+db_ok=$(sudo -u postgres psql -tAc \
+    "SELECT 1 FROM pg_database WHERE datname='interplant'")
+if [ "$role_ok" != "1" ] || [ "$db_ok" != "1" ]; then
+    echo "Role and/or database 'interplant' not found (or Postgres is not"
+    echo "reachable as the postgres user). If Postgres is up, create them:"
     echo "  sudo -u postgres createuser --pwprompt interplant"
     echo "  sudo -u postgres createdb -O interplant interplant"
     exit 1
-}
+fi
 
 echo "== code =="
 sudo mkdir -p "$STATE/harvest-runs" "$(dirname "$ENVFILE")"
@@ -103,12 +112,22 @@ echo "== units =="
 sudo cp "$REPO"/deploy/interplant-*.service "$REPO"/deploy/interplant-*.timer \
     /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now interplant-oai.service
-sudo systemctl enable --now interplant-refresh.timer
+sudo systemctl enable interplant-oai.service
+# enable --now starts a STOPPED unit but is a no-op on one already running:
+# `start` on an active unit does nothing. Without an explicit restart, an
+# upgrade would rewrite DEPLOYED_COMMIT and the venv while gunicorn keeps
+# serving the old code, making DEPLOYED_COMMIT an actively misleading answer
+# to "is the fix live?". `restart` on an inactive unit still starts it, so
+# this stays correct on the first install too. Do not simplify this back to
+# `enable --now`.
+sudo systemctl restart interplant-oai.service
+sudo systemctl enable --now interplant-refresh.timer   # timer: --now is correct
 
 echo "== firewall =="
-echo "Set this once Marie supplies the proxy address:"
+echo "MANUAL STEP, not applied by this script. Once Marie supplies the proxy"
+echo "address, run these yourself:"
 echo "  sudo ufw allow from <PROXY_IP> to any port 8000 proto tcp"
 echo "  sudo ufw deny 8000"
+echo "Port 8000 is reachable from the whole internal network until you do."
 
 echo "Done. Check: systemctl status interplant-oai; systemctl list-timers interplant-refresh"

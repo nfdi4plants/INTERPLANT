@@ -105,6 +105,48 @@ def test_the_env_example_header_names_all_three_variables():
     )
 
 
+def test_install_script_restarts_the_endpoint():
+    text = (DEPLOY / "install.sh").read_text(encoding="utf-8")
+    assert "systemctl restart interplant-oai" in text, (
+        "enable --now does not restart an already-running unit, so an upgrade "
+        "would leave the old code serving"
+    )
+
+
+def test_install_script_does_not_apply_the_firewall_rules_it_prints():
+    lines = (DEPLOY / "install.sh").read_text(encoding="utf-8").splitlines()
+    ufw_lines = [line for line in lines if "ufw" in line]
+    assert ufw_lines, "install.sh should still tell the operator how to close port 8000"
+    # Every ufw mention must be inside an echo string (printed, not executed):
+    # install.sh has no proxy address to allow yet, so it cannot safely run
+    # these itself, and must not look like it did.
+    assert all(line.strip().startswith("echo ") for line in ufw_lines)
+
+
+def _directive_lines(text: str) -> list[str]:
+    """Non-comment, non-blank lines: the unit's actual directives."""
+    return [
+        line.strip() for line in text.splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+
+
+def test_the_refresh_service_has_no_install_section():
+    lines = _directive_lines((DEPLOY / "interplant-refresh.service").read_text(encoding="utf-8"))
+    assert "[Install]" not in lines, (
+        "a oneshot activated only by the timer must not be enable-able "
+        "directly; enable on this unit would run a full harvest at every boot"
+    )
+
+
+def test_the_refresh_timer_is_not_persistent():
+    lines = _directive_lines((DEPLOY / "interplant-refresh.timer").read_text(encoding="utf-8"))
+    assert "Persistent=true" not in lines, (
+        "Persistent=true fires a missed 02:00 trigger at boot instead, which "
+        "can land a multi-hour harvest's swap inside AWI's 21:03 pull"
+    )
+
+
 def test_readme_does_not_promise_a_third_page():
     text = (DEPLOY / "README.md").read_text(encoding="utf-8")
     assert "three pages" not in text, (

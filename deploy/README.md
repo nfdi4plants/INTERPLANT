@@ -45,8 +45,12 @@ so the checkout on disk carries no credentials.
 
 ## Verifying before AWI is told anything
 
-From the VM itself, since ufw denies 8000 from elsewhere until Marie supplies
-the proxy address:
+`install.sh` only prints the `ufw` commands that restrict port 8000; it does
+not run them (there is no proxy address to allow yet). Until you run them
+yourself, port 8000 is reachable from the whole internal network - confirm
+the current state with `sudo ufw status` rather than assuming it is closed.
+
+From the VM itself:
 
     curl -s 'http://192.0.2.10:8000/oai?verb=Identify' | head -20
 
@@ -93,6 +97,48 @@ Then the real thing, watching it:
 
 A refused gate leaves `public.records` untouched and exits non-zero. Read the
 report under `/var/lib/interplant/harvest-runs/` before overriding anything.
+
+## When the gate refuses
+
+The snapshot in `published_projects` only advances on a successful swap, so a
+refusal is not self-healing: the corpus stays stale, `--max-age-days 7` then
+makes every subsequent night harvest unconditionally, and the gate refuses
+again. Left alone, this means a nightly 2.5-4 hour clone storm against
+`git.nfdi4plants.org` every night forever, with nobody told - there is no mail
+relay or monitoring on this box, so nothing pages anyone. The only way this
+gets noticed is a human looking.
+
+**Notice it.** There is no alerting; check periodically:
+
+    systemctl status interplant-refresh
+    systemctl is-failed interplant-refresh
+    journalctl -u interplant-refresh --since -7d
+
+**Diagnose it.** `journalctl -u interplant-refresh` names the refusal kind
+(`empty`, `mismatch`, `floor`, `minimum`) and the counts involved. Cross-check
+against the audit report it points to under
+`/var/lib/interplant/harvest-runs/` - that report is the only record of which
+ARCs were seen and what happened to each one that night.
+
+**Override it deliberately, once you understand why it refused.** The
+`--min-records` flag is the override, but it is not in
+`interplant-refresh.service`'s `ExecStart`, so lowering it there would apply
+every night, not just once. Run a one-off invocation instead, either by hand:
+
+    sudo -u interplant /opt/interplant/.venv/bin/python -m harvester refresh \
+        --out-dir /var/lib/interplant/harvest-runs --min-records 100
+
+or transient, via `systemd-run`, if you want it logged under its own unit:
+
+    sudo systemd-run --uid=interplant --pipe --wait \
+        --property="EnvironmentFile=/etc/interplant/env" \
+        --working-directory=/opt/interplant \
+        /opt/interplant/.venv/bin/python -m harvester refresh \
+        --out-dir /var/lib/interplant/harvest-runs --min-records 100
+
+A lowered floor is a one-off judgment call about tonight's corpus, not a
+standing configuration change - do not edit the unit to lower it permanently
+without also revisiting whether `DEFAULT_MIN_RECORDS` itself should move.
 
 ## Upgrades
 
