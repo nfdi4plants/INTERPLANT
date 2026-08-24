@@ -26,6 +26,7 @@ def stubbed(monkeypatch):
 
     monkeypatch.setattr(cli.db, "connect", lambda dsn, schema=None: _FakeConn())
     monkeypatch.setattr(cli.db, "apply_schema", lambda conn: None)
+    monkeypatch.setattr(cli.db, "try_advisory_lock", lambda conn: True)
     monkeypatch.setattr(
         cli.db, "truncate_staging",
         lambda conn: calls.__setitem__("truncate", calls["truncate"] + 1),
@@ -65,6 +66,21 @@ def _live(monkeypatch, mapping, *, probe_failures=0):
         return iter(idents)
 
     monkeypatch.setattr(cli.acquire, "iter_live_arcs", fake_iter_live_arcs)
+
+
+def test_a_held_advisory_lock_skips_the_run_without_harvesting(stubbed, monkeypatch):
+    """Two overlapping refresh runs must not share one staging table: if the
+    advisory lock is already held, this run must exit without enumerating,
+    harvesting, or swapping at all."""
+    _live(monkeypatch, {"ns/a": "T1"})
+    monkeypatch.setattr(cli.db, "read_published_projects", lambda conn: {"ns/a": "T0"})
+    monkeypatch.setattr(cli.db, "last_published_at", lambda conn: datetime.now(tz=UTC))
+    monkeypatch.setattr(cli.db, "try_advisory_lock", lambda conn: False)
+
+    assert cli.main(["refresh", "--dsn", "postgresql://x/y"]) == 0
+    assert stubbed["batch"] == 0
+    assert stubbed["truncate"] == 0
+    assert stubbed["swap"] == 0
 
 
 def test_refresh_refuses_without_a_dsn(monkeypatch):

@@ -17,6 +17,13 @@ _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 _VIEWS_PATH = Path(__file__).parent.parent / "sql" / "catalog_views.sql"
 _GENERATED_VIEWS_PATH = Path(__file__).parent.parent / "sql" / "catalog_collections.generated.sql"
 
+# Fixed advisory lock key serializing the refresh pipeline. Arbitrary but
+# must never change once deployed: it is only meaningful as long as every
+# refresh run agrees on the same number. Two overlapping refresh runs would
+# otherwise share one staging table and compute the mirror-dedup winner
+# against a partial candidate set.
+REFRESH_LOCK_KEY = 561_073_442
+
 
 def connect(dsn: str, *, schema: str | None = None) -> psycopg.Connection:
     """Open an autocommit connection.
@@ -103,4 +110,17 @@ def read_published_projects(conn: psycopg.Connection) -> dict[str, str]:
 def last_published_at(conn: psycopg.Connection) -> datetime | None:
     with conn.cursor() as cur:
         cur.execute("SELECT max(published_at) FROM public.published_projects")
+        return cur.fetchone()[0]
+
+
+def try_advisory_lock(conn: psycopg.Connection) -> bool:
+    """Attempt the session-level refresh lock; returns whether it was acquired.
+
+    A session-level advisory lock is tied to the connection, not the
+    transaction, so it survives autocommit and is released automatically
+    when the connection closes or the process dies - it cannot wedge the
+    nightly timer if a run is killed.
+    """
+    with conn.cursor() as cur:
+        cur.execute("SELECT pg_try_advisory_lock(%s)", (REFRESH_LOCK_KEY,))
         return cur.fetchone()[0]

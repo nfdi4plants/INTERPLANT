@@ -285,109 +285,134 @@ def _refresh(args) -> int:
         logger.error("Cannot connect to DB: %s", exc)
         return 1
 
-    logger.info("Enumerating %s", args.gitlab_base)
-    # Owned here, not inside acquire/enumerate: `stats` is the only way to
-    # tell "GitLab said this project has no isa file" apart from "GitLab
-    # did not answer", and only this function can decide what to do with
-    # that count (refuse to publish; see the check before the swap below).
-    probe_stats = ProbeStats()
-    identities = list(acquire.iter_live_arcs(args.gitlab_base, stats=probe_stats))
-    live = {ident.path: ident.last_activity_at for ident in identities}
-    logger.info(
-        "Enumerated %d ARCs (%d isa probe failure(s))", len(live), probe_stats.failures
-    )
-
-    published = db.read_published_projects(conn)
-    diff = detect.diff_enumeration(live, published)
-    last_published = db.last_published_at(conn)
-    stale = last_published is None or (
-        datetime.now(tz=UTC) - last_published >= timedelta(days=args.max_age_days)
-    )
-
-    if diff.is_empty and not stale and not args.force:
-        logger.info("No enumeration change and the last publish is recent; nothing to do")
+    # Advisory lock, taken immediately after connecting and held for the
+    # rest of the run: nothing else serialises two refresh runs (systemd
+    # will not start a second interplant-refresh.service, but an attended
+    # manual run overlapping the timer is exactly what deploy/README.md
+    # tells the operator to do). Two overlapping runs would share one
+    # staging table and hold separate CollisionRegistry instances, so the
+    # mirror-dedup winner would be computed against a partial candidate
+    # set. It is a session-level lock, released automatically when `conn`
+    # closes (including on a crash), so the `finally` below is what
+    # releases it on every exit path from here on.
+    if not db.try_advisory_lock(conn):
+        logger.error(
+            "Another refresh already holds the advisory lock; exiting "
+            "without harvesting so the two runs do not share one staging "
+            "table. The other run will publish or refuse on its own."
+        )
+        conn.close()
         return 0
 
-    reason = "forced" if args.force else ("stale snapshot" if diff.is_empty else diff.summary())
-    logger.info("Harvesting: %s", reason)
-    # Name the projects, not just the counts. At 3am the useful question is which
-    # ARC moved, and the enumeration is the only place that answer exists: the
-    # harvest that follows is whole-corpus and cannot tell you.
-    for label, paths in (
-        ("appeared", diff.appeared),
-        ("vanished", diff.vanished),
-        ("changed", diff.changed),
-    ):
-        if paths:
-            logger.info("  %s: %s", label, ", ".join(paths))
-
-    now_iso = _now_iso()
-    run_timestamp = now_iso.replace("-", "").replace(":", "")
-
-    db.truncate_staging(conn)
-    report = batch.run_batch(
-        iter(identities), conn=conn, provider=args.provider, now_iso=now_iso,
-        run_timestamp=run_timestamp, source="live", gitlab_base=args.gitlab_base,
-        parse_timeout=args.parse_timeout, clone_timeout=args.clone_timeout,
-        apply_filters=True,
-    )
-    json_path, md_path = audit.write_run_report(report, args.out_dir)
-    logger.info("Audit report: %s (json: %s)", md_path, json_path)
-
-    if report.verdict != "ok":
-        logger.error("Harvest verdict: %s (%s)", report.verdict, report.verdict_reason)
-        logger.error("Refusing to publish; public.records is untouched")
-        return 1
-
-    staged = db.count_records(conn, schema="staging")
-    # published_count must be the RECORD count, not len(published). The snapshot
-    # holds one entry per enumerated project (~213), while the corpus holds one
-    # row per surviving record (~144) after template exclusions and mirror dedup.
-    # Passing the project count would set the floor to int(213*0.9)=191 and refuse
-    # every publish forever.
-    gate = publish.evaluate(
-        staged_count=staged,
-        reported_upserts=audit.aggregate(report)["n_upserted"],
-        published_count=db.count_records(conn, schema="public"),
-        min_records=args.min_records,
-    )
-    if not gate.ok:
-        logger.error("Publish gate refused: %s", gate.reason)
-        logger.error("public.records is untouched; see %s", md_path)
-        return 1
-
-    if probe_stats.failures:
-        # The gate above is cardinality-only and cannot see this: a project
-        # that failed its isa probe is silently absent from `live`, and a
-        # handful of absences can still land a numerically healthy staged
-        # count (this is precisely how 15 real records vanished under a
-        # passing gate in the review's failure scenario). Refuse rather
-        # than risk swap.py truncating still-published records out from
-        # under a transient GitLab hiccup.
-        logger.error(
-            "%d isa probe(s) failed during enumeration; the affected ARCs "
-            "were silently omitted from tonight's live set and publishing "
-            "now could delete still-existing records. public.records is "
-            "untouched; the next run will retry them.",
-            probe_stats.failures,
-        )
-        return 1
-
     try:
-        count = publish.swap(conn, enumeration=live)
-    except psycopg.errors.LockNotAvailable:
-        # The swap sets lock_timeout=5s, so a reader holding ACCESS SHARE on
-        # public.records makes TRUNCATE give up rather than queue behind it and
-        # stall the endpoint. The transaction rolled back, so the published
-        # corpus is intact and staging still holds tonight's harvest.
-        logger.error(
-            "Could not acquire the table lock within 5s; a reader was holding it. "
-            "public.records is untouched and the harvest is preserved in staging. "
-            "The next run will retry."
+        logger.info("Enumerating %s", args.gitlab_base)
+        # Owned here, not inside acquire/enumerate: `stats` is the only way to
+        # tell "GitLab said this project has no isa file" apart from "GitLab
+        # did not answer", and only this function can decide what to do with
+        # that count (refuse to publish; see the check before the swap below).
+        probe_stats = ProbeStats()
+        identities = list(acquire.iter_live_arcs(args.gitlab_base, stats=probe_stats))
+        live = {ident.path: ident.last_activity_at for ident in identities}
+        logger.info(
+            "Enumerated %d ARCs (%d isa probe failure(s))", len(live), probe_stats.failures
         )
-        return 1
-    logger.info("Published %d records (%s)", count, gate.reason)
-    return 0
+
+        published = db.read_published_projects(conn)
+        diff = detect.diff_enumeration(live, published)
+        last_published = db.last_published_at(conn)
+        stale = last_published is None or (
+            datetime.now(tz=UTC) - last_published >= timedelta(days=args.max_age_days)
+        )
+
+        if diff.is_empty and not stale and not args.force:
+            logger.info("No enumeration change and the last publish is recent; nothing to do")
+            return 0
+
+        reason = (
+            "forced" if args.force else ("stale snapshot" if diff.is_empty else diff.summary())
+        )
+        logger.info("Harvesting: %s", reason)
+        # Name the projects, not just the counts. At 3am the useful question is
+        # which ARC moved, and the enumeration is the only place that answer
+        # exists: the harvest that follows is whole-corpus and cannot tell you.
+        for label, paths in (
+            ("appeared", diff.appeared),
+            ("vanished", diff.vanished),
+            ("changed", diff.changed),
+        ):
+            if paths:
+                logger.info("  %s: %s", label, ", ".join(paths))
+
+        now_iso = _now_iso()
+        run_timestamp = now_iso.replace("-", "").replace(":", "")
+
+        db.truncate_staging(conn)
+        report = batch.run_batch(
+            iter(identities), conn=conn, provider=args.provider, now_iso=now_iso,
+            run_timestamp=run_timestamp, source="live", gitlab_base=args.gitlab_base,
+            parse_timeout=args.parse_timeout, clone_timeout=args.clone_timeout,
+            apply_filters=True,
+        )
+        json_path, md_path = audit.write_run_report(report, args.out_dir)
+        logger.info("Audit report: %s (json: %s)", md_path, json_path)
+
+        if report.verdict != "ok":
+            logger.error("Harvest verdict: %s (%s)", report.verdict, report.verdict_reason)
+            logger.error("Refusing to publish; public.records is untouched")
+            return 1
+
+        staged = db.count_records(conn, schema="staging")
+        # published_count must be the RECORD count, not len(published). The
+        # snapshot holds one entry per enumerated project (~213), while the
+        # corpus holds one row per surviving record (~144) after template
+        # exclusions and mirror dedup. Passing the project count would set the
+        # floor to int(213*0.9)=191 and refuse every publish forever.
+        gate = publish.evaluate(
+            staged_count=staged,
+            reported_upserts=audit.aggregate(report)["n_upserted"],
+            published_count=db.count_records(conn, schema="public"),
+            min_records=args.min_records,
+        )
+        if not gate.ok:
+            logger.error("Publish gate refused: %s", gate.reason)
+            logger.error("public.records is untouched; see %s", md_path)
+            return 1
+
+        if probe_stats.failures:
+            # The gate above is cardinality-only and cannot see this: a project
+            # that failed its isa probe is silently absent from `live`, and a
+            # handful of absences can still land a numerically healthy staged
+            # count (this is precisely how 15 real records vanished under a
+            # passing gate in the review's failure scenario). Refuse rather
+            # than risk swap.py truncating still-published records out from
+            # under a transient GitLab hiccup.
+            logger.error(
+                "%d isa probe(s) failed during enumeration; the affected ARCs "
+                "were silently omitted from tonight's live set and publishing "
+                "now could delete still-existing records. public.records is "
+                "untouched; the next run will retry them.",
+                probe_stats.failures,
+            )
+            return 1
+
+        try:
+            count = publish.swap(conn, enumeration=live)
+        except psycopg.errors.LockNotAvailable:
+            # The swap sets lock_timeout=5s, so a reader holding ACCESS SHARE on
+            # public.records makes TRUNCATE give up rather than queue behind it
+            # and stall the endpoint. The transaction rolled back, so the
+            # published corpus is intact and staging still holds tonight's
+            # harvest.
+            logger.error(
+                "Could not acquire the table lock within 5s; a reader was "
+                "holding it. public.records is untouched and the harvest is "
+                "preserved in staging. The next run will retry."
+            )
+            return 1
+        logger.info("Published %d records (%s)", count, gate.reason)
+        return 0
+    finally:
+        conn.close()
 
 
 def _redact(dsn: str) -> str:
