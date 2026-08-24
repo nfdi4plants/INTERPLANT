@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator
+from dataclasses import dataclass
 
 import httpx
 
@@ -20,12 +21,38 @@ _ISA_PATH = "isa.investigation.xlsx"
 _MAX_PAGES_CEILING = 1000
 
 
-def iter_public_arcs(base_url: str, *, max_pages: int | None = None) -> Iterator[dict]:
+@dataclass
+class ProbeStats:
+    """Counts isa-probe failures across one enumeration pass.
+
+    Owned by the caller: construct one, pass it in, and read `.failures`
+    after the iterator is exhausted. `_has_isa` never raises on a probe
+    failure and still returns a plain bool - a project that genuinely has
+    no isa file must still be excluded normally - so this counter is the
+    only way for a caller to tell "excluded because GitLab said no" apart
+    from "excluded because GitLab did not answer". The distinction matters
+    once a caller treats a missing project as deleted (see publish.swap):
+    a transient probe failure must never be mistaken for that.
+    """
+
+    failures: int = 0
+
+
+def iter_public_arcs(
+    base_url: str, *, max_pages: int | None = None, stats: ProbeStats | None = None
+) -> Iterator[dict]:
     """Yield project descriptors for public projects whose root contains isa.investigation.xlsx.
 
     max_pages=None paginates until the API returns an empty page (production use),
     bounded by a safety ceiling; pass an integer to cap pages (tests).
+
+    `stats`, if given, is incremented in place on every isa-probe failure
+    (network error or timeout, not a genuine absence of the file). Pass one
+    when the caller needs to distinguish a transient GitLab hiccup from a
+    real enumeration change.
     """
+    if stats is None:
+        stats = ProbeStats()
     last_page = max_pages if max_pages is not None else _MAX_PAGES_CEILING
     with httpx.Client(base_url=base_url, timeout=15.0) as client:
         for page in range(1, last_page + 1):
@@ -38,7 +65,7 @@ def iter_public_arcs(base_url: str, *, max_pages: int | None = None) -> Iterator
             if not projects:
                 return
             for project in projects:
-                if _has_isa(client, project):
+                if _has_isa(client, project, stats):
                     yield {
                         "project_id": project["id"],
                         "path_with_namespace": project["path_with_namespace"],
@@ -54,7 +81,7 @@ def iter_public_arcs(base_url: str, *, max_pages: int | None = None) -> Iterator
                 )
 
 
-def _has_isa(client: httpx.Client, project: dict) -> bool:
+def _has_isa(client: httpx.Client, project: dict, stats: ProbeStats) -> bool:
     branch = project.get("default_branch")
     if not branch:
         return False
@@ -62,6 +89,7 @@ def _has_isa(client: httpx.Client, project: dict) -> bool:
     try:
         resp = client.head(path, params={"ref": branch}, follow_redirects=True)
     except httpx.HTTPError as exc:
+        stats.failures += 1
         logger.warning("isa probe failed for %s: %s", project["path_with_namespace"], exc)
         return False
     if resp.status_code == 200:
@@ -77,6 +105,7 @@ def _has_isa(client: httpx.Client, project: dict) -> bool:
                 follow_redirects=True,
             )
         except httpx.HTTPError as exc:
+            stats.failures += 1
             logger.warning("isa GET probe failed for %s: %s", project["path_with_namespace"], exc)
             return False
         return resp.status_code in (200, 206)

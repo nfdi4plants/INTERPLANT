@@ -21,6 +21,7 @@ from pathlib import Path
 import psycopg
 
 from harvester import acquire, audit, batch, db, detect, pipeline, publish
+from harvester.enumerate import ProbeStats
 
 logger = logging.getLogger("harvester")
 
@@ -285,9 +286,16 @@ def _refresh(args) -> int:
         return 1
 
     logger.info("Enumerating %s", args.gitlab_base)
-    identities = list(acquire.iter_live_arcs(args.gitlab_base))
+    # Owned here, not inside acquire/enumerate: `stats` is the only way to
+    # tell "GitLab said this project has no isa file" apart from "GitLab
+    # did not answer", and only this function can decide what to do with
+    # that count (refuse to publish; see the check before the swap below).
+    probe_stats = ProbeStats()
+    identities = list(acquire.iter_live_arcs(args.gitlab_base, stats=probe_stats))
     live = {ident.path: ident.last_activity_at for ident in identities}
-    logger.info("Enumerated %d ARCs", len(live))
+    logger.info(
+        "Enumerated %d ARCs (%d isa probe failure(s))", len(live), probe_stats.failures
+    )
 
     published = db.read_published_projects(conn)
     diff = detect.diff_enumeration(live, published)
@@ -346,6 +354,23 @@ def _refresh(args) -> int:
     if not gate.ok:
         logger.error("Publish gate refused: %s", gate.reason)
         logger.error("public.records is untouched; see %s", md_path)
+        return 1
+
+    if probe_stats.failures:
+        # The gate above is cardinality-only and cannot see this: a project
+        # that failed its isa probe is silently absent from `live`, and a
+        # handful of absences can still land a numerically healthy staged
+        # count (this is precisely how 15 real records vanished under a
+        # passing gate in the review's failure scenario). Refuse rather
+        # than risk swap.py truncating still-published records out from
+        # under a transient GitLab hiccup.
+        logger.error(
+            "%d isa probe(s) failed during enumeration; the affected ARCs "
+            "were silently omitted from tonight's live set and publishing "
+            "now could delete still-existing records. public.records is "
+            "untouched; the next run will retry them.",
+            probe_stats.failures,
+        )
         return 1
 
     try:

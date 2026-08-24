@@ -53,12 +53,18 @@ def stubbed(monkeypatch):
     return calls
 
 
-def _live(monkeypatch, mapping):
+def _live(monkeypatch, mapping, *, probe_failures=0):
     idents = [
         acquire.ArcIdentity(path=p, web_url=f"https://g/{p}", last_activity_at=t)
         for p, t in mapping.items()
     ]
-    monkeypatch.setattr(cli.acquire, "iter_live_arcs", lambda base: iter(idents))
+
+    def fake_iter_live_arcs(base, *, stats=None):
+        if stats is not None:
+            stats.failures = probe_failures
+        return iter(idents)
+
+    monkeypatch.setattr(cli.acquire, "iter_live_arcs", fake_iter_live_arcs)
 
 
 def test_refresh_refuses_without_a_dsn(monkeypatch):
@@ -217,6 +223,46 @@ def test_refresh_bootstraps_a_fresh_database_before_switching_schema(stubbed, mo
     monkeypatch.setattr(cli.db, "last_published_at", lambda conn: None)
 
     assert cli.main(["refresh", "--dsn", "postgresql://x/y"]) == 0
+
+
+def test_a_probe_failure_during_enumeration_refuses_to_publish(stubbed, monkeypatch):
+    """A transient GitLab probe failure must not be treated as a real
+    enumeration change: refresh must refuse before the swap, not publish."""
+    _live(monkeypatch, {"ns/a": "T1"}, probe_failures=1)
+    monkeypatch.setattr(cli.db, "read_published_projects", lambda conn: {"ns/a": "T0"})
+    monkeypatch.setattr(cli.db, "last_published_at", lambda conn: datetime.now(tz=UTC))
+
+    assert cli.main(["refresh", "--dsn", "postgresql://x/y"]) == 1
+    assert stubbed["swap"] == 0
+
+
+def test_a_probe_failure_refuses_even_when_the_gate_would_otherwise_pass(
+    stubbed, monkeypatch
+):
+    """Regression pinning the review's exact failure scenario: 12 isa probes
+    fail, 12 still-published ARCs are silently missing from tonight's live
+    set, the harvest stages 132 of 144 records (above the floor of 129), and
+    the cardinality-only gate would pass. Without this check that publish
+    truncates public.records and 12 real records vanish under a passing
+    gate and an exit-0 run. With it, refresh must refuse and swap must never
+    run, so those records are never deleted."""
+    live = {f"ns/p{i}": "T1" for i in range(132)}
+    _live(monkeypatch, live, probe_failures=12)
+    monkeypatch.setattr(
+        cli.db, "read_published_projects", lambda conn: {f"ns/p{i}": "T0" for i in range(144)}
+    )
+    monkeypatch.setattr(cli.db, "last_published_at", lambda conn: datetime.now(tz=UTC))
+    # A healthy-looking staged corpus: 132 staged and reported, 144 currently
+    # published. floor = int(144*0.9) = 129, so 132 clears it - the gate on
+    # its own has no reason to refuse.
+    monkeypatch.setattr(cli.db, "count_records", lambda conn, schema: 132)
+    monkeypatch.setattr(cli.audit, "aggregate", lambda report: {"n_upserted": 132})
+
+    assert cli.main(["refresh", "--dsn", "postgresql://x/y"]) == 1
+    assert stubbed["swap"] == 0, (
+        "the gate alone would have passed this corpus; the probe-failure "
+        "check must be what refuses it, or 12 published records get deleted"
+    )
 
 
 def test_a_lock_timeout_during_swap_does_not_raise(stubbed, monkeypatch):

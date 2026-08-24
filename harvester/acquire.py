@@ -13,7 +13,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from harvester.enumerate import iter_public_arcs
+from harvester.enumerate import ProbeStats, iter_public_arcs
 
 logger = logging.getLogger("harvester.acquire")
 
@@ -59,8 +59,14 @@ def clone_arc(web_url: str, dest, *, timeout: int = 60, retries: int = 2) -> tup
     return False, last_err
 
 
-def iter_live_arcs(gitlab_base: str, *, max_pages: int | None = None) -> Iterator[ArcIdentity]:
-    for meta in iter_public_arcs(gitlab_base, max_pages=max_pages):
+def iter_live_arcs(
+    gitlab_base: str, *, max_pages: int | None = None, stats: ProbeStats | None = None
+) -> Iterator[ArcIdentity]:
+    """Yield live ARC identities. `stats`, if given, is incremented in place
+    on every isa-probe failure during enumeration (see enumerate.ProbeStats);
+    pass one owned by the caller to tell a transient GitLab failure apart
+    from a project that genuinely has no isa file."""
+    for meta in iter_public_arcs(gitlab_base, max_pages=max_pages, stats=stats):
         yield ArcIdentity(
             path=meta["path_with_namespace"],
             web_url=meta["web_url"],
