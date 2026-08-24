@@ -137,7 +137,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "--parse-timeout",
         type=int,
         default=None,
-        help="Per-ARC parse budget in seconds (default: no limit, as production requires)",
+        help=(
+            "Per-ARC parse budget in seconds (default: no limit). An ARC that "
+            "exceeds it is recorded as a ParseTimeout failure and the run continues."
+        ),
     )
     refresh.add_argument(
         "--clone-timeout", type=int, default=batch.DEFAULT_CLONE_TIMEOUT
@@ -245,9 +248,26 @@ def _refresh(args) -> int:
     the per-project isa.investigation.xlsx probe is not paid twice.
     """
     logger.info("Connecting to %s", _redact(args.dsn))
+    # Bootstrap on an unqualified connection first. db.connect(schema="staging")
+    # verifies staging.records already exists before it will set search_path,
+    # so calling it before apply_schema has ever run refuses to connect on a
+    # fresh database. apply_schema's DDL is fully schema-qualified, so it
+    # creates both schemas' tables regardless of which one is on search_path.
+    try:
+        bootstrap_conn = db.connect(args.dsn)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Cannot connect to DB: %s", exc)
+        return 1
+    try:
+        db.apply_schema(bootstrap_conn)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Cannot apply schema: %s", exc)
+        return 1
+    finally:
+        bootstrap_conn.close()
+
     try:
         conn = db.connect(args.dsn, schema="staging")
-        db.apply_schema(conn)
     except Exception as exc:  # noqa: BLE001
         logger.error("Cannot connect to DB: %s", exc)
         return 1

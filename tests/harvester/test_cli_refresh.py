@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import psycopg
 import pytest
 
 from harvester import acquire, batch, cli
@@ -168,3 +169,54 @@ def test_a_failed_harvest_does_not_swap(stubbed, monkeypatch):
 
     assert cli.main(["refresh", "--dsn", "postgresql://x/y"]) == 1
     assert stubbed["swap"] == 0
+
+
+def test_refresh_bootstraps_a_fresh_database_before_switching_schema(stubbed, monkeypatch):
+    """Regression: db.connect(schema="staging") verifies staging.records already
+    exists and raises before apply_schema gets a chance to create it. `_refresh`
+    must bootstrap on an unqualified connection, apply the schema there, and only
+    then open the staging-scoped connection.
+
+    The fake `connect` below is order-aware: it raises the same RuntimeError the
+    real db.connect raises when the schema is missing, unless apply_schema has
+    already run. A connect stub that always succeeds (as `stubbed` provides by
+    default) cannot see this ordering bug, which is exactly why it slipped past
+    the first round.
+    """
+    state = {"schema_applied": False}
+
+    def fake_connect(dsn, schema=None):
+        if schema == "staging" and not state["schema_applied"]:
+            raise RuntimeError(
+                "staging.records does not exist. Refusing to set search_path: "
+                "unqualified writes would fall through to public.records."
+            )
+        return _FakeConn()
+
+    def fake_apply_schema(conn):
+        state["schema_applied"] = True
+
+    monkeypatch.setattr(cli.db, "connect", fake_connect)
+    monkeypatch.setattr(cli.db, "apply_schema", fake_apply_schema)
+
+    _live(monkeypatch, {"ns/a": "T1"})
+    monkeypatch.setattr(cli.db, "read_published_projects", lambda conn: {})
+    monkeypatch.setattr(cli.db, "last_published_at", lambda conn: None)
+
+    assert cli.main(["refresh", "--dsn", "postgresql://x/y"]) == 0
+
+
+def test_a_lock_timeout_during_swap_does_not_raise(stubbed, monkeypatch):
+    """The swap sets lock_timeout=5s and can raise LockNotAvailable when a
+    reader holds the table lock. This is refresh's only retryable-failure path;
+    it must be caught, logged, and turned into exit code 1, not a traceback."""
+    _live(monkeypatch, {"ns/a": "T1"})
+    monkeypatch.setattr(cli.db, "read_published_projects", lambda conn: {"ns/a": "T0"})
+    monkeypatch.setattr(cli.db, "last_published_at", lambda conn: datetime.now(tz=UTC))
+
+    def raising_swap(conn, *, enumeration):
+        raise psycopg.errors.LockNotAvailable("could not obtain lock on public.records")
+
+    monkeypatch.setattr(cli.publish, "swap", raising_swap)
+
+    assert cli.main(["refresh", "--dsn", "postgresql://x/y"]) == 1
