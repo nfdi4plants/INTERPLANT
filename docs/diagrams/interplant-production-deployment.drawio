@@ -1,0 +1,561 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram name="1. Install (install.sh)" id="page-install">
+    <mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="2336" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="i-title" value="1. What happens when you run the installer" style="text;html=1;fontSize=26;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="30" width="900" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="i-sub" value="On interplant-live (192.0.2.10), reached only through the jump-host jump host. Run as mohamed (has sudo), NOT as interplant.&lt;br&gt;&lt;b&gt;sudo ./install.sh [ref]&lt;/b&gt; - ref defaults to main; pass a tag to roll back. Idempotent: safe to re-run." style="text;html=1;fontSize=13;align=left;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="72" width="1000" height="52" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i1" value="&lt;b&gt;START&lt;/b&gt;&lt;br&gt;sudo ./install.sh [ref]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="360" y="150" width="320" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i2" value="&lt;b&gt;apt-get install&lt;/b&gt;&lt;br&gt;postgresql, python3-venv, git" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="360" y="250" width="320" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i3" value="&lt;b&gt;Does the role AND the database exist?&lt;/b&gt;&lt;br&gt;psql: pg_roles.interplant, pg_database.interplant" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="330" y="350" width="380" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i3x" value="&lt;b&gt;EXIT 1&lt;/b&gt; - prints:&lt;br&gt;createuser --pwprompt interplant&lt;br&gt;createdb -O interplant interplant&lt;br&gt;&lt;i&gt;Wording does not assert the role is missing:&lt;br&gt;a Postgres that is simply down lands here too.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="790" y="360" width="330" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i4" value="&lt;b&gt;mkdir&lt;/b&gt; /var/lib/interplant/harvest-runs&lt;br&gt;and /etc/interplant" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="360" y="500" width="320" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i5" value="&lt;b&gt;Does /etc/interplant/deploy-token exist?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="330" y="600" width="380" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i5x" value="&lt;b&gt;EXIT 1&lt;/b&gt; - prints how to make one:&lt;br&gt;GitLab Settings &gt; Repository &gt; Deploy tokens,&lt;br&gt;scope read_repository. File holds 2 lines:&lt;br&gt;username, then token." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="790" y="605" width="330" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i6" value="&lt;b&gt;Pull the code from gitlab.fz-juelich.de&lt;/b&gt;&lt;br&gt;git fetch (or clone) using the deploy token" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="360" y="740" width="320" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i6n" value="&lt;b&gt;Why the VM pulls its own code&lt;/b&gt;&lt;br&gt;There is no CI path to this host, so the tree is a git&lt;br&gt;checkout, not an rsync copy. That is what makes&lt;br&gt;DEPLOYED_COMMIT meaningful and rollback a&lt;br&gt;one-argument operation.&lt;br&gt;&lt;br&gt;&lt;b&gt;The token never touches disk in the checkout.&lt;/b&gt;&lt;br&gt;It is supplied per invocation via&lt;br&gt;git -c credential.helper=..., so it is NOT written&lt;br&gt;into .git/config where it would stay readable.&lt;br&gt;A test asserts no glpat-/gldt- literal and no&lt;br&gt;credentials in the clone URL." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="790" y="720" width="330" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i7" value="&lt;b&gt;checkout --force&lt;/b&gt; ref, then reset --hard&lt;br&gt;&lt;i&gt;--force so a local edit made in anger on the VM&lt;br&gt;cannot block an upgrade&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="840" width="320" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i8" value="&lt;b&gt;write /opt/interplant/DEPLOYED_COMMIT&lt;/b&gt;&lt;br&gt;so &quot;is the fix live?&quot; is answerable" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="360" y="950" width="320" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i9" value="&lt;b&gt;chown -R root:root /opt/interplant&lt;/b&gt;&lt;br&gt;chown -R interplant:interplant /var/lib/interplant" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1050" width="320" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i9n" value="&lt;b&gt;The service cannot rewrite its own code.&lt;/b&gt;&lt;br&gt;Code is root-owned; only /var/lib/interplant is&lt;br&gt;writable by the service account. The units also&lt;br&gt;set ProtectSystem=strict, so /opt is read-only&lt;br&gt;to them at runtime as well." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="790" y="1035" width="330" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i10" value="&lt;b&gt;python3 -m venv /opt/interplant/.venv&lt;/b&gt;&lt;br&gt;pip install --require-hashes -r deploy/requirements.txt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1150" width="320" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i10n" value="&lt;b&gt;326 sha256 hashes, committed to the repo.&lt;/b&gt;&lt;br&gt;Exported with uv export --frozen from uv.lock on&lt;br&gt;the workstation, because uv is NOT installed on&lt;br&gt;the VM. --require-hashes fails closed: a tampered&lt;br&gt;or moved wheel aborts the install rather than&lt;br&gt;silently installing. psycopg-binary is pinned so&lt;br&gt;the VM needs no compiler." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="790" y="1130" width="330" height="115" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i11" value="&lt;b&gt;Does /etc/interplant/env exist?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="330" y="1260" width="380" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i11x" value="&lt;b&gt;Copy the template, chmod 0600, then EXIT 1&lt;/b&gt;&lt;br&gt;&lt;br&gt;The template ships the password as CHANGE-ME.&lt;br&gt;Carrying on would connect with that placeholder&lt;br&gt;and die at the schema step with a confusing&lt;br&gt;psycopg auth error, and would then enable the&lt;br&gt;units against a database they cannot reach.&lt;br&gt;&lt;i&gt;Fill in the password, then re-run install.sh.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="790" y="1255" width="330" height="130" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i12" value="&lt;b&gt;Apply the database schema&lt;/b&gt;&lt;br&gt;systemd-run --uid=interplant --property=EnvironmentFile&lt;br&gt;then db.connect(INTERPLANT_PG_DSN) + db.apply_schema" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1410" width="320" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i12n" value="&lt;b&gt;Why systemd-run and not xargs&lt;/b&gt;&lt;br&gt;Reconstructing the env file through a shell would&lt;br&gt;mangle any password containing shell&lt;br&gt;metacharacters. systemd-run hands the file to&lt;br&gt;the process the same way the real units do.&lt;br&gt;&lt;br&gt;Creates: public.records, staging.records,&lt;br&gt;public.published_projects (see page 4)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="790" y="1400" width="330" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i13" value="&lt;b&gt;Install the systemd units&lt;/b&gt;&lt;br&gt;cp *.service *.timer to /etc/systemd/system&lt;br&gt;systemctl daemon-reload" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1540" width="320" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i14" value="&lt;b&gt;enable, THEN restart&lt;/b&gt;&lt;br&gt;interplant-oai.service and interplant-refresh.timer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1650" width="320" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i14n" value="&lt;b&gt;This is the bug the final review caught (Critical).&lt;/b&gt;&lt;br&gt;systemctl enable --now STARTS a stopped unit but&lt;br&gt;does NOT restart a running one. Every upgrade&lt;br&gt;after the first would have left the OLD gunicorn&lt;br&gt;serving the OLD code while DEPLOYED_COMMIT&lt;br&gt;reported the NEW sha - the one file whose whole&lt;br&gt;purpose is answering &quot;is the fix live?&quot; would lie.&lt;br&gt;&lt;i&gt;Now: enable, then restart explicitly.&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="790" y="1630" width="330" height="135" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i15" value="&lt;b&gt;PRINT the firewall commands - does not run them&lt;/b&gt;&lt;br&gt;ufw allow from PROXY_IP to any port 8000 proto tcp&lt;br&gt;ufw deny 8000" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1760" width="320" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i15n" value="&lt;b&gt;Port 8000 is OPEN on the internal network&lt;br&gt;until you run these by hand.&lt;/b&gt;&lt;br&gt;The proxy IP is not known until Marie supplies it,&lt;br&gt;so the script cannot apply the rule itself. The&lt;br&gt;README used to state the deny as already in&lt;br&gt;force; that was corrected." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="790" y="1780" width="330" height="105" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="i16" value="&lt;b&gt;DONE&lt;/b&gt;&lt;br&gt;systemctl status interplant-oai&lt;br&gt;systemctl list-timers interplant-refresh" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1890" width="320" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ie1" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i1" target="i2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie2" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i2" target="i3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie3n" value="no" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;" edge="1" parent="1" source="i3" target="i3x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie3y" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i3" target="i4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie4" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i4" target="i5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie5n" value="no" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;" edge="1" parent="1" source="i5" target="i5x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie5y" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i5" target="i6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie6" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i6" target="i7"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie7" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i7" target="i8"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie8" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i8" target="i9"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie9" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i9" target="i10"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie10" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i10" target="i11"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie11n" value="no (first install)" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;" edge="1" parent="1" source="i11" target="i11x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie11y" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i11" target="i12"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie12" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i12" target="i13"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie13" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i13" target="i14"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie14" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i14" target="i15"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ie15" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="i15" target="i16"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="2. Nightly refresh decisions" id="page-refresh">
+    <mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="2336" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="r-title" value="2. The nightly run: every decision, and every way it can stop" style="text;html=1;fontSize=26;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="30" width="1100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="r-sub" value="&lt;b&gt;This is the heart of the branch.&lt;/b&gt; Most nights this whole page finishes in a couple of minutes and does nothing at all. The expensive path (the harvest) only runs when&lt;br&gt;the GitLab enumeration actually changed. Read the exit codes on the right: &lt;b&gt;0&lt;/b&gt; = fine, &lt;b&gt;1&lt;/b&gt; = refused or failed (public.records untouched), &lt;b&gt;2&lt;/b&gt; = misconfiguration." style="text;html=1;fontSize=13;align=left;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="72" width="1200" height="52" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r0" value="&lt;b&gt;systemd timer fires&lt;/b&gt;&lt;br&gt;OnCalendar 02:00 + RandomizedDelaySec up to 15 min&lt;br&gt;TimeoutStartSec=6h - no Persistent=true" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="330" y="150" width="400" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r0n" value="&lt;b&gt;Why 02:00&lt;/b&gt;&lt;br&gt;AWI's harvesters pull at 21:03. Starting at 02:00&lt;br&gt;means even a 4-hour run finishes long before&lt;br&gt;they read, so they never see a half-swapped table.&lt;br&gt;&lt;br&gt;&lt;b&gt;Why no Persistent=true&lt;/b&gt;&lt;br&gt;Persistent replays a missed trigger at boot. Boot&lt;br&gt;the VM at 20:00 after downtime and a catch-up&lt;br&gt;run would start immediately, harvest for 4 hours,&lt;br&gt;and land its swap inside AWI's 21:03 walk. A&lt;br&gt;skipped night is already covered by&lt;br&gt;--max-age-days 7.&lt;br&gt;&lt;br&gt;&lt;b&gt;Why TimeoutStartSec=6h&lt;/b&gt;&lt;br&gt;A oneshot with no bound that wedges blocks&lt;br&gt;every subsequent night, because systemd will&lt;br&gt;not start a second instance while one is active.&lt;br&gt;6h is an outer bound on the documented 2.5-4h&lt;br&gt;harvest. Being killed is harmless: staging is&lt;br&gt;scratch and public.records is untouched." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="150" width="360" height="330" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r1" value="&lt;b&gt;Is INTERPLANT_PG_DSN set?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="270" width="340" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r1x" value="&lt;b&gt;EXIT 2&lt;/b&gt; - refuses before connecting&lt;br&gt;&lt;br&gt;refresh is the production entry point and fails&lt;br&gt;closed, exactly like the OAI endpoint. There is&lt;br&gt;deliberately NO dev-DSN fallback here, so a&lt;br&gt;missing EnvironmentFile is loud.&lt;br&gt;&lt;i&gt;ingest and harvest keep their local default -&lt;br&gt;they are developer tools.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="265" width="270" height="130" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r2" value="&lt;b&gt;Bootstrap the schema&lt;/b&gt;&lt;br&gt;connect UNQUALIFIED, apply_schema, close" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="400" width="340" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r2n" value="&lt;b&gt;Why two connections and not one&lt;/b&gt;&lt;br&gt;db.connect(schema=&quot;staging&quot;) VERIFIES that&lt;br&gt;staging.records already exists before it will set&lt;br&gt;search_path - on purpose, so an absent staging&lt;br&gt;table cannot make unqualified writes fall&lt;br&gt;through into public.records.&lt;br&gt;But apply_schema is what CREATES that table.&lt;br&gt;On a fresh database the guard would fire first&lt;br&gt;and apply_schema would never be reached.&lt;br&gt;&lt;i&gt;So: bootstrap on a plain connection, then open&lt;br&gt;the staging one. The DDL is fully qualified, so it&lt;br&gt;builds both schemas whatever search_path says.&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="500" width="360" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r3" value="&lt;b&gt;Open the working connection&lt;/b&gt;&lt;br&gt;db.connect(dsn, schema=&quot;staging&quot;)&lt;br&gt;sets search_path = staging, public" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="500" width="340" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r4" value="&lt;b&gt;pg_try_advisory_lock(561073442)&lt;/b&gt;&lt;br&gt;acquired?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="610" width="340" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r4x" value="&lt;b&gt;EXIT 0&lt;/b&gt; - another refresh is already running&lt;br&gt;&lt;br&gt;Not a failure: the other run is doing the work.&lt;br&gt;&lt;br&gt;&lt;b&gt;Why this exists.&lt;/b&gt; Our own README tells you to&lt;br&gt;run an attended first harvest, and install.sh has&lt;br&gt;already enabled the timer - so an overlap is&lt;br&gt;something the documentation actively invites.&lt;br&gt;Two runs would share ONE staging table and&lt;br&gt;hold SEPARATE dedup registries, so the mirror&lt;br&gt;winner would be picked from a partial candidate&lt;br&gt;set. Session-scoped lock: released automatically&lt;br&gt;when the connection closes, even on a crash." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="20" y="600" width="310" height="185" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r5" value="&lt;b&gt;Enumerate GitLab&lt;/b&gt; (git.nfdi4plants.org)&lt;br&gt;List public projects, HEAD-probe each for isa.investigation.xlsx&lt;br&gt;Build live = {project_path: last_activity_at} and count probe failures" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="330" y="760" width="400" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r5n" value="&lt;b&gt;Cheap on purpose: no cloning happens here.&lt;/b&gt;&lt;br&gt;This is an API listing plus one HEAD request per&lt;br&gt;project. It is what makes &quot;do nothing tonight&quot;&lt;br&gt;take minutes instead of hours." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="730" width="360" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r6" value="&lt;b&gt;Compare against the last publish&lt;/b&gt;&lt;br&gt;published = public.published_projects&lt;br&gt;diff = appeared / vanished / changed&lt;br&gt;stale = last publish older than --max-age-days (7)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="330" y="880" width="400" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r7" value="&lt;b&gt;diff empty AND not stale AND not --force?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="330" y="1010" width="400" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r7x" value="&lt;b&gt;EXIT 0&lt;/b&gt; - nothing to do&lt;br&gt;&lt;br&gt;&lt;b&gt;This is the normal outcome on most nights.&lt;/b&gt;&lt;br&gt;No clone, no parse, no write. The whole run has&lt;br&gt;cost one API listing.&lt;br&gt;&lt;br&gt;&lt;i&gt;GitLab's last_activity_at bumps on many event&lt;br&gt;types, so this over-triggers rather than&lt;br&gt;under-triggers - the safe direction. The 7-day&lt;br&gt;floor catches anything it misses.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1010" width="310" height="150" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r8" value="&lt;b&gt;Did any isa probe FAIL during enumeration?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="330" y="1170" width="400" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r8x" value="&lt;b&gt;EXIT 1&lt;/b&gt; - refuse BEFORE harvesting&lt;br&gt;&lt;br&gt;&lt;b&gt;This check prevents silent data loss.&lt;/b&gt; A probe&lt;br&gt;that errors is treated as &quot;no isa file&quot;, so that&lt;br&gt;project drops out of tonight's live set. Before&lt;br&gt;this branch that was harmless - the harvest only&lt;br&gt;upserted. Now the swap TRUNCATES and refills,&lt;br&gt;so a missing project means its records are&lt;br&gt;&lt;b&gt;DELETED&lt;/b&gt; from the public corpus.&lt;br&gt;&lt;br&gt;The gate below counts rows and cannot see this:&lt;br&gt;144 records losing 15 lands on exactly the floor&lt;br&gt;of 129 and passes, and the run would report&lt;br&gt;success. So we refuse here instead.&lt;br&gt;&lt;br&gt;&lt;i&gt;It sits BEFORE the harvest deliberately: the&lt;br&gt;answer is already known, so harvesting first&lt;br&gt;would burn 2.5-4h of clones and throw them&lt;br&gt;away, every night, until GitLab settled.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1170" width="310" height="290" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r9" value="&lt;b&gt;TRUNCATE staging.records&lt;/b&gt;&lt;br&gt;so a prior failed run cannot inflate the count" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1330" width="340" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r10" value="&lt;b&gt;HARVEST the WHOLE corpus into staging&lt;/b&gt;&lt;br&gt;clone, parse, filter, build, validate, dedup, upsert&lt;br&gt;&lt;i&gt;2.5 to 4 hours, single-threaded - see page 3&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="330" y="1430" width="400" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r10n" value="&lt;b&gt;Why the WHOLE corpus, never just the changes&lt;/b&gt;&lt;br&gt;The same investigation is often published twice&lt;br&gt;under different namespaces (a consortium one&lt;br&gt;and a personal one). Those mirrors collapse to&lt;br&gt;one record, and the winner is chosen from a&lt;br&gt;per-run candidate map - so a winner is only&lt;br&gt;correct if every colliding candidate is seen in&lt;br&gt;the SAME run. Harvesting only the changed&lt;br&gt;subset could let a DOI-less mirror overwrite a&lt;br&gt;DOI-holding one.&lt;br&gt;&lt;i&gt;The diff decides WHETHER to harvest, never&lt;br&gt;WHAT to harvest.&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="1400" width="360" height="185" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r11" value="&lt;b&gt;Write the audit report&lt;/b&gt;&lt;br&gt;/var/lib/interplant/harvest-runs/harvest-*.json and .md" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1560" width="340" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r12" value="&lt;b&gt;Harvest verdict == ok?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1660" width="300" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r12x" value="&lt;b&gt;EXIT 1&lt;/b&gt; - refusing to publish&lt;br&gt;public.records untouched.&lt;br&gt;&lt;i&gt;e.g. &quot;No ARCs enumerated&quot;&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1665" width="270" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r13" value="&lt;b&gt;THE PUBLISH GATE&lt;/b&gt; - 4 checks, in this order&lt;br&gt;(cardinality only: it never inspects row content)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="330" y="1800" width="400" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r13a" value="1. staged == 0?&lt;br&gt;&lt;i&gt;refusing to publish nothing&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1880" width="340" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r13b" value="2. staged != upserts the report claims?&lt;br&gt;&lt;i&gt;the database and the report disagree&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1935" width="340" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r13c" value="3. staged &amp;lt; 90% of currently published?&lt;br&gt;&lt;i&gt;a cliff: looks like a failed harvest&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="360" y="1990" width="340" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="r13d" value="4. staged &amp;lt; 120 absolute minimum?&lt;br&gt;&lt;i&gt;a slide: catches repeated small losses&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="360" y="2045" width="340" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r13n" value="&lt;b&gt;Why BOTH a ratio and an absolute floor&lt;/b&gt;&lt;br&gt;The ratio alone ratchets: seven nights each&lt;br&gt;staging 90% of the last publish take 144 records&lt;br&gt;down to 66, with every night individually&lt;br&gt;passing - and AWI's 5-day TTL would follow it all&lt;br&gt;the way down. The ratio catches a cliff; the&lt;br&gt;absolute minimum catches a slide.&lt;br&gt;&lt;br&gt;&lt;b&gt;Known limit (parked, worth an issue):&lt;/b&gt; 120 is a&lt;br&gt;constant, not a high-water mark. At 400 records&lt;br&gt;the ratio could still slide down to 120 over many&lt;br&gt;nights. Raise it as the corpus grows, or override&lt;br&gt;per run with --min-records." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="1880" width="360" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r13x" value="&lt;b&gt;Any check fires - EXIT 1&lt;/b&gt;&lt;br&gt;public.records untouched. The staged&lt;br&gt;harvest is preserved in staging, and the&lt;br&gt;audit report says what happened.&lt;br&gt;&lt;i&gt;See deploy/README.md, &quot;When the gate&lt;br&gt;refuses&quot;, for how to read it and how to&lt;br&gt;override deliberately.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1930" width="310" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r14" value="&lt;b&gt;THE ATOMIC SWAP&lt;/b&gt; - one transaction&lt;br&gt;see page 4 for the exact statements" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="330" y="2130" width="400" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r14x" value="&lt;b&gt;Lock not available within 5s - EXIT 1&lt;/b&gt;&lt;br&gt;A reader was holding public.records. The&lt;br&gt;transaction rolled back, the published corpus&lt;br&gt;is intact, the harvest is still in staging, and&lt;br&gt;the next run retries." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="20" y="2120" width="310" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="r15" value="&lt;b&gt;EXIT 0 - PUBLISHED&lt;/b&gt;&lt;br&gt;&quot;Published N records&quot;&lt;br&gt;&lt;i&gt;finally: connection closes, advisory lock released&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="330" y="2240" width="400" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="re0" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r0" target="r1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re1n" value="no" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;" edge="1" parent="1" source="r1" target="r1x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re1y" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r1" target="r2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re2" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r2" target="r3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re3" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r3" target="r4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re4n" value="no" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#82b366;" edge="1" parent="1" source="r4" target="r4x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re4y" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r4" target="r5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re5" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r5" target="r6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re6" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r6" target="r7"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re7y" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#82b366;" edge="1" parent="1" source="r7" target="r7x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re7n" value="no - something changed" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r7" target="r8"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re8y" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;" edge="1" parent="1" source="r8" target="r8x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re8n" value="no" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r8" target="r9"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re9" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r9" target="r10"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re10" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r10" target="r11"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re11" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r11" target="r12"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re12n" value="no" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;" edge="1" parent="1" source="r12" target="r12x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re12y" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r12" target="r13"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re13" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r13" target="r13a"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re13ab" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r13a" target="r13b"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re13bc" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r13b" target="r13c"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re13cd" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="r13c" target="r13d"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re13x" value="any fires" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;" edge="1" parent="1" source="r13b" target="r13x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re13ok" value="all pass" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#82b366;" edge="1" parent="1" source="r13d" target="r14"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re14x" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;" edge="1" parent="1" source="r14" target="r14x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="re14" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#82b366;" edge="1" parent="1" source="r14" target="r15"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="3. Inside the harvest (per ARC)" id="page-harvest">
+    <mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1500" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="h-title" value="3. Inside the harvest: what happens to ONE ARC" style="text;html=1;fontSize=26;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="30" width="1000" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="h-sub" value="This loop runs once per enumerated ARC, roughly 213 times, single-threaded. &lt;b&gt;Nothing here ever raises.&lt;/b&gt; Every failure is caught, recorded against that ARC in the&lt;br&gt;audit report, and the loop continues - one broken ARC must never take down the run. Each box on the right shows where an ARC can drop out and why." style="text;html=1;fontSize=13;align=left;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="72" width="1200" height="52" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="h1" value="&lt;b&gt;1. CLONE&lt;/b&gt;&lt;br&gt;git clone into a fresh temp directory&lt;br&gt;60s budget, up to 3 attempts" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="340" y="160" width="380" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="h1x" value="clone failed - recorded, ARC skipped&lt;br&gt;&lt;i&gt;never reaches parse, so a mirror of it&lt;br&gt;cannot win the dedup either&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="800" y="165" width="330" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="h1n" value="&lt;b&gt;Temp dir, one ARC at a time.&lt;/b&gt; The unit sets&lt;br&gt;PrivateTmp=true, so clones land in the service's&lt;br&gt;own private /tmp and are removed as soon as&lt;br&gt;that ARC is done. Disk never holds 213 clones." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="160" width="330" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="h2" value="&lt;b&gt;2. PARSE&lt;/b&gt; the ISA investigation with arctrl&lt;br&gt;optional SIGALRM wall-clock guard (--parse-timeout)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="340" y="270" width="380" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="h2x" value="parse failed or timed out - recorded, skipped&lt;br&gt;&lt;i&gt;ParseTimeout is kept distinct from a data error&lt;br&gt;in the report, even though arctrl erases the type&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="800" y="275" width="330" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="h2n" value="&lt;b&gt;This is the slow step.&lt;/b&gt; arctrl's parsing is pure&lt;br&gt;Python transpiled from F#, with no progress hook&lt;br&gt;and no cancellation. On assay-heavy ARCs it can&lt;br&gt;sit inside a spreadsheet rescan for tens of&lt;br&gt;minutes. One ARC in the corpus has 91 assays&lt;br&gt;and is only known to take &quot;25+ minutes&quot;.&lt;br&gt;&lt;br&gt;&lt;b&gt;The guard is OFF by default, on purpose.&lt;/b&gt; A&lt;br&gt;slow-but-valid ARC is legitimate data, and a&lt;br&gt;per-ARC cap would silently drop it from the&lt;br&gt;published corpus. The 6h unit timeout is the&lt;br&gt;outer bound instead - being killed loses nothing&lt;br&gt;because staging is scratch." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="265" width="330" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="h3" value="&lt;b&gt;3. FILTER&lt;/b&gt; - policy exclusions&lt;br&gt;template assays, placeholder identifiers" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="340" y="380" width="380" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="h3x" value="excluded by policy - recorded with the rule name&lt;br&gt;&lt;i&gt;Both rules are literal, never fuzzy: a heuristic&lt;br&gt;here would silently drop real data.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="800" y="385" width="330" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="h4" value="&lt;b&gt;4. CLASSIFY&lt;/b&gt; each assay into an omics domain" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="340" y="490" width="380" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="h5" value="&lt;b&gt;5. BUILD&lt;/b&gt; the portal record (JSON)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="340" y="585" width="380" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="h5x" value="build error - recorded, skipped" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="800" y="590" width="330" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="h6" value="&lt;b&gt;6. VALIDATE&lt;/b&gt; against the portal JSON Schema&lt;br&gt;Draft 2020-12" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="340" y="680" width="380" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="h6x" value="invalid - every error recorded, ARC skipped&lt;br&gt;&lt;i&gt;an invalid record must never reach the portal&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="800" y="685" width="330" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="h7" value="&lt;b&gt;7. DEDUP&lt;/b&gt; - does another ARC claim this record id?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="330" y="780" width="400" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="h7x" value="&lt;b&gt;suppressed&lt;/b&gt; - this ARC lost to a mirror&lt;br&gt;or&lt;br&gt;&lt;b&gt;disambiguated&lt;/b&gt; - kept under a different id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="800" y="805" width="330" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="h7n" value="&lt;b&gt;Preference order, in this order:&lt;/b&gt;&lt;br&gt;1. has a DOI&lt;br&gt;2. most recent activity&lt;br&gt;3. lexicographically first namespace&lt;br&gt;4. lexicographically first unique id&lt;br&gt;&lt;br&gt;The last tiebreak is a uuid5 over the ARC source&lt;br&gt;uri, so it is unique per ARC. That is what makes&lt;br&gt;the order &lt;b&gt;total&lt;/b&gt; - the winner does not depend on&lt;br&gt;the order the enumeration happened to reach&lt;br&gt;them in. This is why the harvest must be&lt;br&gt;whole-corpus (see page 2)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="780" width="330" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="h8" value="&lt;b&gt;8. UPSERT&lt;/b&gt;&lt;br&gt;INSERT INTO records ... ON CONFLICT (id) DO UPDATE&lt;br&gt;&lt;i&gt;table name is UNQUALIFIED&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="340" y="940" width="380" height="75" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="h8n" value="&lt;b&gt;The single most important line in the design.&lt;/b&gt;&lt;br&gt;Because the table is named without a schema,&lt;br&gt;search_path decides where the row lands. The&lt;br&gt;refresh connection set search_path = staging,&lt;br&gt;public - so this writes to &lt;b&gt;staging.records&lt;/b&gt;.&lt;br&gt;&lt;br&gt;The very same code, on a connection without&lt;br&gt;that setting, writes to public.records. That is&lt;br&gt;how the old harvest command still works&lt;br&gt;unchanged while refresh gets the safe path.&lt;br&gt;&lt;br&gt;&lt;i&gt;Everything ELSE in db.py names its schema&lt;br&gt;explicitly - truncate_staging in particular must&lt;br&gt;never be allowed to follow search_path.&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="800" y="940" width="380" height="215" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="h9" value="&lt;b&gt;next ARC&lt;/b&gt; - temp directory removed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="340" y="1060" width="380" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="h10" value="&lt;b&gt;After the loop: the audit report&lt;/b&gt;&lt;br&gt;/var/lib/interplant/harvest-runs/harvest-TIMESTAMP.json and .md&lt;br&gt;counts per stage: total, cloned, parsed, built, valid, filtered, suppressed, upserted&lt;br&gt;&lt;i&gt;This is the file you read when the gate refuses.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="280" y="1170" width="500" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="h-funnel" value="&lt;b&gt;The funnel, on the real corpus&lt;/b&gt;&lt;br&gt;&lt;br&gt;About &lt;b&gt;213&lt;/b&gt; projects are enumerated on GitLab.&lt;br&gt;About &lt;b&gt;144&lt;/b&gt; records survive to be published.&lt;br&gt;&lt;br&gt;The difference is not loss - it is the filters and&lt;br&gt;the mirror dedup doing their job. That is also&lt;br&gt;why the gate must compare RECORD counts and&lt;br&gt;never project counts: using 213 where 144&lt;br&gt;belongs would set the floor to 191 and refuse&lt;br&gt;every publish forever." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=left;spacingLeft=8;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="820" y="1170" width="400" height="190" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="he1" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="h1" target="h2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he1x" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="h1" target="h1x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he2" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="h2" target="h3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he2x" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="h2" target="h2x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he3" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="h3" target="h4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he3x" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#d6b656;dashed=1;" edge="1" parent="1" source="h3" target="h3x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he4" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="h4" target="h5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he5" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="h5" target="h6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he5x" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="h5" target="h5x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he6" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="h6" target="h7"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he6x" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="h6" target="h6x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he7" value="wins, or no clash" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="h7" target="h8"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he7x" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#d6b656;dashed=1;" edge="1" parent="1" source="h7" target="h7x"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he8" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="h8" target="h9"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he9" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="h9" target="h10"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="4. Database and the swap" id="page-db">
+    <mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1400" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="d-title" value="4. The database, and the moment the corpus goes live" style="text;html=1;fontSize=26;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="30" width="1100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-sub" value="One Postgres 16 database, two schemas. Postgres listens on localhost only - nothing off-box can reach it. The whole safety story is that &lt;b&gt;the harvest writes to staging&lt;br&gt;and the endpoint reads from public&lt;/b&gt;, and the only thing that ever moves data between them is the single transaction at the bottom of this page." style="text;html=1;fontSize=13;align=left;verticalAlign=top;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="72" width="1200" height="52" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="d-stg" value="schema: staging" style="swimlane;html=1;startSize=34;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="120" y="160" width="420" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-stg1" value="&lt;b&gt;staging.records&lt;/b&gt;&lt;br&gt;id text PRIMARY KEY&lt;br&gt;payload jsonb NOT NULL&lt;br&gt;source_etag text&lt;br&gt;ingested_at timestamptz&lt;br&gt;&lt;br&gt;&lt;i&gt;CREATE TABLE ... (LIKE public.records&lt;br&gt;INCLUDING DEFAULTS INCLUDING INDEXES)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="d-stg">
+          <mxGeometry x="20" y="45" width="380" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="d-pub" value="schema: public" style="swimlane;html=1;startSize=34;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="640" y="160" width="440" height="330" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-pub1" value="&lt;b&gt;public.records&lt;/b&gt; - what the endpoint serves&lt;br&gt;id text PRIMARY KEY&lt;br&gt;payload jsonb NOT NULL&lt;br&gt;source_etag text&lt;br&gt;ingested_at timestamptz&lt;br&gt;INDEX on ingested_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="d-pub">
+          <mxGeometry x="20" y="45" width="400" height="115" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-pub2" value="&lt;b&gt;public.published_projects&lt;/b&gt; - the enumeration snapshot&lt;br&gt;project_path text PRIMARY KEY&lt;br&gt;last_activity_at text NOT NULL&lt;br&gt;published_at timestamptz&lt;br&gt;&lt;br&gt;&lt;i&gt;Cannot be derived from public.records: dedup losers&lt;br&gt;are never written there. Advanced ONLY on a&lt;br&gt;successful swap, so a failed night is retried.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="d-pub">
+          <mxGeometry x="20" y="175" width="400" height="135" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="d-sp" value="&lt;b&gt;How one line of SQL writes to two different places&lt;/b&gt;&lt;br&gt;&lt;br&gt;db.upsert_record says &lt;b&gt;INSERT INTO records&lt;/b&gt; - no schema name. Postgres resolves that through search_path.&lt;br&gt;&lt;br&gt;&amp;#8226; &lt;b&gt;refresh&lt;/b&gt; connects with search_path = staging, public&amp;#160;&amp;#8594;&amp;#160;rows land in &lt;b&gt;staging.records&lt;/b&gt;&lt;br&gt;&amp;#8226; the older &lt;b&gt;harvest&lt;/b&gt; command connects plainly&amp;#160;&amp;#8594;&amp;#160;rows land in &lt;b&gt;public.records&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;And the guard that makes this safe:&lt;/b&gt; db.connect(schema=...) first checks that staging.records actually EXISTS. If it did not,&lt;br&gt;search_path would silently fall through to public and the harvest would write straight into the live table. It refuses instead.&lt;br&gt;&lt;br&gt;&lt;i&gt;Everything else in db.py - truncate_staging, count_records, read_published_projects, last_published_at - names its schema&lt;br&gt;explicitly, precisely so it CANNOT be redirected this way.&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;align=left;spacingLeft=10;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="120" y="400" width="960" height="230" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="d-swap" value="THE SWAP - a single transaction" style="swimlane;html=1;startSize=40;fillColor=#b1ddf0;strokeColor=#10739e;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="120" y="680" width="640" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-s1" value="SET LOCAL lock_timeout = '5s'" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#10739e;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="d-swap">
+          <mxGeometry x="25" y="55" width="590" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-s2" value="TRUNCATE public.records" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#10739e;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="d-swap">
+          <mxGeometry x="25" y="105" width="590" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-s3" value="INSERT INTO public.records (id, payload, source_etag, ingested_at)&lt;br&gt;SELECT id, payload, source_etag, ingested_at FROM staging.records" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#10739e;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="d-swap">
+          <mxGeometry x="25" y="155" width="590" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-s4" value="TRUNCATE public.published_projects" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#10739e;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="d-swap">
+          <mxGeometry x="25" y="220" width="590" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-s5" value="INSERT INTO public.published_projects (project_path, last_activity_at)&lt;br&gt;... one row per enumerated project" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#10739e;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="d-swap">
+          <mxGeometry x="25" y="270" width="590" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-s6" value="SELECT count(*) FROM public.records&amp;#160;&amp;#8594;&amp;#160;returned as &quot;Published N records&quot;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="d-swap">
+          <mxGeometry x="25" y="335" width="590" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="d-swapn" value="&lt;b&gt;Why lock_timeout is here&lt;/b&gt;&lt;br&gt;TRUNCATE takes an ACCESS EXCLUSIVE lock and&lt;br&gt;holds it until COMMIT - across every statement&lt;br&gt;in this block, not just the TRUNCATE. A slow&lt;br&gt;reader holding the table would otherwise queue&lt;br&gt;the swap behind it, and then queue every later&lt;br&gt;reader behind the swap, stalling the endpoint for&lt;br&gt;as long as that reader ran.&lt;br&gt;&lt;i&gt;5s turns that into a clean rollback the next&lt;br&gt;night retries.&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Why the records and the snapshot move together&lt;/b&gt;&lt;br&gt;Same transaction, so a rollback leaves BOTH&lt;br&gt;behind and the next run sees the same change&lt;br&gt;again. If they could drift apart, a failed swap&lt;br&gt;would advance the snapshot, the diff would come&lt;br&gt;back empty the next night, and the change would&lt;br&gt;be lost forever.&lt;br&gt;&lt;br&gt;&lt;b&gt;Columns are named explicitly&lt;/b&gt; rather than&lt;br&gt;SELECT * - id and source_etag are both text, so&lt;br&gt;a positional copy would silently transpose them&lt;br&gt;if the two tables ever drifted.&lt;br&gt;&lt;br&gt;&lt;b&gt;The honest limit.&lt;/b&gt; Each statement sees one&lt;br&gt;corpus, never a half-swapped table. But that is&lt;br&gt;per-statement, not per-reader: a client paging&lt;br&gt;ListRecords across several requests can still&lt;br&gt;straddle old and new pages if a swap lands&lt;br&gt;mid-walk. Running at 02:00, well clear of AWI's&lt;br&gt;21:03 pull, is what keeps that from mattering." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="800" y="660" width="380" height="440" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="d-arrow" value="the ONLY path from staging to public" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeWidth=3;strokeColor=#10739e;fontSize=12;fontStyle=1" edge="1" parent="1" source="d-stg" target="d-pub"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="5. Serving and the 24h cycle" id="page-serve">
+    <mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1400" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="s-title" value="5. Who talks to whom, and what a full day looks like" style="text;html=1;fontSize=26;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="30" width="1100" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s-ext" value="AWI portal harvester&lt;br&gt;&lt;i&gt;pulls nightly at 21:03&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s-proxy" value="TLS proxy for www.plabipd.de&lt;br&gt;&lt;i&gt;a DIFFERENT machine (Marie's)&lt;/i&gt;&lt;br&gt;&lt;b&gt;https://www.plabipd.de/oai&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="80" y="290" width="220" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s-gitlab" value="git.nfdi4plants.org&lt;br&gt;&lt;i&gt;DataPLANT GitLab - the source of ARCs&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="80" y="620" width="220" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s-vm" value="interplant-live&amp;#160;&amp;#160;192.0.2.10&amp;#160;&amp;#160;Ubuntu 24.04, 4 vCPU" style="swimlane;html=1;startSize=40;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=15;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="420" y="140" width="700" height="620" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s-oai" value="&lt;b&gt;interplant-oai.service&lt;/b&gt;&amp;#160;&amp;#160;(always running)&lt;br&gt;gunicorn, 2 workers, bind &lt;b&gt;192.0.2.10:8000&lt;/b&gt;&lt;br&gt;User=interplant&amp;#160;&amp;#160;Restart=on-failure&lt;br&gt;&lt;br&gt;&lt;i&gt;Binds the internal interface, not loopback - the proxy is&lt;br&gt;on another host. Not every interface either; ufw is meant&lt;br&gt;to admit only the proxy.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=left;spacingLeft=10;verticalAlign=top;spacingTop=8;" vertex="1" parent="s-vm">
+          <mxGeometry x="30" y="60" width="450" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s-refresh" value="&lt;b&gt;interplant-refresh.timer&lt;/b&gt;&amp;#160;&amp;#8594;&amp;#160;&lt;b&gt;.service&lt;/b&gt;&amp;#160;&amp;#160;(oneshot, 02:00)&lt;br&gt;python -m harvester refresh&lt;br&gt;--out-dir /var/lib/interplant/harvest-runs --max-age-days 7&lt;br&gt;Nice=10, IOSchedulingClass=idle&amp;#160;&amp;#160;&lt;i&gt;yields to the endpoint&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;fontSize=12;align=left;spacingLeft=10;verticalAlign=top;spacingTop=8;" vertex="1" parent="s-vm">
+          <mxGeometry x="30" y="220" width="450" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s-pg" value="&lt;b&gt;Postgres 16&lt;/b&gt;&amp;#160;&amp;#160;listen_addresses = localhost&lt;br&gt;public.records&amp;#160;&amp;#160;|&amp;#160;&amp;#160;staging.records&amp;#160;&amp;#160;|&amp;#160;&amp;#160;public.published_projects" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=left;spacingLeft=10;verticalAlign=top;spacingTop=8;" vertex="1" parent="s-vm">
+          <mxGeometry x="30" y="350" width="450" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s-files" value="&lt;b&gt;/opt/interplant&lt;/b&gt; root-owned code + DEPLOYED_COMMIT + .venv&lt;br&gt;&lt;b&gt;/etc/interplant/env&lt;/b&gt; 0600 root - the DSNs and the base URL&lt;br&gt;&lt;b&gt;/etc/interplant/deploy-token&lt;/b&gt; 0600 root&lt;br&gt;&lt;b&gt;/var/lib/interplant/harvest-runs&lt;/b&gt; audit reports (interplant-owned)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=left;spacingLeft=10;verticalAlign=top;spacingTop=8;" vertex="1" parent="s-vm">
+          <mxGeometry x="30" y="440" width="450" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s-env" value="&lt;b&gt;Three env variables, and they are NOT interchangeable&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;INTERPLANT_DSN&lt;/b&gt;&amp;#160;&amp;#8594;&amp;#160;read by the OAI endpoint.&lt;br&gt;Missing = gunicorn refuses to start.&lt;br&gt;&lt;br&gt;&lt;b&gt;INTERPLANT_PG_DSN&lt;/b&gt;&amp;#160;&amp;#8594;&amp;#160;read by the harvester.&lt;br&gt;Missing = refresh exits 2 without connecting.&lt;br&gt;&lt;br&gt;&lt;b&gt;INTERPLANT_OAI_BASE_URL&lt;/b&gt;&amp;#160;&amp;#8594;&amp;#160;advertised verbatim&lt;br&gt;in the Identify response's baseURL. Must be the&lt;br&gt;URL that actually answers, not the internal one.&lt;br&gt;&lt;br&gt;&lt;i&gt;Both components fail CLOSED. Neither falls back&lt;br&gt;to default credentials, so a missing&lt;br&gt;EnvironmentFile is loud rather than silent.&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="140" width="360" height="290" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s-pag" value="&lt;b&gt;How a client reads the corpus&lt;/b&gt;&lt;br&gt;&lt;br&gt;GET /oai?verb=ListRecords&amp;amp;metadataPrefix=oai_dc&lt;br&gt;&lt;br&gt;Page size is &lt;b&gt;100&lt;/b&gt;. The query asks for 101 rows to&lt;br&gt;learn whether more exist, returns 100, and emits&lt;br&gt;a resumptionToken. At today's 144 records that is&lt;br&gt;&lt;b&gt;two pages and one token&lt;/b&gt; - 100, then 44 with no&lt;br&gt;token. Do not go hunting for a third.&lt;br&gt;&lt;br&gt;Rows are ordered by (ingested_at, id) and the&lt;br&gt;token carries that cursor, so paging is stable.&lt;br&gt;&lt;br&gt;&lt;i&gt;Follow resumptionToken until a response carries&lt;br&gt;none - that is the check to run, not a page count.&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="450" width="360" height="270" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s-awi" value="&lt;b&gt;What AWI does with it - why the gate matters&lt;/b&gt;&lt;br&gt;&lt;br&gt;AWI takes a &lt;b&gt;full dump&lt;/b&gt; of whatever public.records holds. There is no incremental mode. Entries they do not see again expire on a &lt;b&gt;5-day TTL&lt;/b&gt;.&lt;br&gt;&lt;br&gt;&lt;b&gt;So publishing a truncated corpus does not just look wrong on our side - it DELETES real records from the public portal within five days.&lt;/b&gt;&lt;br&gt;That single fact is the reason for the staging schema, the publish gate, the atomic swap, and the probe-failure refusal." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;align=left;spacingLeft=10;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="800" width="1040" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s-tl" value="A day in the life" style="swimlane;html=1;startSize=40;fillColor=#f5f5f5;strokeColor=#666666;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="1000" width="1450" height="270" as="geometry"/>
+        </mxCell>
+        <mxCell id="s-t1" value="&lt;b&gt;02:00 - 02:15&lt;/b&gt;&lt;br&gt;Timer fires (randomised).&lt;br&gt;Enumerate GitLab.&lt;br&gt;&lt;i&gt;Minutes.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=12;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="s-tl">
+          <mxGeometry x="25" y="55" width="260" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="s-t2" value="&lt;b&gt;Nothing changed?&lt;/b&gt;&lt;br&gt;Exit 0 and go back to sleep.&lt;br&gt;&lt;b&gt;This is most nights.&lt;/b&gt;&lt;br&gt;The endpoint never noticed." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="s-tl">
+          <mxGeometry x="305" y="55" width="260" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="s-t3" value="&lt;b&gt;Something changed?&lt;/b&gt;&lt;br&gt;Harvest the whole corpus into&lt;br&gt;staging. &lt;b&gt;2.5-4 hours.&lt;/b&gt;&lt;br&gt;&lt;i&gt;Endpoint keeps serving the old&lt;br&gt;corpus the entire time.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;fontSize=12;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="s-tl">
+          <mxGeometry x="585" y="55" width="260" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="s-t4" value="&lt;b&gt;~06:00 - the swap&lt;/b&gt;&lt;br&gt;Gate passes, one transaction,&lt;br&gt;sub-second. New corpus live.&lt;br&gt;&lt;i&gt;Or refuses, and nothing moves.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=12;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="s-tl">
+          <mxGeometry x="865" y="55" width="260" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="s-t5" value="&lt;b&gt;21:03 - AWI pulls&lt;/b&gt;&lt;br&gt;Walks ListRecords to the end.&lt;br&gt;&lt;i&gt;15+ hours after the swap, so&lt;br&gt;they never read mid-change.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=12;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="s-tl">
+          <mxGeometry x="1145" y="55" width="270" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="s-tn" value="&lt;b&gt;The gap between 06:00 and 21:03 is the whole point of the 02:00 slot.&lt;/b&gt; Even a run that goes badly over time finishes long before AWI reads, so a swap can never land in the middle of their multi-request walk. It is also why Persistent=true was removed from the timer: a catch-up run fired at boot could start at 20:00 and land its swap right inside that walk." style="text;html=1;fontSize=12;align=left;verticalAlign=top;spacingLeft=8;" vertex="1" parent="s-tl">
+          <mxGeometry x="25" y="170" width="1390" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="se1" value="https 443" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="s-ext" target="s-proxy"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="se2" value="http 8000" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;" edge="1" parent="1" source="s-proxy" target="s-oai"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="se3" value="reads public.records" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#82b366;" edge="1" parent="1" source="s-oai" target="s-pg"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="se4" value="writes staging.records" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#10739e;" edge="1" parent="1" source="s-refresh" target="s-pg"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="se5" value="enumerate + clone" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#10739e;" edge="1" parent="1" source="s-refresh" target="s-gitlab"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
