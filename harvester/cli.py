@@ -309,7 +309,8 @@ def _refresh(args) -> int:
         # Owned here, not inside acquire/enumerate: `stats` is the only way to
         # tell "GitLab said this project has no isa file" apart from "GitLab
         # did not answer", and only this function can decide what to do with
-        # that count (refuse to publish; see the check before the swap below).
+        # that count (refuse to publish; see the check below, before the
+        # harvest starts).
         probe_stats = ProbeStats()
         identities = list(acquire.iter_live_arcs(args.gitlab_base, stats=probe_stats))
         live = {ident.path: ident.last_activity_at for ident in identities}
@@ -327,6 +328,28 @@ def _refresh(args) -> int:
         if diff.is_empty and not stale and not args.force:
             logger.info("No enumeration change and the last publish is recent; nothing to do")
             return 0
+
+        if probe_stats.failures:
+            # Fully known since the enumeration above, so this check runs here,
+            # before truncate_staging/run_batch, not after the cardinality gate
+            # further down: a transient GitLab hiccup would otherwise burn
+            # 2.5-4 hours cloning all ~213 ARCs only to have the result thrown
+            # away once that gate (or this same check) ran afterward. The
+            # failure would stay invisible to that gate regardless of when it
+            # runs: a project that failed its isa probe is silently absent from
+            # `live`, and a handful of absences can still leave a numerically
+            # healthy staged count (this is precisely how 15 real records
+            # vanished under a passing gate in the review's failure scenario).
+            # Refusing here, before any harvest work happens, is strictly
+            # better than letting the harvest run and refusing after.
+            logger.error(
+                "%d isa probe(s) failed during enumeration; the affected ARCs "
+                "were silently omitted from tonight's live set and publishing "
+                "now could delete still-existing records. public.records is "
+                "untouched; the next run will retry them.",
+                probe_stats.failures,
+            )
+            return 1
 
         reason = (
             "forced" if args.force else ("stale snapshot" if diff.is_empty else diff.summary())
@@ -376,23 +399,6 @@ def _refresh(args) -> int:
         if not gate.ok:
             logger.error("Publish gate refused: %s", gate.reason)
             logger.error("public.records is untouched; see %s", md_path)
-            return 1
-
-        if probe_stats.failures:
-            # The gate above is cardinality-only and cannot see this: a project
-            # that failed its isa probe is silently absent from `live`, and a
-            # handful of absences can still land a numerically healthy staged
-            # count (this is precisely how 15 real records vanished under a
-            # passing gate in the review's failure scenario). Refuse rather
-            # than risk swap.py truncating still-published records out from
-            # under a transient GitLab hiccup.
-            logger.error(
-                "%d isa probe(s) failed during enumeration; the affected ARCs "
-                "were silently omitted from tonight's live set and publishing "
-                "now could delete still-existing records. public.records is "
-                "untouched; the next run will retry them.",
-                probe_stats.failures,
-            )
             return 1
 
         try:

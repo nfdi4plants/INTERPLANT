@@ -243,12 +243,16 @@ def test_refresh_bootstraps_a_fresh_database_before_switching_schema(stubbed, mo
 
 def test_a_probe_failure_during_enumeration_refuses_to_publish(stubbed, monkeypatch):
     """A transient GitLab probe failure must not be treated as a real
-    enumeration change: refresh must refuse before the swap, not publish."""
+    enumeration change: refresh must refuse before it ever harvests, not just
+    before the swap. The check runs right after enumeration, so a nightly
+    hiccup does not burn 2.5-4 hours cloning every ARC only to discard it."""
     _live(monkeypatch, {"ns/a": "T1"}, probe_failures=1)
     monkeypatch.setattr(cli.db, "read_published_projects", lambda conn: {"ns/a": "T0"})
     monkeypatch.setattr(cli.db, "last_published_at", lambda conn: datetime.now(tz=UTC))
 
     assert cli.main(["refresh", "--dsn", "postgresql://x/y"]) == 1
+    assert stubbed["batch"] == 0
+    assert stubbed["truncate"] == 0
     assert stubbed["swap"] == 0
 
 
@@ -257,11 +261,14 @@ def test_a_probe_failure_refuses_even_when_the_gate_would_otherwise_pass(
 ):
     """Regression pinning the review's exact failure scenario: 12 isa probes
     fail, 12 still-published ARCs are silently missing from tonight's live
-    set, the harvest stages 132 of 144 records (above the floor of 129), and
-    the cardinality-only gate would pass. Without this check that publish
-    truncates public.records and 12 real records vanish under a passing
-    gate and an exit-0 run. With it, refresh must refuse and swap must never
-    run, so those records are never deleted."""
+    set, and if a harvest were allowed to run it would stage 132 of 144
+    records (above the floor of 129), which the cardinality-only gate would
+    pass. The staged/published counts below are set up to prove exactly
+    that: they would satisfy the gate, so the gate is not what saves us. The
+    probe-failure check runs immediately after enumeration instead, before
+    any harvest happens at all, and refuses on its own: no batch runs, no
+    staging truncate happens, and swap never runs, so those 12 published
+    records are never deleted."""
     live = {f"ns/p{i}": "T1" for i in range(132)}
     _live(monkeypatch, live, probe_failures=12)
     monkeypatch.setattr(
@@ -270,15 +277,18 @@ def test_a_probe_failure_refuses_even_when_the_gate_would_otherwise_pass(
     monkeypatch.setattr(cli.db, "last_published_at", lambda conn: datetime.now(tz=UTC))
     # A healthy-looking staged corpus: 132 staged and reported, 144 currently
     # published. floor = int(144*0.9) = 129, so 132 clears it - the gate on
-    # its own has no reason to refuse.
+    # its own has no reason to refuse. It never actually runs (the harvest
+    # is skipped entirely), but these stubs pin what it would have done.
     monkeypatch.setattr(cli.db, "count_records", lambda conn, schema: 132)
     monkeypatch.setattr(cli.audit, "aggregate", lambda report: {"n_upserted": 132})
 
     assert cli.main(["refresh", "--dsn", "postgresql://x/y"]) == 1
-    assert stubbed["swap"] == 0, (
+    assert stubbed["batch"] == 0, (
         "the gate alone would have passed this corpus; the probe-failure "
-        "check must be what refuses it, or 12 published records get deleted"
+        "check must refuse before any harvest, not merely before the swap"
     )
+    assert stubbed["truncate"] == 0
+    assert stubbed["swap"] == 0
 
 
 def test_a_lock_timeout_during_swap_does_not_raise(stubbed, monkeypatch):
