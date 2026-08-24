@@ -90,3 +90,25 @@ def test_the_env_example_carries_no_real_secret():
     assert "INTERPLANT_OAI_BASE_URL=" in text
     assert "CHANGE-ME" in text
     assert "interplant:interplant@" not in text, "do not ship the dev password"
+
+
+def test_the_env_example_header_names_all_three_variables():
+    text = (DEPLOY / "interplant.env.example").read_text(encoding="utf-8")
+    header = text.split("\n\n", 1)[0]
+    assert "INTERPLANT_DSN" in header, "the header must name the endpoint's DSN var"
+    assert "INTERPLANT_PG_DSN" in header, "the header must name the harvester's DSN var"
+    assert "INTERPLANT_OAI_BASE_URL" in header, (
+        "the header must name the third variable too, not just the two DSNs"
+    )
+    assert "both variables" not in text.lower(), (
+        "the file sets three variables, not two; the header must not undercount them"
+    )
+
+
+def test_readme_does_not_promise_a_third_page():
+    text = (DEPLOY / "README.md").read_text(encoding="utf-8")
+    assert "three pages" not in text, (
+        "PAGE_SIZE=100 over the verified 144-record corpus is two pages; an "
+        "operator told to expect a third page that cannot exist will misread a "
+        "healthy endpoint as broken"
+    )

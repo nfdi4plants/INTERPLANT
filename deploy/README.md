@@ -51,24 +51,37 @@ the proxy address:
     curl -s 'http://192.0.2.10:8000/oai?verb=Identify' | head -20
 
 Confirm `<baseURL>` reads `https://www.plabipd.de/oai` and not the internal
-address. Then walk all three pages of `ListRecords`, following
-`resumptionToken` by hand:
+address. Then walk `ListRecords` by hand, following `resumptionToken` until a
+response carries none:
 
     curl -s 'http://192.0.2.10:8000/oai?verb=ListRecords&metadataPrefix=oai_dc' \
         | grep -o '<resumptionToken>[^<]*'
 
-The resumption handshake has never been executed against a live client: AWI's
-offline emulation returns `None` for `file:` URLs, so their multi-page loop was
-structurally unreachable in the test. `PAGE_SIZE = 100` (`oai/verbs.py:27`) and
-the corpus is ~148 records, so there are three pages. This is the last
-unverified item before the merge request.
+Repeat with `&resumptionToken=<value>` in place of `metadataPrefix=oai_dc` until
+the tag is empty or absent. The resumption handshake has never been executed
+against a live client: AWI's offline emulation returns `None` for `file:` URLs,
+so their multi-page loop was structurally unreachable in the test. `PAGE_SIZE =
+100` (`oai/verbs.py:27`) and the verified corpus is 144 records
+(`harvester/publish.py`), so expect two pages: 100 records with a
+resumptionToken, then the remaining 44 with none. Do not hunt for a third page
+that cannot exist at this corpus size; the page count will only grow as the
+corpus does. This is the last unverified item before the merge request.
 
 ## The first harvest
 
 The nightly timer will do it, but run it once attended, because the mega-ARC
 parse time is unmeasured. Four ARCs have never been parsed to completion;
 `usadellab/BreedingValue-Public-Dataset` has 91 assays and the only datapoint is
-"25+ minutes" as a lower bound. Measure that one alone first:
+"25+ minutes" as a lower bound. Measure that one alone first. `--local-dir`
+harvests ARC subdirectories found one level under the path you give it
+(`harvester/acquire.py`'s `iter_local_arcs`), so clone the ARC into a
+subdirectory rather than pointing `--local-dir` at the ARC itself. This is a
+read-only public clone from DataPLANT's GitLab; it needs no token:
+
+    mkdir -p /tmp/megadir
+    git clone --depth 1 \
+        https://git.nfdi4plants.org/usadellab/BreedingValue-Public-Dataset.git \
+        /tmp/megadir/BreedingValue-Public-Dataset
 
     sudo -u interplant /opt/interplant/.venv/bin/python -m harvester harvest \
         --local-dir /tmp/megadir --dry-run --out-dir /tmp/megarun

@@ -39,7 +39,7 @@ sudo -u postgres psql -tAc \
 }
 
 echo "== code =="
-sudo mkdir -p "$STATE/harvest-runs" "$STATE/clones" "$(dirname "$ENVFILE")"
+sudo mkdir -p "$STATE/harvest-runs" "$(dirname "$ENVFILE")"
 if [ ! -f "$TOKENFILE" ]; then
     echo "MISSING $TOKENFILE. Create a read-only deploy token in GitLab"
     echo "(Settings > Repository > Deploy tokens, scope read_repository), then:"
