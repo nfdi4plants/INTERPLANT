@@ -1,8 +1,12 @@
 """Harvester CLI. Usage:
 
     python -m harvester ingest <arc-path> [--dsn DSN] [--provider PROVIDER]
+    python -m harvester harvest --source live [--dry-run] [--dsn DSN]
+    python -m harvester refresh [--dsn DSN] [--max-age-days N] [--force]
 
-The CLI orchestrates: IsaReader -> classifier -> build_record -> validate -> upsert.
+`harvest` always harvests and writes straight to public.records. `refresh` is
+the production entry point: it harvests only when the GitLab enumeration
+changed, stages the result, and publishes it atomically behind a gate.
 """
 from __future__ import annotations
 
@@ -11,10 +15,12 @@ import logging
 import os
 import sys
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from harvester import acquire, audit, batch, db, pipeline
+import psycopg
+
+from harvester import acquire, audit, batch, db, detect, pipeline, publish
 
 logger = logging.getLogger("harvester")
 
@@ -32,6 +38,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _ingest(Path(args.arc_path), dsn=args.dsn, provider=args.provider)
     if args.command == "harvest":
         return _harvest(args)
+    if args.command == "refresh":
+        return _refresh(args)
     parser.print_usage(sys.stderr)
     return 2
 
@@ -88,6 +96,51 @@ def _build_parser() -> argparse.ArgumentParser:
             "Skip the template/placeholder exclusions. Filtering is ON for "
             "harvests; this is the escape hatch for diagnosing what got dropped."
         ),
+    )
+    refresh = sub.add_parser(
+        "refresh",
+        help="Harvest and publish only when the GitLab enumeration changed",
+    )
+    refresh.add_argument("--gitlab-base", default="https://git.nfdi4plants.org")
+    refresh.add_argument(
+        "--dsn",
+        default=os.environ.get("INTERPLANT_PG_DSN", DEFAULT_DSN),
+        help="Postgres DSN (env INTERPLANT_PG_DSN, else local default)",
+    )
+    refresh.add_argument("--out-dir", default="./harvest-runs")
+    refresh.add_argument("--provider", default="dataplant")
+    refresh.add_argument(
+        "--max-age-days",
+        type=int,
+        default=7,
+        help=(
+            "Harvest unconditionally when the last publish is older than this, "
+            "even with no detected change (default: 7). GitLab's "
+            "last_activity_at can miss an edit; this is the backstop."
+        ),
+    )
+    refresh.add_argument(
+        "--force", action="store_true", help="Harvest regardless of the diff"
+    )
+    refresh.add_argument(
+        "--min-records",
+        type=int,
+        default=publish.DEFAULT_MIN_RECORDS,
+        help=(
+            "Absolute floor on the published record count (default: "
+            f"{publish.DEFAULT_MIN_RECORDS}). The relative floor alone lets "
+            "repeated small losses ratchet the corpus down with every night "
+            "passing; this is the backstop. Raise it as the corpus grows."
+        ),
+    )
+    refresh.add_argument(
+        "--parse-timeout",
+        type=int,
+        default=None,
+        help="Per-ARC parse budget in seconds (default: no limit, as production requires)",
+    )
+    refresh.add_argument(
+        "--clone-timeout", type=int, default=batch.DEFAULT_CLONE_TIMEOUT
     )
     return parser
 
@@ -182,6 +235,101 @@ def _harvest(args) -> int:
     if report.verdict != "ok":
         logger.error("Harvest verdict: %s (%s)", report.verdict, report.verdict_reason)
         return 1
+    return 0
+
+
+def _refresh(args) -> int:
+    """Enumerate, decide, harvest, gate, publish.
+
+    Enumeration happens once and the identities are reused for the harvest, so
+    the per-project isa.investigation.xlsx probe is not paid twice.
+    """
+    logger.info("Connecting to %s", _redact(args.dsn))
+    try:
+        conn = db.connect(args.dsn, schema="staging")
+        db.apply_schema(conn)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Cannot connect to DB: %s", exc)
+        return 1
+
+    logger.info("Enumerating %s", args.gitlab_base)
+    identities = list(acquire.iter_live_arcs(args.gitlab_base))
+    live = {ident.path: ident.last_activity_at for ident in identities}
+    logger.info("Enumerated %d ARCs", len(live))
+
+    published = db.read_published_projects(conn)
+    diff = detect.diff_enumeration(live, published)
+    last_published = db.last_published_at(conn)
+    stale = last_published is None or (
+        datetime.now(tz=UTC) - last_published >= timedelta(days=args.max_age_days)
+    )
+
+    if diff.is_empty and not stale and not args.force:
+        logger.info("No enumeration change and the last publish is recent; nothing to do")
+        return 0
+
+    reason = "forced" if args.force else ("stale snapshot" if diff.is_empty else diff.summary())
+    logger.info("Harvesting: %s", reason)
+    # Name the projects, not just the counts. At 3am the useful question is which
+    # ARC moved, and the enumeration is the only place that answer exists: the
+    # harvest that follows is whole-corpus and cannot tell you.
+    for label, paths in (
+        ("appeared", diff.appeared),
+        ("vanished", diff.vanished),
+        ("changed", diff.changed),
+    ):
+        if paths:
+            logger.info("  %s: %s", label, ", ".join(paths))
+
+    now_iso = _now_iso()
+    run_timestamp = now_iso.replace("-", "").replace(":", "")
+
+    db.truncate_staging(conn)
+    report = batch.run_batch(
+        iter(identities), conn=conn, provider=args.provider, now_iso=now_iso,
+        run_timestamp=run_timestamp, source="live", gitlab_base=args.gitlab_base,
+        parse_timeout=args.parse_timeout, clone_timeout=args.clone_timeout,
+        apply_filters=True,
+    )
+    json_path, md_path = audit.write_run_report(report, args.out_dir)
+    logger.info("Audit report: %s (json: %s)", md_path, json_path)
+
+    if report.verdict != "ok":
+        logger.error("Harvest verdict: %s (%s)", report.verdict, report.verdict_reason)
+        logger.error("Refusing to publish; public.records is untouched")
+        return 1
+
+    staged = db.count_records(conn, schema="staging")
+    # published_count must be the RECORD count, not len(published). The snapshot
+    # holds one entry per enumerated project (~213), while the corpus holds one
+    # row per surviving record (~144) after template exclusions and mirror dedup.
+    # Passing the project count would set the floor to int(213*0.9)=191 and refuse
+    # every publish forever.
+    gate = publish.evaluate(
+        staged_count=staged,
+        reported_upserts=audit.aggregate(report)["n_upserted"],
+        published_count=db.count_records(conn, schema="public"),
+        min_records=args.min_records,
+    )
+    if not gate.ok:
+        logger.error("Publish gate refused: %s", gate.reason)
+        logger.error("public.records is untouched; see %s", md_path)
+        return 1
+
+    try:
+        count = publish.swap(conn, enumeration=live)
+    except psycopg.errors.LockNotAvailable:
+        # The swap sets lock_timeout=5s, so a reader holding ACCESS SHARE on
+        # public.records makes TRUNCATE give up rather than queue behind it and
+        # stall the endpoint. The transaction rolled back, so the published
+        # corpus is intact and staging still holds tonight's harvest.
+        logger.error(
+            "Could not acquire the table lock within 5s; a reader was holding it. "
+            "public.records is untouched and the harvest is preserved in staging. "
+            "The next run will retry."
+        )
+        return 1
+    logger.info("Published %d records (%s)", count, gate.reason)
     return 0
 
 
