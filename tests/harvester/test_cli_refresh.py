@@ -61,6 +61,19 @@ def _live(monkeypatch, mapping):
     monkeypatch.setattr(cli.acquire, "iter_live_arcs", lambda base: iter(idents))
 
 
+def test_refresh_refuses_without_a_dsn(monkeypatch):
+    """refresh is the production entry point and must fail closed like the
+    OAI endpoint does: no dev-DSN fallback, and no DB connection attempted."""
+    monkeypatch.delenv("INTERPLANT_PG_DSN", raising=False)
+
+    def _unreachable(*a, **k):
+        raise AssertionError("refresh must refuse before ever connecting")
+
+    monkeypatch.setattr(cli.db, "connect", _unreachable)
+
+    assert cli.main(["refresh"]) == 2
+
+
 def test_no_change_and_fresh_snapshot_skips_the_harvest(stubbed, monkeypatch):
     _live(monkeypatch, {"ns/a": "T0"})
     monkeypatch.setattr(cli.db, "read_published_projects", lambda conn: {"ns/a": "T0"})

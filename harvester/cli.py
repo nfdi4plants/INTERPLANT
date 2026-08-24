@@ -104,8 +104,13 @@ def _build_parser() -> argparse.ArgumentParser:
     refresh.add_argument("--gitlab-base", default="https://git.nfdi4plants.org")
     refresh.add_argument(
         "--dsn",
-        default=os.environ.get("INTERPLANT_PG_DSN", DEFAULT_DSN),
-        help="Postgres DSN (env INTERPLANT_PG_DSN, else local default)",
+        default=os.environ.get("INTERPLANT_PG_DSN"),
+        help=(
+            "Postgres DSN (env INTERPLANT_PG_DSN). refresh is the production "
+            "entry point and has no dev-DSN fallback: it fails closed like "
+            "the OAI endpoint does, so a missing EnvironmentFile is loud "
+            "rather than silently pointing at the wrong database."
+        ),
     )
     refresh.add_argument("--out-dir", default="./harvest-runs")
     refresh.add_argument("--provider", default="dataplant")
@@ -247,6 +252,13 @@ def _refresh(args) -> int:
     Enumeration happens once and the identities are reused for the harvest, so
     the per-project isa.investigation.xlsx probe is not paid twice.
     """
+    if not args.dsn:
+        logger.error(
+            "INTERPLANT_PG_DSN is not set and --dsn was not given. Refusing "
+            "to run: falling back to default credentials would hide a "
+            "missing EnvironmentFile."
+        )
+        return 2
     logger.info("Connecting to %s", _redact(args.dsn))
     # Bootstrap on an unqualified connection first. db.connect(schema="staging")
     # verifies staging.records already exists before it will set search_path,

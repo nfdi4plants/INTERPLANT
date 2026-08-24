@@ -103,6 +103,16 @@ def test_the_env_example_header_names_all_three_variables():
     assert "both variables" not in text.lower(), (
         "the file sets three variables, not two; the header must not undercount them"
     )
+    # The old header claimed a missing INTERPLANT_PG_DSN "silently falls back
+    # to a hardcoded local dev DSN" and "points the writer at the wrong
+    # database without saying so" - wrong, and now moot: refresh has no
+    # fallback at all, so the header must not resurrect that claim.
+    assert "silently falls back" not in text.lower()
+    assert "wrong database" not in text.lower()
+    assert "refuses" in text.lower(), (
+        "the header must say refresh fails closed without INTERPLANT_PG_DSN, "
+        "same as the endpoint does without INTERPLANT_DSN"
+    )
 
 
 def test_install_script_restarts_the_endpoint():
