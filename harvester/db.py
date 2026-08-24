@@ -47,9 +47,9 @@ def connect(dsn: str, *, schema: str | None = None) -> psycopg.Connection:
 
 
 def apply_schema(conn: psycopg.Connection) -> None:
-    sql = _SCHEMA_PATH.read_text(encoding="utf-8")
+    ddl = _SCHEMA_PATH.read_text(encoding="utf-8")
     with conn.cursor() as cur:
-        cur.execute(sql)
+        cur.execute(ddl)
 
 
 def apply_catalog_views(conn: psycopg.Connection) -> None:
@@ -65,7 +65,7 @@ def upsert_record(
     *,
     source_etag: str | None = None,
 ) -> None:
-    sql = """
+    stmt = """
         INSERT INTO records (id, payload, source_etag, ingested_at)
         VALUES (%(id)s, %(payload)s, %(etag)s, now())
         ON CONFLICT (id) DO UPDATE
@@ -75,7 +75,7 @@ def upsert_record(
     """
     with conn.cursor() as cur:
         cur.execute(
-            sql,
+            stmt,
             {"id": record_id, "payload": Jsonb(payload), "etag": source_etag},
         )
 

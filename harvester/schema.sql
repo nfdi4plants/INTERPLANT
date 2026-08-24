@@ -1,6 +1,8 @@
--- DDL here is always schema-qualified. harvester/db.py DML is deliberately
--- unqualified so search_path selects staging or public; if this file used bare
--- names it would create tables in whichever schema the caller happened to set.
+-- DDL here is always schema-qualified. harvester/db.py's upsert_record is
+-- deliberately unqualified so search_path selects staging or public; every
+-- other statement in db.py names its schema explicitly. If this file used
+-- bare names it would create tables in whichever schema the caller happened
+-- to set.
 
 CREATE TABLE IF NOT EXISTS public.records (
   id          text PRIMARY KEY,
@@ -15,9 +17,13 @@ CREATE SCHEMA IF NOT EXISTS staging;
 
 -- The harvest writes here, never to public.records. A run that dies partway
 -- leaves this table inconsistent and the endpoint unaffected. Declared FROM
--- public.records so the two can never drift apart. The swap copies between
--- them, so a column added to one and not the other would be a silent data
--- defect. INCLUDING INDEXES carries the primary key that upsert_record's
+-- public.records so the two start identical: LIKE is evaluated once, at
+-- creation, and CREATE TABLE IF NOT EXISTS is a no-op on every later
+-- apply_schema, so adding a column to public.records in a future revision
+-- of this file does NOT propagate here automatically. Adding a column means
+-- adding it to staging.records and to publish.swap's explicit column list in
+-- the same change, or it silently keeps its default on every publish.
+-- INCLUDING INDEXES carries the primary key that upsert_record's
 -- ON CONFLICT (id) needs.
 CREATE TABLE IF NOT EXISTS staging.records (
   LIKE public.records INCLUDING DEFAULTS INCLUDING INDEXES
