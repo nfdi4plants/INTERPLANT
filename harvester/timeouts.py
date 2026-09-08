@@ -17,7 +17,10 @@ load ARC" error, callers that need to tell "too slow" apart from "malformed
 data" pass a TimeoutState and check `fired`.
 
 Opt-in by design. A slow-but-valid ARC is legitimate data, so the default is no
-limit; callers that need a bounded run (dry runs, scheduled CI) ask for one.
+limit; callers that need a bounded run ask for one. That now includes the
+production nightly (deploy/interplant-refresh.service passes --parse-timeout
+900), where it is a net against an unknown pathological ARC rather than a
+routine cap - the four known ones are excluded by path in harvester/exclusions.py.
 """
 from __future__ import annotations
 

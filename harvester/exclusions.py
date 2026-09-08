@@ -8,7 +8,8 @@ other ARC of 209 finished under it. Root cause is `FsSpreadsheet.RescanRows`
 walking every row through Fable's transpiled seq enumerator, so cost scales
 with row count and grows faster than assay count.
 
-Left in the nightly they cost roughly 30 hours of parse against a corpus that
+Left in the nightly they cost enough to blow the whole budget: one measured at
+~7h40m and three more unmeasured beyond a 300s floor, against a corpus that
 otherwise finishes in about an hour. Seven consecutive nightly runs, 2026-09-01
 to 2026-09-07, were killed by systemd's outer timeout without ever publishing.
 

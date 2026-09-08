@@ -24,6 +24,7 @@ The harvester runs five stages in sequence. Each stage takes a structured input 
 - Paginate over `GET /api/v4/projects?visibility=public&archived=false`.
 - For each project, attempt `GET /api/v4/projects/:id/repository/files/isa.investigation.xlsx/raw?ref=<default_branch>`.
 - An ARC is any project whose root contains `isa.investigation.xlsx`.
+- Drop any project whose `path_with_namespace` is in the cost-exclusion set (`harvester/exclusions.py`), logging one line per skip. This is the only stage where excluding an ARC also skips its clone and parse, and the only one that keeps it out of the `published_projects` snapshot the nightly diff compares against.
 
 ### Output
 Per-project records of the shape `{project_id, path_with_namespace, default_branch, web_url, last_activity_at}`.
@@ -32,6 +33,8 @@ Per-project records of the shape `{project_id, path_with_namespace, default_bran
 - Must not require authentication (public projects only).
 - Must respect GitLab pagination semantics (follow `Link` header).
 - Network failure for a single project is logged but does not abort enumeration.
+- The cost-exclusion set is matched literally, never by prefix or pattern. Growing it requires a measurement, not a guess.
+- Local acquisition (`iter_local_arcs`, used by `harvest --local-dir` and `ingest`) does NOT apply the cost exclusions, so an excluded ARC stays reachable by hand.
 
 ## 3. Stage 2 — Parse
 
@@ -68,6 +71,8 @@ A `ParsedARC` (the parse-stage output). The template rule needs parsed assay fol
 
 ### Rules
 Applied in order; first rule that excludes wins. Each excluded ARC is emitted to the audit log with the rule name.
+
+These rules run **after parse** and inspect a parsed investigation. Path-based cost exclusions are a separate family and run at enumerate time (§ 2). Adding a path rule here would exclude the ARC but still pay its full parse cost, which is the entire thing the exclusion exists to avoid.
 
 1. **Empty:** ARC has no entries under `assays/` → exclude. *(not implemented)*
 2. **Template:** all assay folders match `^(yourAssayName|Assay[0-9]*|measurement[0-9]*)$` (case-insensitive) AND the ARC has no non-template assay → exclude. *(implemented: `template-assays`)*
