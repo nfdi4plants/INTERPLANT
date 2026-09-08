@@ -93,7 +93,7 @@ the mega-ARC problem was diagnosed, and nothing else turns it back on:
 `NEXT` must show a real date. A blank `NEXT` means the triggered service is
 still running, not that the timer is broken.
 
-### Ingesting an excluded mega-ARC by hand
+### Parsing an excluded mega-ARC by hand
 
 The four excluded ARCs are only kept out of the nightly; they are still
 reachable on demand. `--local-dir` harvests ARC subdirectories found one level
@@ -102,7 +102,7 @@ clone into a subdirectory rather than pointing `--local-dir` at the ARC itself.
 This is a read-only public clone and needs no token:
 
     mkdir -p /tmp/megadir
-    git clone --depth 1 \
+    GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 \
       https://git.nfdi4plants.org/usadellab/BreedingValue-Public-Dataset.git \
       /tmp/megadir/BreedingValue-Public-Dataset
 
