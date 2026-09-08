@@ -47,3 +47,32 @@ def test_clone_arc_returns_error_after_exhausting_retries(monkeypatch, tmp_path)
     ok, err = acquire.clone_arc("https://g/missing", tmp_path, retries=1)
     assert ok is False
     assert "not found" in err
+
+
+def test_iter_live_arcs_skips_cost_excluded_paths(monkeypatch):
+    """The mega-ARCs must be dropped before the clone, not after the parse."""
+    metas = [
+        {"path_with_namespace": "ceplas/Angermann-2024", "web_url": "https://g/a",
+         "project_id": 1, "last_activity_at": "T1"},
+        {"path_with_namespace": "usadellab/BreedingValue-Public-Dataset",
+         "web_url": "https://g/b", "project_id": 2, "last_activity_at": "T2"},
+    ]
+    monkeypatch.setattr(acquire, "iter_public_arcs", lambda base, **kw: iter(metas))
+
+    idents = list(acquire.iter_live_arcs("https://g"))
+
+    assert [i.path for i in idents] == ["ceplas/Angermann-2024"]
+
+
+def test_iter_local_arcs_does_not_apply_the_cost_exclusions(tmp_path):
+    """The manual escape hatch: `harvest --local-dir` and `ingest` must still
+    handle a mega-ARC on demand. Local identities carry a bare directory name
+    rather than a namespaced path, so they cannot match the exclusion set even
+    by accident; this pins that the hatch stays open."""
+    arc = tmp_path / "BreedingValue-Public-Dataset"
+    arc.mkdir()
+    (arc / "isa.investigation.xlsx").write_text("stub", encoding="utf-8")
+
+    idents = list(acquire.iter_local_arcs(tmp_path))
+
+    assert [i.path for i in idents] == ["BreedingValue-Public-Dataset"]

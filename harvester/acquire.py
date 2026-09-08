@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from harvester.enumerate import ProbeStats, iter_public_arcs
+from harvester.exclusions import is_cost_excluded
 
 logger = logging.getLogger("harvester.acquire")
 
@@ -62,13 +63,29 @@ def clone_arc(web_url: str, dest, *, timeout: int = 60, retries: int = 2) -> tup
 def iter_live_arcs(
     gitlab_base: str, *, max_pages: int | None = None, stats: ProbeStats | None = None
 ) -> Iterator[ArcIdentity]:
-    """Yield live ARC identities. `stats`, if given, is incremented in place
-    on every isa-probe failure during enumeration (see enumerate.ProbeStats);
-    pass one owned by the caller to tell a transient GitLab failure apart
-    from a project that genuinely has no isa file."""
+    """Yield live ARC identities, minus the cost-excluded ones.
+
+    `stats`, if given, is incremented in place on every isa-probe failure
+    during enumeration (see enumerate.ProbeStats); pass one owned by the
+    caller to tell a transient GitLab failure apart from a project that
+    genuinely has no isa file.
+
+    Cost-excluded paths (harvester/exclusions.py) are dropped here rather
+    than after parse. This is the only stage that skips their clone and
+    parse, and the only one that keeps them out of the enumeration handed
+    to publish.swap - a path left in that snapshot would land in
+    diff.changed on every last_activity_at bump and trigger a full,
+    pointless whole-corpus harvest. iter_local_arcs is deliberately NOT
+    filtered, so `ingest` and `harvest --local-dir` remain the manual
+    escape hatch.
+    """
     for meta in iter_public_arcs(gitlab_base, max_pages=max_pages, stats=stats):
+        path = meta["path_with_namespace"]
+        if is_cost_excluded(path):
+            logger.info("skipping %s: cost-excluded from live enumeration", path)
+            continue
         yield ArcIdentity(
-            path=meta["path_with_namespace"],
+            path=path,
             web_url=meta["web_url"],
             project_id=meta["project_id"],
             last_activity_at=meta.get("last_activity_at") or "",
