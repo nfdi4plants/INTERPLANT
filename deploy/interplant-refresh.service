@@ -9,21 +9,21 @@ User=interplant
 Group=interplant
 WorkingDirectory=/opt/interplant
 EnvironmentFile=/etc/interplant/env
-# Most nights this exits in minutes after the enumeration diff comes back empty.
-# When it does harvest, expect 2.5-4 hours single-threaded, so no per-ARC
-# timeout here.
+# Most nights this exits in minutes after the enumeration diff comes back
+# empty. When it does harvest, expect 30-60 minutes: ~227 ARCs at roughly 16s
+# each, with the four mega-ARCs excluded before the clone.
 ExecStart=/opt/interplant/.venv/bin/python -m harvester refresh \
     --out-dir /var/lib/interplant/harvest-runs \
-    --max-age-days 7
-# refresh passes no --parse-timeout, so arctrl's parse of a single ARC is
-# unbounded (harvester/timeouts.py: a slow-but-valid ARC is legitimate data,
-# not something to drop). A oneshot with no outer bound that wedges would
-# block every subsequent night, since systemd will not start a second
-# instance while one is active. 6h is an outer bound against the documented
-# 2.5-4h harvest above, not a per-ARC cap. Being killed mid-harvest is
-# harmless by design: staging is scratch and public.records is untouched
-# until the swap.
-TimeoutStartSec=6h
+    --max-age-days 7 \
+    --parse-timeout 900
+# 900s per-ARC parse cap. The four known mega-ARCs are excluded by path in
+# harvester/exclusions.py, so this should never fire; it is a net against an
+# unknown fifth, which is exactly what wedged seven consecutive nights in
+# September 2026. Set high on purpose: the typical ARC is ~16s and a 300s cap
+# cleanly separated the four megas from all 205 other ARCs in the 2026-07-29
+# run, so 900s cannot plausibly drop a slow-but-valid ARC. A cap that fires
+# routinely would be indistinguishable from real breakage in the audit report.
+TimeoutStartSec=2h
 # The box has 4 vCPU and also serves the endpoint. Yield to it.
 Nice=10
 IOSchedulingClass=idle
@@ -35,5 +35,5 @@ ReadWritePaths=/var/lib/interplant
 
 # No [Install] section: this is a oneshot activated only by
 # interplant-refresh.timer. `systemctl enable` on THIS unit (a plausible typo
-# for the timer) would schedule a full unattended 4-hour harvest at every
-# boot; without an [Install] section there is nothing for enable to hook.
+# for the timer) would schedule a full unattended harvest at every boot;
+# without an [Install] section there is nothing for enable to hook.
