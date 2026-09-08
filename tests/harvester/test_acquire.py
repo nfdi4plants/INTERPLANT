@@ -64,11 +64,15 @@ def test_iter_live_arcs_skips_cost_excluded_paths(monkeypatch):
     assert [i.path for i in idents] == ["ceplas/Angermann-2024"]
 
 
-def test_iter_local_arcs_does_not_apply_the_cost_exclusions(tmp_path):
+def test_iter_local_arcs_does_not_apply_the_cost_exclusions(tmp_path, monkeypatch):
     """The manual escape hatch: `harvest --local-dir` and `ingest` must still
     handle a mega-ARC on demand. Local identities carry a bare directory name
-    rather than a namespaced path, so they cannot match the exclusion set even
-    by accident; this pins that the hatch stays open."""
+    rather than a namespaced path, so the real predicate could never match one
+    anyway; patching it to match the bare name is what gives this pin teeth, so
+    it fails the moment anyone wires the check into iter_local_arcs."""
+    monkeypatch.setattr(
+        acquire, "is_cost_excluded", lambda p: p == "BreedingValue-Public-Dataset"
+    )
     arc = tmp_path / "BreedingValue-Public-Dataset"
     arc.mkdir()
     (arc / "isa.investigation.xlsx").write_text("stub", encoding="utf-8")
