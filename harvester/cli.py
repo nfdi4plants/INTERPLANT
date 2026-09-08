@@ -333,7 +333,7 @@ def _refresh(args) -> int:
             # Fully known since the enumeration above, so this check runs here,
             # before truncate_staging/run_batch, not after the cardinality gate
             # further down: a transient GitLab hiccup would otherwise burn
-            # 2.5-4 hours cloning all ~213 ARCs only to have the result thrown
+            # 30-60 minutes cloning all ~227 ARCs only to have the result thrown
             # away once that gate (or this same check) ran afterward. The
             # failure would stay invisible to that gate regardless of when it
             # runs: a project that failed its isa probe is silently absent from
@@ -386,7 +386,7 @@ def _refresh(args) -> int:
 
         staged = db.count_records(conn, schema="staging")
         # published_count must be the RECORD count, not len(published). The
-        # snapshot holds one entry per enumerated project (~213), while the
+        # snapshot holds one entry per enumerated project (~227), while the
         # corpus holds one row per surviving record (~144) after template
         # exclusions and mirror dedup. Passing the project count would set the
         # floor to int(213*0.9)=191 and refuse every publish forever.

@@ -38,11 +38,23 @@ def test_the_refresh_unit_calls_refresh_not_harvest():
     )
 
 
-def test_the_refresh_unit_has_an_outer_timeout():
+def test_the_refresh_unit_bounds_both_a_single_parse_and_the_whole_run():
     text = (DEPLOY / "interplant-refresh.service").read_text(encoding="utf-8")
-    assert "TimeoutStartSec=6h" in text, (
-        "refresh passes no --parse-timeout, so a single ARC parse is unbounded; "
-        "without an outer bound a wedged oneshot blocks every subsequent night"
+    assert "--parse-timeout 900" in text, (
+        "the four known mega-ARCs are excluded by path, but an unknown fifth "
+        "would wedge the nightly exactly as they did; 900s is ~56x the ~16s "
+        "typical ARC and 3x the 300s that empirically separated the megas "
+        "from every other ARC in a 209-ARC run"
+    )
+    assert "TimeoutStartSec=4h" in text, (
+        "the run is ~30-60 minutes once the mega-ARCs are excluded, but that "
+        "estimate covers only ARCs 1-87 of one run; 4h is deliberately loose "
+        "until a real run is timed. 6h let seven consecutive nights burn 6h "
+        "each without ever publishing"
+    )
+    assert "--clone-timeout 180" in text, (
+        "the 60s default lost 4 ARCs in the 2026-07-29 run; a clone failure "
+        "does not fail the run, so a lost ARC is a silently missing record"
     )
 
 

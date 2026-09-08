@@ -65,32 +65,22 @@ Repeat with `&resumptionToken=<value>` in place of `metadataPrefix=oai_dc` until
 the tag is empty or absent. The resumption handshake has never been executed
 against a live client: AWI's offline emulation returns `None` for `file:` URLs,
 so their multi-page loop was structurally unreachable in the test. `PAGE_SIZE =
-100` (`oai/verbs.py:27`) and the verified corpus is 144 records
-(`harvester/publish.py`), so expect two pages: 100 records with a
-resumptionToken, then the remaining 44 with none. Do not hunt for a third page
-that cannot exist at this corpus size; the page count will only grow as the
-corpus does. This is the last unverified item before the merge request.
+100` (`oai/verbs.py:27`), so a full page carries a resumptionToken and the walk
+is done once a response carries none. The corpus size is not known until the
+first publish, so do not assume a particular number of pages ahead of time.
+This is the last unverified item before the merge request.
 
 ## The first harvest
 
-The nightly timer will do it, but run it once attended, because the mega-ARC
-parse time is unmeasured. Four ARCs have never been parsed to completion;
-`usadellab/BreedingValue-Public-Dataset` has 91 assays and the only datapoint is
-"25+ minutes" as a lower bound. Measure that one alone first. `--local-dir`
-harvests ARC subdirectories found one level under the path you give it
-(`harvester/acquire.py`'s `iter_local_arcs`), so clone the ARC into a
-subdirectory rather than pointing `--local-dir` at the ARC itself. This is a
-read-only public clone from DataPLANT's GitLab; it needs no token:
+The nightly timer will do it, but run it once attended so you see the gate
+verdict. Expect 30-60 minutes: the four mega-ARCs that used to dominate the run
+are excluded from live enumeration (`harvester/exclusions.py`), and everything
+else averages roughly 16s per ARC.
 
-    mkdir -p /tmp/megadir
-    git clone --depth 1 \
-        https://git.nfdi4plants.org/usadellab/BreedingValue-Public-Dataset.git \
-        /tmp/megadir/BreedingValue-Public-Dataset
-
-    sudo -u interplant /opt/interplant/.venv/bin/python -m harvester harvest \
-        --local-dir /tmp/megadir --dry-run --out-dir /tmp/megarun
-
-Then the real thing, watching it:
+The unit bounds the run at `TimeoutStartSec=4h` and any single ARC's parse at
+`--parse-timeout 900`. A SIGTERM at the 4h mark means the run was killed, not
+that data was lost: staging is scratch and `public.records` is untouched until
+the swap.
 
     sudo systemctl start interplant-refresh.service
     journalctl -u interplant-refresh -f
@@ -98,12 +88,51 @@ Then the real thing, watching it:
 A refused gate leaves `public.records` untouched and exits non-zero. Read the
 report under `/var/lib/interplant/harvest-runs/` before overriding anything.
 
+**The timer comes back on by itself.** `install.sh` runs `systemctl enable --now
+interplant-refresh.timer`, so deploying this re-enables and starts it. That means
+an afternoon deploy gives you an unattended 02:00 run before you have watched one
+finish. Either do the attended run the same day, or hold the timer off until you
+have:
+
+    sudo systemctl disable --now interplant-refresh.timer
+
+and turn it back on when you are satisfied:
+
+    sudo systemctl enable --now interplant-refresh.timer
+    systemctl list-timers interplant-refresh.timer
+
+`NEXT` must show a real date. A blank `NEXT` means the triggered service is
+still running, not that the timer is broken.
+
+### Parsing an excluded mega-ARC by hand
+
+The four excluded ARCs are only kept out of the nightly; they are still
+reachable on demand. `--local-dir` harvests ARC subdirectories found one level
+under the path you give it (`harvester/acquire.py`'s `iter_local_arcs`), so
+clone into a subdirectory rather than pointing `--local-dir` at the ARC itself.
+This is a read-only public clone and needs no token:
+
+    mkdir -p /tmp/megadir
+    GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 \
+      https://git.nfdi4plants.org/usadellab/BreedingValue-Public-Dataset.git \
+      /tmp/megadir/BreedingValue-Public-Dataset
+
+    sudo -u interplant /opt/interplant/.venv/bin/python -m harvester harvest \
+      --local-dir /tmp/megadir --dry-run --out-dir /tmp/megarun
+
+Budget about 7h40m for that one; that is the measured figure on this box,
+2026-08-31. Keep `--dry-run`. Dropping it and adding `--dsn` writes straight to
+`public.records` with no gate, and the next successful nightly swap deletes the
+row again, because `publish.swap` truncates `public.records` and refills it from
+staging. There is no supported way to pin a record that the nightly does not
+re-stage.
+
 ## When the gate refuses
 
 The snapshot in `published_projects` only advances on a successful swap, so a
 refusal is not self-healing: the corpus stays stale, `--max-age-days 7` then
 makes every subsequent night harvest unconditionally, and the gate refuses
-again. Left alone, this means a nightly 2.5-4 hour clone storm against
+again. Left alone, this means a nightly 30-60 minute clone storm against
 `git.nfdi4plants.org` every night forever, with nobody told - there is no mail
 relay or monitoring on this box, so nothing pages anyone. The only way this
 gets noticed is a human looking.
@@ -113,6 +142,15 @@ gets noticed is a human looking.
     systemctl status interplant-refresh
     systemctl is-failed interplant-refresh
     journalctl -u interplant-refresh --since -7d
+
+A green `systemctl status` is not enough. After any successful run, check the
+audit report for parse timeouts:
+
+    grep -l ParseTimeout /var/lib/interplant/harvest-runs/*.json
+
+A hit means an ARC exceeded the 900s cap, so its record is silently missing from
+the published corpus and AWI will expire it after five days. Add that ARC to
+`harvester/exclusions.py` or investigate why it got slow.
 
 **Diagnose it.** `journalctl -u interplant-refresh` names the refusal kind
 (`empty`, `mismatch`, `floor`, `minimum`) and the counts involved. Cross-check

@@ -245,7 +245,7 @@ def test_a_probe_failure_during_enumeration_refuses_to_publish(stubbed, monkeypa
     """A transient GitLab probe failure must not be treated as a real
     enumeration change: refresh must refuse before it ever harvests, not just
     before the swap. The check runs right after enumeration, so a nightly
-    hiccup does not burn 2.5-4 hours cloning every ARC only to discard it."""
+    hiccup does not burn 30-60 minutes cloning every ARC only to discard it."""
     _live(monkeypatch, {"ns/a": "T1"}, probe_failures=1)
     monkeypatch.setattr(cli.db, "read_published_projects", lambda conn: {"ns/a": "T0"})
     monkeypatch.setattr(cli.db, "last_published_at", lambda conn: datetime.now(tz=UTC))
@@ -305,3 +305,31 @@ def test_a_lock_timeout_during_swap_does_not_raise(stubbed, monkeypatch):
     monkeypatch.setattr(cli.publish, "swap", raising_swap)
 
     assert cli.main(["refresh", "--dsn", "postgresql://x/y"]) == 1
+
+
+def test_cost_excluded_paths_never_enter_the_published_snapshot(stubbed, monkeypatch):
+    """The enumeration publish.swap writes to published_projects is what
+    tomorrow's diff compares against. An excluded ARC left in it would land in
+    diff.changed on every last_activity_at bump and trigger a full, pointless
+    whole-corpus harvest. Excluding at enumeration is what keeps it out, so pin
+    it here and not only at the acquire layer."""
+    metas = [
+        {"path_with_namespace": "ceplas/Angermann-2024", "web_url": "https://g/a",
+         "project_id": 1, "last_activity_at": "T1"},
+        {"path_with_namespace": "usadellab/BreedingValue-Public-Dataset",
+         "web_url": "https://g/b", "project_id": 2, "last_activity_at": "T2"},
+    ]
+    monkeypatch.setattr(cli.acquire, "iter_public_arcs", lambda base, **kw: iter(metas))
+    monkeypatch.setattr(cli.db, "read_published_projects", lambda conn: {})
+    monkeypatch.setattr(cli.db, "last_published_at", lambda conn: None)
+
+    captured = {}
+
+    def fake_swap(conn, *, enumeration):
+        captured["enumeration"] = dict(enumeration)
+        return 144
+
+    monkeypatch.setattr(cli.publish, "swap", fake_swap)
+
+    assert cli.main(["refresh", "--dsn", "postgresql://x/y"]) == 0
+    assert captured["enumeration"] == {"ceplas/Angermann-2024": "T1"}
