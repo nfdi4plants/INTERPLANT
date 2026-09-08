@@ -65,11 +65,10 @@ Repeat with `&resumptionToken=<value>` in place of `metadataPrefix=oai_dc` until
 the tag is empty or absent. The resumption handshake has never been executed
 against a live client: AWI's offline emulation returns `None` for `file:` URLs,
 so their multi-page loop was structurally unreachable in the test. `PAGE_SIZE =
-100` (`oai/verbs.py:27`) and the verified corpus is 144 records
-(`harvester/publish.py`), so expect two pages: 100 records with a
-resumptionToken, then the remaining 44 with none. Do not hunt for a third page
-that cannot exist at this corpus size; the page count will only grow as the
-corpus does. This is the last unverified item before the merge request.
+100` (`oai/verbs.py:27`), so a full page carries a resumptionToken and the walk
+is done once a response carries none. The corpus size is not known until the
+first publish, so do not assume a particular number of pages ahead of time.
+This is the last unverified item before the merge request.
 
 ## The first harvest
 
@@ -78,14 +77,26 @@ verdict. Expect 30-60 minutes: the four mega-ARCs that used to dominate the run
 are excluded from live enumeration (`harvester/exclusions.py`), and everything
 else averages roughly 16s per ARC.
 
+The unit bounds the run at `TimeoutStartSec=4h` and any single ARC's parse at
+`--parse-timeout 900`. A SIGTERM at the 4h mark means the run was killed, not
+that data was lost: staging is scratch and `public.records` is untouched until
+the swap.
+
     sudo systemctl start interplant-refresh.service
     journalctl -u interplant-refresh -f
 
 A refused gate leaves `public.records` untouched and exits non-zero. Read the
 report under `/var/lib/interplant/harvest-runs/` before overriding anything.
 
-**Re-enable the timer when you are done.** It was disabled on 2026-09-07 while
-the mega-ARC problem was diagnosed, and nothing else turns it back on:
+**The timer comes back on by itself.** `install.sh` runs `systemctl enable --now
+interplant-refresh.timer`, so deploying this re-enables and starts it. That means
+an afternoon deploy gives you an unattended 02:00 run before you have watched one
+finish. Either do the attended run the same day, or hold the timer off until you
+have:
+
+    sudo systemctl disable --now interplant-refresh.timer
+
+and turn it back on when you are satisfied:
 
     sudo systemctl enable --now interplant-refresh.timer
     systemctl list-timers interplant-refresh.timer
@@ -131,6 +142,15 @@ gets noticed is a human looking.
     systemctl status interplant-refresh
     systemctl is-failed interplant-refresh
     journalctl -u interplant-refresh --since -7d
+
+A green `systemctl status` is not enough. After any successful run, check the
+audit report for parse timeouts:
+
+    grep -l ParseTimeout /var/lib/interplant/harvest-runs/*.json
+
+A hit means an ARC exceeded the 900s cap, so its record is silently missing from
+the published corpus and AWI will expire it after five days. Add that ARC to
+`harvester/exclusions.py` or investigate why it got slow.
 
 **Diagnose it.** `journalctl -u interplant-refresh` names the refusal kind
 (`empty`, `mismatch`, `floor`, `minimum`) and the counts involved. Cross-check

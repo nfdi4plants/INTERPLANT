@@ -245,7 +245,7 @@ def test_a_probe_failure_during_enumeration_refuses_to_publish(stubbed, monkeypa
     """A transient GitLab probe failure must not be treated as a real
     enumeration change: refresh must refuse before it ever harvests, not just
     before the swap. The check runs right after enumeration, so a nightly
-    hiccup does not burn 2.5-4 hours cloning every ARC only to discard it."""
+    hiccup does not burn 30-60 minutes cloning every ARC only to discard it."""
     _live(monkeypatch, {"ns/a": "T1"}, probe_failures=1)
     monkeypatch.setattr(cli.db, "read_published_projects", lambda conn: {"ns/a": "T0"})
     monkeypatch.setattr(cli.db, "last_published_at", lambda conn: datetime.now(tz=UTC))

@@ -21,17 +21,28 @@ EnvironmentFile=/etc/interplant/env
 # other ARCs in the 2026-07-29 run, so 900s cannot plausibly drop a
 # slow-but-valid ARC. A cap that fired routinely would be indistinguishable
 # from real breakage in the audit report.
+#
+# --clone-timeout 180 rather than the 60s default: the 2026-07-29 run lost 4
+# ARCs to a 60s ceiling and 180s recovered 2 of them (harvester/batch.py). A
+# clone failure does not fail the run, so a lost ARC is a silently missing
+# record that the cardinality gate cannot see.
 ExecStart=/opt/interplant/.venv/bin/python -m harvester refresh \
     --out-dir /var/lib/interplant/harvest-runs \
     --max-age-days 7 \
-    --parse-timeout 900
-# 2h is the outer bound, and it is the anti-wedge backstop: systemd will not
+    --parse-timeout 900 \
+    --clone-timeout 180
+# 4h is the outer bound, and it is the anti-wedge backstop: systemd will not
 # start a second instance of a oneshot while one is active, so a run that
 # wedges would block every subsequent night. Do not raise or remove it without
 # replacing that protection. Being killed at the bound is harmless by design:
 # staging is scratch and public.records is untouched until the swap, so a
 # SIGTERM here costs tonight's harvest and nothing else.
-TimeoutStartSec=2h
+#
+# 4h is PROVISIONAL and deliberately loose. The 30-60 minute estimate above
+# comes from ARCs 1-87 of one run; ARCs 88-231 have never been harvested to
+# completion on this box, at Nice=10 while gunicorn serves the endpoint.
+# Tighten this once a real run has been timed, not before.
+TimeoutStartSec=4h
 # The box has 4 vCPU and also serves the endpoint. Yield to it.
 Nice=10
 IOSchedulingClass=idle
