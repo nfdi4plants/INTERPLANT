@@ -20,8 +20,11 @@ Verified API notes (arctrl 3.0.5):
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Identifier for the stub study synthesised when an ARC has assays but no
 # studies at all (some ARCs register assays only at the ARC level).
@@ -161,8 +164,9 @@ def _tables_from(arc) -> list[Table]:
     (agdafair/flyover_redacted, tntranloc/dormancy_NhuTran_2025), and a third
     (frommer/DAP_Seq) has them in both.
 
-    Defensive throughout: any arctrl shape surprise yields fewer tables rather
-    than breaking ingest, matching _organism_values_from_table's contract.
+    Defensive per table: `_tables_of` guards each table individually, so an
+    arctrl shape surprise on one table yields fewer tables rather than
+    breaking ingest, matching _organism_values_from_table's contract.
     """
     out: list[Table] = []
     for study in (getattr(arc, "Studies", None) or []):
@@ -178,8 +182,9 @@ def _tables_of(container, file_path: str) -> list[Table]:
     """Convert one study's or assay's arctrl tables into plain Table objects."""
     out: list[Table] = []
     for table in (getattr(container, "Tables", None) or []):
+        name = str(getattr(table, "Name", "") or "")
+        source = f"{file_path}#{name}"
         try:
-            name = str(getattr(table, "Name", "") or "")
             headers = [str(h) for h in (getattr(table, "Headers", None) or [])]
             columns: list[list[str | None]] = []
             for column in (getattr(table, "Columns", None) or []):
@@ -189,15 +194,24 @@ def _tables_of(container, file_path: str) -> list[Table]:
                         for cell in (getattr(column, "Cells", None) or [])
                     ]
                 )
+            if len(columns) != len(headers):
+                logger.warning(
+                    "Skipping table %s: %d headers but %d columns (length skew)",
+                    source,
+                    len(headers),
+                    len(columns),
+                )
+                continue
             out.append(
                 Table(
                     name=name,
-                    source=f"{file_path}#{name}",
+                    source=source,
                     headers=headers,
                     columns=columns,
                 )
             )
-        except Exception:  # noqa: BLE001 - never let table parsing break ingest
+        except Exception as exc:  # noqa: BLE001 - never let one bad table break ingest
+            logger.warning("Skipping table %s: %s", source, type(exc).__name__)
             continue
     return out
 
