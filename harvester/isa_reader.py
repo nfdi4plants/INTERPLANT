@@ -38,6 +38,21 @@ class Assay:
 
 
 @dataclass(frozen=True)
+class Table:
+    """One ISA annotation table (one worksheet of a study or assay file).
+
+    `columns` is parallel to `headers`: columns[i] holds the cell texts of the
+    column headed by headers[i]. `source` is "<file path>#<sheet name>", which
+    is what a record's locations[].source reports.
+    """
+
+    name: str
+    source: str
+    headers: list[str]
+    columns: list[list[str | None]]
+
+
+@dataclass(frozen=True)
 class Study:
     identifier: str
     title: str | None
@@ -63,6 +78,7 @@ class Investigation:
     studies: list[Study] = field(default_factory=list)
     organisms: list[str] = field(default_factory=list)
     license: str | None = None
+    tables: list[Table] = field(default_factory=list)
     arc_root: Path | None = None
 
 
@@ -94,6 +110,7 @@ class IsaReader:
             studies=_assemble_studies(study_specs, assays),
             organisms=_organisms_from(arc),
             license=_license_from(arc),
+            tables=_tables_from(arc),
             arc_root=arc_root,
         )
 
@@ -134,6 +151,55 @@ def _organism_values_from_table(table) -> list[str]:
         return values
     except Exception:  # noqa: BLE001 - never let table parsing break ingest
         return []
+
+
+def _tables_from(arc) -> list[Table]:
+    """Collect every annotation table from the ARC's studies and assays.
+
+    Both are scanned because coordinates are not always in studies/: two of the
+    fourteen ARCs with usable coordinates keep them exclusively under assays/
+    (agdafair/flyover_redacted, tntranloc/dormancy_NhuTran_2025), and a third
+    (frommer/DAP_Seq) has them in both.
+
+    Defensive throughout: any arctrl shape surprise yields fewer tables rather
+    than breaking ingest, matching _organism_values_from_table's contract.
+    """
+    out: list[Table] = []
+    for study in (getattr(arc, "Studies", None) or []):
+        ident = str(getattr(study, "Identifier", "") or "")
+        out.extend(_tables_of(study, f"studies/{ident}/isa.study.xlsx"))
+    for assay in (getattr(arc, "Assays", None) or []):
+        ident = str(getattr(assay, "Identifier", "") or "")
+        out.extend(_tables_of(assay, f"assays/{ident}/isa.assay.xlsx"))
+    return out
+
+
+def _tables_of(container, file_path: str) -> list[Table]:
+    """Convert one study's or assay's arctrl tables into plain Table objects."""
+    out: list[Table] = []
+    for table in (getattr(container, "Tables", None) or []):
+        try:
+            name = str(getattr(table, "Name", "") or "")
+            headers = [str(h) for h in (getattr(table, "Headers", None) or [])]
+            columns: list[list[str | None]] = []
+            for column in (getattr(table, "Columns", None) or []):
+                columns.append(
+                    [
+                        _annotation_name(cell)
+                        for cell in (getattr(column, "Cells", None) or [])
+                    ]
+                )
+            out.append(
+                Table(
+                    name=name,
+                    source=f"{file_path}#{name}",
+                    headers=headers,
+                    columns=columns,
+                )
+            )
+        except Exception:  # noqa: BLE001 - never let table parsing break ingest
+            continue
+    return out
 
 
 def _license_from(arc) -> str | None:
