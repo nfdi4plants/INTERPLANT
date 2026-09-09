@@ -56,6 +56,12 @@ def test_hemisphere_suffix_overrides_a_leading_sign() -> None:
         # a coordinates-uncertainty column holds metres, not degrees
         ("222000", "lon"),
         ("not a number", "lon"),
+        # a hemisphere letter that contradicts the axis is the strongest
+        # available signal of a swapped or mislabelled column
+        ("30 N", "lon"),
+        ("12.5 E", "lat"),
+        # an unrecognised axis must not raise KeyError
+        ("12.5", "x"),
     ],
 )
 def test_parse_coord_rejects_unusable_values(raw, axis) -> None:

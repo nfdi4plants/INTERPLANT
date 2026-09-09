@@ -6,6 +6,7 @@ import pytest
 from harvester.extractors.location import (
     axis_of,
     is_place_header,
+    is_structural_header,
     role_from_header,
     unwrap_header,
 )
@@ -28,6 +29,19 @@ from harvester.extractors.location import (
 )
 def test_unwrap_header_strips_the_isa_wrapper(header, expected) -> None:
     assert unwrap_header(header) == expected
+
+
+@pytest.mark.parametrize(
+    ("header", "expected"),
+    [
+        ("Term Source REF", True),
+        ("Term Accession Number", True),
+        ("Unit", True),
+        ("Parameter [longitude]", False),
+    ],
+)
+def test_is_structural_header_pins_the_three_isa_wrapper_columns(header, expected) -> None:
+    assert is_structural_header(header) is expected
 
 
 @pytest.mark.parametrize(
@@ -89,6 +103,26 @@ def test_is_place_header_accepts_measured_place_columns(core) -> None:
 @pytest.mark.parametrize(
     "core",
     [
+        # Every place header measured in the 14 place-name ARCs
+        # (docs/progress/2026-09-09-location-coverage-report.md:176-191). The
+        # word-list tightening in Finding A (dropping "area"/"origin"/"state")
+        # must not silently drop any of these back to False.
+        "Location",
+        "Geographic location (country)",
+        "geographic location",
+        "Country Code",
+        "geographic area",
+        "Origin Country",
+        "country_or_area",
+    ],
+)
+def test_is_place_header_still_accepts_every_measured_true_positive(core) -> None:
+    assert is_place_header(core) is True
+
+
+@pytest.mark.parametrize(
+    "core",
+    [
         # REGRESSION: the German "ort" matches inside all of these
         "detector type",
         "reporter",
@@ -115,6 +149,24 @@ def test_is_place_header_accepts_measured_place_columns(core) -> None:
         "biosource material state",
         "bioreactor type",
         "sensor type",
+        # Token-subset cases: a suffixed or annotated variant of a denied
+        # base must be denied too, not just the exact base string.
+        "Cloning site 2",
+        "TATA box site",
+        "restriction sites 3",
+        # Finding A variants: "area", "origin" and "state" carry real
+        # plant/omics false positives, which is why they were dropped from
+        # _PLACE_WORDS rather than added to the deny list.
+        "sample state (fresh/frozen)",
+        "plant material state",
+        "developmental state",
+        "Data location URL",
+        "Coding region 1",
+        "leaf area",
+        "surface area",
+        "area under curve",
+        "replication origin",
+        "Vector origin",
     ],
 )
 def test_is_place_header_rejects_the_measured_false_positives(core) -> None:

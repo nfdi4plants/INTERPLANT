@@ -12,6 +12,7 @@ substring matching over-counted place names by a factor of four.
 from __future__ import annotations
 
 import re
+from typing import Literal
 
 # Rounding applied before grouping and output: about 0.1 m, and the precision
 # the corpus itself uses.
@@ -34,13 +35,21 @@ _COORD_VALUE = re.compile(
 )
 
 
-def parse_coord(raw: object, *, axis: str) -> float | None:
+def parse_coord(raw: object, *, axis: Literal["lat", "lon"]) -> float | None:
     """Parse one cell into a signed decimal degree, or None if unusable.
 
-    `axis` ("lat" or "lon") selects the range check. A trailing N/S/E/W sets
-    the sign and overrides any leading sign, because "70°47′ W" is negative
-    longitude and a naive float() would place it in the eastern hemisphere.
+    `axis` ("lat" or "lon") selects the range check; an unrecognised axis
+    returns None rather than raising. A trailing N/S/E/W sets the sign and
+    overrides any leading sign, because "70°47′ W" is negative longitude and
+    a naive float() would place it in the eastern hemisphere. A hemisphere
+    letter that contradicts the axis (N/S in a longitude column, E/W in a
+    latitude column) is the strongest available signal of a swapped or
+    mislabelled column, so it is rejected rather than accepted as a
+    plausible-looking wrong coordinate.
     """
+    limit = _AXIS_LIMIT.get(axis)
+    if limit is None:
+        return None
     if raw is None:
         return None
     text = str(raw).strip()
@@ -61,6 +70,10 @@ def parse_coord(raw: object, *, axis: str) -> float | None:
         return None
 
     hemi = (match.group("hemi") or "").upper()
+    if hemi in ("N", "S") and axis != "lat":
+        return None
+    if hemi in ("E", "W") and axis != "lon":
+        return None
     if hemi in ("S", "W"):
         value = -value
     elif hemi in ("N", "E"):
@@ -68,7 +81,6 @@ def parse_coord(raw: object, *, axis: str) -> float | None:
     elif match.group("sign") == "-":
         value = -value
 
-    limit = _AXIS_LIMIT[axis]
     if not -limit <= value <= limit:
         return None
     return round(value, _PRECISION_DP)
@@ -110,11 +122,19 @@ _ROLE_BY_HEADER_PREFIX = (
 
 # Whole-word place terms, matched against tokenised header text. Deliberately
 # NOT substring-matched: see _PLACE_DENY.
+#
+# "area", "origin" and "state" are deliberately absent. Re-measured against
+# every place header in the 14 place-name ARCs
+# (docs/progress/2026-09-09-location-coverage-report.md:176-191): all of them
+# are already satisfied by "location", "country", or a _PLACE_PHRASES entry,
+# so those three words carry zero measured true positives - and each has a
+# real plant/omics false-positive class ("area": leaf/surface/root area, area
+# under curve; "origin": replication origin, vector origin; "state": sample
+# state, developmental state).
 _PLACE_WORDS = frozenset({
-    "country", "pais", "país", "state", "estado", "province", "region",
+    "country", "pais", "país", "estado", "province", "region",
     "locality", "city", "ciudad", "town", "village", "municipality",
-    "county", "district", "standort", "geographic", "location", "area",
-    "origin",
+    "county", "district", "standort", "geographic", "location",
 })
 
 # Multi-word place phrases, substring-matched after the deny list.
@@ -124,11 +144,16 @@ _PLACE_PHRASES = (
     "field site", "site name",
 )
 
-# Measured false positives. An earlier pass using loose substring matching
-# reported 53 place-name ARCs instead of 14, because the German "ort" matches
-# inside "detector type", "reporter" and "vortexing"; "row" matches "growth";
-# "location" matches "Memory allocation"; and "site" matches "Cloning Site".
-# A loose match silently attaches wrong geography to real research data.
+# Measured false positives, matched by TOKEN SUBSET (see _PLACE_DENY_TOKENS):
+# a header is denied when a deny entry's own token set is a subset of the
+# header's tokens, so a suffixed or annotated variant of a denied base -
+# "Coding region 1", "sample state (fresh/frozen)", "Data location URL" - is
+# denied too, not just the exact base string. An earlier pass using loose
+# substring matching reported 53 place-name ARCs instead of 14, because the
+# German "ort" matches inside "detector type", "reporter" and "vortexing";
+# "row" matches "growth"; "location" matches "Memory allocation"; and "site"
+# matches "Cloning Site". A loose match silently attaches wrong geography to
+# real research data.
 _PLACE_DENY = frozenset({
     "detector type", "reporter", "vortexing", "vortex mixer", "master resort",
     "suppressor type", "sample state", "biosource material state",
@@ -141,6 +166,9 @@ _PLACE_DENY = frozenset({
 })
 
 _WORD = re.compile(r"[a-z0-9_áéíóúñ]+")
+
+# Precomputed token sets for the token-subset deny test in is_place_header.
+_PLACE_DENY_TOKENS = frozenset(frozenset(_WORD.findall(term)) for term in _PLACE_DENY)
 
 
 def unwrap_header(header: str) -> str:
@@ -180,10 +208,11 @@ def role_from_header(core: str) -> str | None:
 def is_place_header(core: str) -> bool:
     """True when a header names a place. Word-boundary matched, deny list first."""
     text = core.lower().strip()
-    if text in _PLACE_DENY:
+    tokens = set(_WORD.findall(text))
+    if any(deny_tokens <= tokens for deny_tokens in _PLACE_DENY_TOKENS):
         return False
     if axis_of(core) is not None:
         return False
     if any(phrase in text for phrase in _PLACE_PHRASES):
         return True
-    return bool(set(_WORD.findall(text)) & _PLACE_WORDS)
+    return bool(tokens & _PLACE_WORDS)
