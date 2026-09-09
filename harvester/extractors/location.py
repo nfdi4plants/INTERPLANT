@@ -12,7 +12,10 @@ substring matching over-counted place names by a factor of four.
 from __future__ import annotations
 
 import re
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from harvester.isa_reader import Table
 
 # Rounding applied before grouping and output: about 0.1 m, and the precision
 # the corpus itself uses.
@@ -216,3 +219,127 @@ def is_place_header(core: str) -> bool:
     if any(phrase in text for phrase in _PLACE_PHRASES):
         return True
     return bool(tokens & _PLACE_WORDS)
+
+
+# ---------------------------------------------------------------------------
+# Grouping
+#
+# Grouping keys on the COORDINATE, never on a label column. Measured on
+# Teosinte: POBL has 3604 distinct values across 3604 rows (row-unique),
+# ACCESION has 276, POB has 74, and there are 276 distinct coordinate pairs.
+# Keying on POBL yields 3604 points instead of 276.
+# ---------------------------------------------------------------------------
+
+# Generic ISA identity columns: usable as a label, but only after any
+# domain-specific column has been tried.
+_GENERIC_LABEL_HEADERS = ("input [source name]", "input [sample name]")
+
+
+def points_from_tables(tables: list[Table], *, curated_role: str | None) -> list[dict]:
+    """Return locations[] entries for every coordinate pair in `tables`.
+
+    `curated_role` comes from harvester.geo_roles and applies only where a
+    header declares no role of its own. A header-declared role always wins.
+    """
+    out: list[dict] = []
+    for table in tables:
+        out.extend(_points_from_table(table, curated_role=curated_role))
+    out.sort(key=lambda p: (p["role"], p["point"]))
+    return out
+
+
+def _points_from_table(table: Table, *, curated_role: str | None) -> list[dict]:
+    axes = _axis_columns(table)
+    if not axes:
+        return []
+    labels = _label_candidates(table)
+
+    entries: list[dict] = []
+    for role, (lat_idx, lon_idx) in axes.items():
+        groups: dict[tuple[float, float], list[int]] = {}
+        lat_cells = table.columns[lat_idx]
+        lon_cells = table.columns[lon_idx]
+        for row in range(min(len(lat_cells), len(lon_cells))):
+            lat = parse_coord(lat_cells[row], axis="lat")
+            lon = parse_coord(lon_cells[row], axis="lon")
+            if lat is None or lon is None:
+                continue
+            groups.setdefault((lon, lat), []).append(row)
+
+        for (lon, lat), rows in sorted(groups.items()):
+            label, label_field = _label_for(table, labels, rows)
+            entries.append({
+                "role": role if role != "unspecified" else (curated_role or "unspecified"),
+                "label": label,
+                "label_field": label_field,
+                "point": [lon, lat],
+                "precision": "exact",
+                "n_rows": len(rows),
+                "source": table.source,
+            })
+    return entries
+
+
+def _axis_columns(table: Table) -> dict[str, tuple[int, int]]:
+    """Map each role present in `table` to its (lat index, lon index).
+
+    Latitude and longitude are paired within one table only. Verified across
+    the corpus: every ARC keeps both axes in the same sheet.
+    """
+    by_role: dict[str, dict[str, int]] = {}
+    for idx, header in enumerate(table.headers):
+        if is_structural_header(header) or idx >= len(table.columns):
+            continue
+        core = unwrap_header(header)
+        axis = axis_of(core)
+        if axis is None:
+            continue
+        role = role_from_header(core) or "unspecified"
+        by_role.setdefault(role, {})[axis] = idx
+    return {
+        role: (axes["lat"], axes["lon"])
+        for role, axes in by_role.items()
+        if "lat" in axes and "lon" in axes
+    }
+
+
+def _label_candidates(table: Table) -> list[tuple[int, str]]:
+    """Candidate label columns, domain-specific ones before generic ISA ones.
+
+    A candidate whose distinct-value count equals the row count is rejected: it
+    is a per-row identifier, not a name for a place. Teosinte's POBL is exactly
+    that (3604 of 3604).
+    """
+    specific: list[tuple[int, str]] = []
+    generic: list[tuple[int, str]] = []
+    for idx, header in enumerate(table.headers):
+        if is_structural_header(header) or idx >= len(table.columns):
+            continue
+        core = unwrap_header(header)
+        if axis_of(core) is not None:
+            continue
+        cells = [c for c in table.columns[idx] if c not in (None, "")]
+        if not cells:
+            continue
+        if len(set(cells)) == len(cells) and len(cells) > 1:
+            continue  # row-unique: an identifier, not a label
+        if header.strip().lower() in _GENERIC_LABEL_HEADERS:
+            generic.append((idx, core))
+        else:
+            specific.append((idx, core))
+    return specific + generic
+
+
+def _label_for(
+    table: Table, candidates: list[tuple[int, str]], rows: list[int]
+) -> tuple[str | None, str | None]:
+    """First candidate column that holds a single non-empty value across `rows`."""
+    for idx, core in candidates:
+        cells = table.columns[idx]
+        values = {
+            cells[r] for r in rows
+            if r < len(cells) and cells[r] not in (None, "")
+        }
+        if len(values) == 1:
+            return values.pop(), core
+    return None, None
