@@ -318,8 +318,12 @@ def _cell_text(cell) -> str | None:
     was silently dropped. cell.GetContent() returns
     [value, unit_name, unit_term_uri, unit_term_uri] instead; we want only
     the bare value at index 0. investigation.tables is consumed only by
-    harvester/extractors/location.py (verified by grep), and the unit token
-    is not read anywhere there, so dropping it loses nothing.
+    harvester/extractors/location.py (verified by grep), which drops the
+    unit token from both the coordinate-parsing path and the label path.
+    The label path is where the behaviour visibly changes: _label_for
+    publishes a candidate column's raw cell text as locations[].label, so a
+    unitized column that wins the label race now publishes a unitless value
+    instead of the unit-suffixed text it would have carried before this fix.
 
     Deliberately NOT folded into _annotation_name: that function's contract
     (OntologyAnnotation -> .Name, plain strings pass through) is relied on by

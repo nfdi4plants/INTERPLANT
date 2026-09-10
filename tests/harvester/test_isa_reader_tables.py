@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from harvester.isa_reader import Investigation, IsaReader, Table, _cell_text
+from harvester.isa_reader import Investigation, IsaReader, Table, _cell_text, _tables_of
 
 # Same committed fixture tests/harvester/test_isa_reader.py reads, with no
 # skip/gate: it ships in the repo so IsaReader can always be exercised for real.
@@ -131,3 +131,40 @@ def test_cell_text_falls_back_to_str_when_get_content_raises() -> None:
 
 def test_cell_text_falls_back_to_str_when_get_content_is_empty() -> None:
     assert _cell_text(_FakeUnitizedCellEmptyContent()) == "fallback text"
+
+
+# _tables_of: the five _cell_text tests above call the private helper
+# directly, so they stay green even if _tables_of's column loop stops
+# wiring _cell_text in (e.g. reverts to calling _annotation_name(cell)
+# instead). This drives _tables_of end to end with a fake container so the
+# call site itself is pinned, not just the helper.
+
+
+class _FakeColumn:
+    def __init__(self, cells):
+        self.Cells = cells
+
+
+class _FakeArcTable:
+    def __init__(self, name, headers, columns):
+        self.Name = name
+        self.Headers = headers
+        self.Columns = columns
+
+
+class _FakeContainer:
+    def __init__(self, tables):
+        self.Tables = tables
+
+
+def test_tables_of_reads_unitized_cell_values_through_cell_text() -> None:
+    cell = _FakeUnitizedCell(
+        ["+7.75402778", "degree", "http://purl.obolibrary.org/obo/UO_0000185"]
+    )
+    container = _FakeContainer(
+        [_FakeArcTable("flyover_2025_01", ["Parameter [Latitude]"], [_FakeColumn([cell])])]
+    )
+
+    tables = _tables_of(container, "assays/flyover_2025_01/isa.assay.xlsx")
+
+    assert tables[0].columns[0] == ["+7.75402778"]

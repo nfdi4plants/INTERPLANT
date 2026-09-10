@@ -269,6 +269,28 @@ def test_hemisphere_confirmed_swapped_columns_are_corrected(caplog) -> None:
     assert "Swapped lat/lon columns" in caplog.text
 
 
+def test_swap_warning_is_logged_once_per_table_not_once_per_row(caplog) -> None:
+    # A single-row table cannot distinguish a once-per-(table, role) warning
+    # from a buggy once-per-row one - both would log exactly once. This table
+    # has 3 hemisphere-confirmed swapped rows, each yielding a distinct point,
+    # so a per-row implementation would log 3 times while the actual
+    # once-per-(table, role) call in _points_from_table logs exactly once.
+    table = _table(
+        [
+            "Characteristic [Geographic location (latitude)]",
+            "Characteristic [Geographic location (longitude)]",
+        ],
+        [
+            ["70°47′ W", "71°00′ W", "72°30′ W"],
+            ["28°34′ S", "29°00′ S", "30°15′ S"],
+        ],
+    )
+    with caplog.at_level("WARNING", logger="harvester.extractors.location"):
+        points = points_from_tables([table], curated_role=None)
+    assert len(points) == 3
+    assert caplog.text.count("Swapped lat/lon columns") == 1
+
+
 def test_a_bare_number_pair_that_fits_either_orientation_is_not_swapped() -> None:
     # The declared "latitude" value (120.0) is out of range so the declared
     # orientation yields zero pairs, and the swapped orientation happens to be
@@ -323,9 +345,14 @@ def test_an_identical_point_repeated_across_tables_is_merged() -> None:
 
 
 def test_merge_across_tables_prefers_the_first_non_null_label() -> None:
+    # Both tables carry their own SITE column with a DIFFERENT value, so a
+    # "last wins" or "longest wins" merge would also pass a null-vs-non-null
+    # version of this test. The rule under test is specifically "first
+    # non-null label wins": sheet_a's "Puebla" must survive even though
+    # sheet_b's "Oaxaca" is seen later and merged into the same point.
     table_a = _table(
-        ["Parameter [latitude]", "Parameter [longitude]"],
-        [["18.485833"], ["-99.791667"]],
+        ["Parameter [SITE]", "Parameter [latitude]", "Parameter [longitude]"],
+        [["Puebla"], ["18.485833"], ["-99.791667"]],
         name="sheet_a",
     )
     table_b = _table(
@@ -336,7 +363,7 @@ def test_merge_across_tables_prefers_the_first_non_null_label() -> None:
     points = points_from_tables([table_a, table_b], curated_role=None)
     assert len(points) == 1
     assert points[0]["n_rows"] == 2
-    assert points[0]["label"] == "Oaxaca"
+    assert points[0]["label"] == "Puebla"
     assert points[0]["label_field"] == "SITE"
 
 

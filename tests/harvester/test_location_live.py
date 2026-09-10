@@ -91,13 +91,21 @@ def test_flyover_coordinates_come_from_an_assay_table() -> None:
     sites = [loc for loc in locations if loc["role"] == "experiment-site"]
     assert len(sites) == 1
     assert sites[0]["source"].startswith("assays/")
+    # Pins the cross-table merge sum (measured 2026-09-10): flyover_2025_01
+    # (245 rows) + flyover_2025_02 (1108 rows). len(sites) == 1 alone would
+    # still pass if the merge DROPPED an entry instead of summing it.
+    assert sites[0]["n_rows"] == 1353
 
 
 def test_quinoa_dms_values_parse() -> None:
     # 70 deg 47 min W, 28 deg 34 min S. A naive float() would put this in China.
     locations = _locations_for("usadellab/quinoa_chileanfieldtrial")
     sites = [loc for loc in locations if loc["role"] == "experiment-site"]
-    assert sites
+    # Pins the swap-corrected point measured 2026-09-10: exactly one site,
+    # parsed exactly (not merely within range by coincidence of a degraded
+    # precision).
+    assert len(sites) == 1
+    assert sites[0]["precision"] == "exact"
     lon, lat = sites[0]["point"]
     assert -71.0 < lon < -70.0
     assert -29.0 < lat < -28.0
