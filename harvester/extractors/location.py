@@ -263,7 +263,6 @@ def _points_from_table(table: Table, *, curated_role: str | None) -> list[dict]:
     axes = _axis_columns(table)
     if not axes:
         return []
-    labels = _label_candidates(table)
 
     entries: list[dict] = []
     for role, (lat_idx, lon_idx) in axes.items():
@@ -276,6 +275,11 @@ def _points_from_table(table: Table, *, curated_role: str | None) -> list[dict]:
             if lat is None or lon is None:
                 continue
             groups.setdefault((lon, lat), []).append(row)
+
+        # Table-wide-constant rejection (in _label_candidates) only makes
+        # sense when this role has more than one point to discriminate
+        # between - see that function's docstring.
+        labels = _label_candidates(table, many_groups=len(groups) > 1)
 
         for (lon, lat), rows in sorted(groups.items()):
             label, label_field = _label_for(table, labels, rows)
@@ -330,23 +334,28 @@ def _axis_columns(table: Table) -> dict[str, tuple[int, int]]:
     }
 
 
-def _label_candidates(table: Table) -> list[tuple[int, str]]:
+def _label_candidates(table: Table, *, many_groups: bool) -> list[tuple[int, str]]:
     """Candidate label columns, domain-specific ones before generic ISA ones.
 
-    Two shapes are rejected as unusable labels, both measured on Teosinte:
+    Row-unique columns are always rejected: the column's distinct non-blank
+    value count equals the table's ROW count (not the non-blank cell count),
+    so a per-row identifier is rejected without penalising a sparse-but-good
+    column that happens to have all-distinct non-blank values. POBL is the
+    motivating case: 3604 distinct values across 3604 rows.
 
-    - Row-unique: the column's distinct non-blank value count equals the
-      table's ROW count (not the non-blank cell count), so a per-row
-      identifier is rejected without penalising a sparse-but-good column that
-      happens to have all-distinct non-blank values. POBL is the motivating
-      case: 3604 distinct values across 3604 rows.
-    - Table-wide constant: every non-blank value in the column is identical
-      across the whole table. That names the dataset, not the site, so it
-      carries zero discriminating information as a per-point label.
-      Parameter [Species] is the motivating case: 2-3 values shared across
-      all 3604 rows and constant within every collection site, so left
-      unchecked it would win as the label for all 276 points ahead of
-      ESTADO/ACCESION.
+    Table-wide-constant columns (every non-blank value identical across the
+    whole table) are rejected only when `many_groups` is true - i.e. only
+    when this role has more than one coordinate group to discriminate
+    between. A constant column cannot discriminate between multiple points,
+    so it is a bad label when there is more than one point; with exactly one
+    point there is nothing to discriminate, and a constant column is the
+    correct label, not a degenerate one (the common single-field-trial shape,
+    where every good label column - ACCESION, SITE, Source Name - is
+    constant across the table by construction). Teosinte's Parameter
+    [Species] is the motivating case for the rejection: 2-3 values shared
+    across all 3604 rows and constant within every one of its 276 sites, so
+    left unchecked it would win as the label for every point ahead of
+    ESTADO/ACCESION.
     """
     specific: list[tuple[int, str]] = []
     generic: list[tuple[int, str]] = []
@@ -362,8 +371,8 @@ def _label_candidates(table: Table) -> list[tuple[int, str]]:
             continue
         if len(set(cells)) == len(column) and len(column) > 1:
             continue  # row-unique across the table: an identifier, not a label
-        if len(set(cells)) == 1 and len(cells) > 1:
-            continue  # table-wide constant: names the dataset, not the site
+        if many_groups and len(set(cells)) == 1 and len(cells) > 1:
+            continue  # table-wide constant: cannot discriminate between points
         lowered = header.strip().lower()
         if lowered in _GENERIC_LABEL_HEADERS:
             generic.append((idx, _GENERIC_LABEL_HEADERS[lowered]))

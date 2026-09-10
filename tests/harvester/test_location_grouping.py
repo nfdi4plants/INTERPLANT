@@ -35,25 +35,28 @@ def test_distinct_coordinates_yield_distinct_points() -> None:
 
 
 def test_a_row_unique_label_column_does_not_inflate_the_point_count() -> None:
-    # REGRESSION: Teosinte's POBL is row-unique (3604 of 3604). Grouping
-    # label-first on it produced 3604 points instead of 276. ACCESION varies
-    # across the table (2 values here, 276 in the real corpus) but is
-    # constant within a single site's rows, which is what makes it usable.
+    # REGRESSION (permanent guard, single-group shape): Teosinte's POBL is
+    # row-unique (3604 of 3604). Grouping label-first on it produced 3604
+    # points instead of 276. This table has exactly ONE coordinate group, so
+    # ACCESION is constant across every row by construction - the common
+    # single-field-trial shape - and must still be used as the label: a
+    # constant column is only rejected when there is more than one point to
+    # discriminate between (see _label_candidates).
     table = _table(
         ["Parameter [POBL]", "Parameter [ACCESION]", "Parameter [latitude]",
          "Parameter [longitude]"],
         [
-            ["BIXC_100_10", "BIXC_100_11", "BIXC_100_12", "BIXC_200_1"],  # row-unique
-            ["ACC-1", "ACC-1", "ACC-1", "ACC-2"],  # varies table-wide, constant per site
-            ["18.485833", "18.485833", "18.485833", "20.0"],
-            ["-99.791667", "-99.791667", "-99.791667", "-100.0"],
+            ["BIXC_100_10", "BIXC_100_11", "BIXC_100_12"],   # row-unique: rejected
+            ["ACC-1", "ACC-1", "ACC-1"],                      # constant: usable label
+            ["18.485833", "18.485833", "18.485833"],
+            ["-99.791667", "-99.791667", "-99.791667"],
         ],
     )
     points = points_from_tables([table], curated_role=None)
-    assert len(points) == 2
-    site = next(p for p in points if p["n_rows"] == 3)
-    assert site["label"] == "ACC-1"
-    assert site["label_field"] == "ACCESION"
+    assert len(points) == 1
+    assert points[0]["n_rows"] == 3
+    assert points[0]["label"] == "ACC-1"
+    assert points[0]["label_field"] == "ACCESION"
 
 
 def test_table_wide_constant_label_column_loses_to_a_varying_one() -> None:
