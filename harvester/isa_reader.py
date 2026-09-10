@@ -190,7 +190,7 @@ def _tables_of(container, file_path: str) -> list[Table]:
             for column in (getattr(table, "Columns", None) or []):
                 columns.append(
                     [
-                        _annotation_name(cell)
+                        _cell_text(cell)
                         for cell in (getattr(column, "Cells", None) or [])
                     ]
                 )
@@ -305,6 +305,35 @@ def _assay_from(assay) -> Assay:
         technology_type=technology_type,
         technology_platform=technology_platform,
     )
+
+
+def _cell_text(cell) -> str | None:
+    """Return the display text of one ArcTable cell, used only by _tables_of.
+
+    Measured on agdafair/flyover_redacted's coordinate columns: arctrl wraps a
+    cell carrying a unit annotation (there, the UO degree term) in a
+    CompositeCell with `is_unitized=True`. str(cell) on such a cell appends
+    the unit name ('+7.75402778 degree'), which the location extractor's
+    anchored _COORD_VALUE regex then rejects outright, so every flyover row
+    was silently dropped. cell.GetContent() returns
+    [value, unit_name, unit_term_uri, unit_term_uri] instead; we want only
+    the bare value at index 0. investigation.tables is consumed only by
+    harvester/extractors/location.py (verified by grep), and the unit token
+    is not read anywhere there, so dropping it loses nothing.
+
+    Deliberately NOT folded into _annotation_name: that function's contract
+    (OntologyAnnotation -> .Name, plain strings pass through) is relied on by
+    the organism, license and assay-type paths, which never see unitized
+    cells and must not change behaviour.
+    """
+    if getattr(cell, "is_unitized", False):
+        try:
+            content = cell.GetContent()
+            if content:
+                return _str_or_none(content[0])
+        except Exception:  # noqa: BLE001 - fall back to the plain-string path below
+            pass
+    return _annotation_name(cell)
 
 
 def _annotation_name(value) -> str | None:

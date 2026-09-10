@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from harvester.isa_reader import Investigation, IsaReader, Table
+from harvester.isa_reader import Investigation, IsaReader, Table, _cell_text
 
 # Same committed fixture tests/harvester/test_isa_reader.py reads, with no
 # skip/gate: it ships in the repo so IsaReader can always be exercised for real.
@@ -56,3 +56,78 @@ def test_reader_collects_tables_from_both_studies_and_assays() -> None:
     )
     organism_index = cell_cultivation.headers.index("Characteristic [organism]")
     assert "Arabidopsis thaliana" in cell_cultivation.columns[organism_index]
+
+
+# _cell_text: the value-extraction helper _tables_of's column loop uses instead
+# of _annotation_name, so a unitized coordinate cell (flyover_redacted) yields
+# its bare value instead of "<value> <unit>".
+
+
+class _FakeUnitizedCell:
+    """Stands in for an arctrl CompositeCell with is_unitized=True.
+
+    Real shape measured on agdafair/flyover_redacted: str(cell) ==
+    '+7.75402778 degree', cell.GetContent() ==
+    ['+7.75402778', 'degree', '<UO term uri>', '<UO term uri>'].
+    """
+
+    is_unitized = True
+
+    def __init__(self, content):
+        self._content = content
+
+    def __str__(self) -> str:
+        return "+7.75402778 degree"
+
+    def GetContent(self):
+        return self._content
+
+
+class _FakeUnitizedCellRaising:
+    is_unitized = True
+
+    def __str__(self) -> str:
+        return "fallback text"
+
+    def GetContent(self):
+        raise RuntimeError("unexpected GetContent shape")
+
+
+class _FakeUnitizedCellEmptyContent:
+    is_unitized = True
+
+    def __str__(self) -> str:
+        return "fallback text"
+
+    def GetContent(self):
+        return []
+
+
+class _FakeOntologyAnnotation:
+    Name = "Arabidopsis thaliana"
+
+    def __str__(self) -> str:
+        return "{Name = Arabidopsis thaliana; TSR = ...; TAN = ...}"
+
+
+def test_cell_text_returns_the_bare_value_of_a_unitized_cell() -> None:
+    cell = _FakeUnitizedCell(
+        ["+7.75402778", "degree", "http://purl.obolibrary.org/obo/UO_0000185"]
+    )
+    assert _cell_text(cell) == "+7.75402778"
+
+
+def test_cell_text_passes_plain_strings_through_unchanged() -> None:
+    assert _cell_text("Arabidopsis thaliana") == "Arabidopsis thaliana"
+
+
+def test_cell_text_still_extracts_name_from_an_ontology_annotation() -> None:
+    assert _cell_text(_FakeOntologyAnnotation()) == "Arabidopsis thaliana"
+
+
+def test_cell_text_falls_back_to_str_when_get_content_raises() -> None:
+    assert _cell_text(_FakeUnitizedCellRaising()) == "fallback text"
+
+
+def test_cell_text_falls_back_to_str_when_get_content_is_empty() -> None:
+    assert _cell_text(_FakeUnitizedCellEmptyContent()) == "fallback text"
