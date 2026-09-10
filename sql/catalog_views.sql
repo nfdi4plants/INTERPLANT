@@ -18,3 +18,33 @@ SELECT
     ELSE ST_SetSRID(ST_GeomFromGeoJSON(payload->'geometry'), 4326)
   END                                                              AS geom
 FROM public.records;
+
+-- One row per extracted or derived location point. Teosinte's 276 collection
+-- sites become 276 rows here, which is what /collections/arc-locations serves.
+--
+-- Records whose payload has an empty locations array contribute no rows: the
+-- LATERAL join over jsonb_array_elements yields nothing, which is the intended
+-- behaviour for the ~23% of ARCs with no location at all.
+--
+-- payload point is [longitude, latitude], matching GeoJSON. ST_MakePoint takes
+-- (x, y) = (longitude, latitude), so element 0 comes first.
+CREATE OR REPLACE VIEW public.arc_locations AS
+SELECT
+  r.id                                                             AS record_id,
+  loc->>'role'                                                     AS role,
+  loc->>'label'                                                    AS label,
+  loc->>'precision'                                                AS precision,
+  (loc->>'n_rows')::int                                            AS n_rows,
+  loc->>'source'                                                   AS source,
+  ST_SetSRID(
+    ST_MakePoint(
+      (loc->'point'->>0)::double precision,
+      (loc->'point'->>1)::double precision
+    ),
+    4326
+  )                                                                AS geom
+FROM public.records r
+CROSS JOIN LATERAL jsonb_array_elements(
+  COALESCE(r.payload->'properties'->'locations', '[]'::jsonb)
+) AS loc
+WHERE loc->'point' IS NOT NULL;
