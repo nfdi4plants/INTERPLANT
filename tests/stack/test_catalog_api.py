@@ -17,6 +17,7 @@ FIXTURES_ROOT = Path(__file__).parent.parent / "fixtures" / "arcs"
 
 ALL_COLLECTIONS = {
     "arc-records",
+    "arc-locations",
     "dataplant-proteomics", "dataplant-transcriptomics", "dataplant-genomics",
     "dataplant-metabolomics", "dataplant-phenotyping", "dataplant-imaging",
     "dataplant-microbiome",

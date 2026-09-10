@@ -24,6 +24,8 @@ _GENERATED_NOTE = (
     "# GENERATED FILE - do not edit. Edit catalog/collections/*.yaml or\n"
     "# pygeoapi-config.base.yml and run `make catalog-gen`.\n"
 )
+LOCATIONS_DESCRIPTOR = DESCRIPTOR_DIR / "arc-locations.yaml"
+_LOCATION_PROPERTIES = ["record_id", "role", "label", "precision", "n_rows", "source"]
 _SQL_NOTE = (
     "-- GENERATED FILE - do not edit. Edit catalog/collections/*.yaml and run\n"
     "-- `make catalog-gen`. Per-domain filter views over the base arc_records view.\n"
@@ -99,6 +101,39 @@ def build_resource(descriptor: dict) -> dict:
     }
 
 
+def build_locations_resource(descriptor: dict) -> dict:
+    """pygeoapi resource for the arc_locations view.
+
+    A `feature` provider, not `record`: this collection serves geodata, one
+    Feature per point, and has no omics query_rule. The extent stays
+    world-wide, deliberately - see docs/specs/collection-schema.md.
+    """
+    return {
+        "type": "collection",
+        "title": descriptor["title"],
+        "description": descriptor["description"].strip(),
+        "keywords": descriptor["keywords"],
+        "extents": {
+            "spatial": {
+                "bbox": list(descriptor["extent"]["spatial"]["bbox"][0]),
+                "crs": "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
+            }
+        },
+        "links": [],
+        "providers": [
+            {
+                "type": "feature",
+                "name": "PostgreSQL",
+                "data": dict(_DB),
+                "id_field": "record_id",
+                "table": "arc_locations",
+                "geom_field": "geom",
+                "properties": list(_LOCATION_PROPERTIES),
+            }
+        ],
+    }
+
+
 def render_sql(descriptors: list[dict]) -> str:
     lines = [build_view_sql(d) for d in descriptors]
     return _SQL_NOTE + "\n" + "\n".join(lines) + "\n"
@@ -109,6 +144,16 @@ def render_config(descriptors: list[dict], base_text: str) -> str:
     for desc in descriptors:
         block = yaml.safe_dump(
             {desc["id"]: build_resource(desc)},
+            sort_keys=False,
+            default_flow_style=False,
+            allow_unicode=True,
+            width=1000,
+        )
+        blocks.append("  " + block.replace("\n", "\n  ").rstrip() + "\n")
+    if LOCATIONS_DESCRIPTOR.exists():
+        locations = yaml.safe_load(LOCATIONS_DESCRIPTOR.read_text())
+        block = yaml.safe_dump(
+            {locations["id"]: build_locations_resource(locations)},
             sort_keys=False,
             default_flow_style=False,
             allow_unicode=True,
