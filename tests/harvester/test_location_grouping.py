@@ -36,22 +36,128 @@ def test_distinct_coordinates_yield_distinct_points() -> None:
 
 def test_a_row_unique_label_column_does_not_inflate_the_point_count() -> None:
     # REGRESSION: Teosinte's POBL is row-unique (3604 of 3604). Grouping
-    # label-first on it produced 3604 points instead of 276.
+    # label-first on it produced 3604 points instead of 276. ACCESION varies
+    # across the table (2 values here, 276 in the real corpus) but is
+    # constant within a single site's rows, which is what makes it usable.
     table = _table(
         ["Parameter [POBL]", "Parameter [ACCESION]", "Parameter [latitude]",
          "Parameter [longitude]"],
         [
-            ["BIXC_100_10", "BIXC_100_11", "BIXC_100_12"],   # row-unique: rejected
-            ["ACC-1", "ACC-1", "ACC-1"],                      # constant: usable label
-            ["18.485833", "18.485833", "18.485833"],
-            ["-99.791667", "-99.791667", "-99.791667"],
+            ["BIXC_100_10", "BIXC_100_11", "BIXC_100_12", "BIXC_200_1"],  # row-unique
+            ["ACC-1", "ACC-1", "ACC-1", "ACC-2"],  # varies table-wide, constant per site
+            ["18.485833", "18.485833", "18.485833", "20.0"],
+            ["-99.791667", "-99.791667", "-99.791667", "-100.0"],
         ],
     )
     points = points_from_tables([table], curated_role=None)
+    assert len(points) == 2
+    site = next(p for p in points if p["n_rows"] == 3)
+    assert site["label"] == "ACC-1"
+    assert site["label_field"] == "ACCESION"
+
+
+def test_table_wide_constant_label_column_loses_to_a_varying_one() -> None:
+    # Teosinte carries Parameter [Species]: 2-3 values shared across all 3604
+    # rows and constant within any single site, preceding ESTADO/ACCESION in
+    # header order. Unchecked, it would win as the label for every point
+    # instead of the column that actually names the site.
+    table = _table(
+        ["Parameter [Species]", "Parameter [ESTADO]", "Parameter [latitude]",
+         "Parameter [longitude]"],
+        [
+            ["Zea mays", "Zea mays", "Zea mays", "Zea mays"],  # table-wide constant
+            ["Oaxaca", "Oaxaca", "Oaxaca", "Jalisco"],
+            ["18.485833", "18.485833", "18.485833", "20.0"],
+            ["-99.791667", "-99.791667", "-99.791667", "-100.0"],
+        ],
+    )
+    points = points_from_tables([table], curated_role=None)
+    assert len(points) == 2
+    site = next(p for p in points if p["n_rows"] == 3)
+    assert site["label"] == "Oaxaca"
+    assert site["label_field"] == "ESTADO"
+
+
+def test_a_sparse_label_column_is_not_treated_as_row_unique() -> None:
+    # REGRESSION: row-uniqueness must compare against the table's row count,
+    # not the non-blank cell count. A sparse column with all-distinct
+    # non-blank values (2 distinct values in 2 non-blank cells out of 5 rows)
+    # used to be rejected as if it were a per-row identifier.
+    table = _table(
+        ["Parameter [SITE]", "Parameter [latitude]", "Parameter [longitude]"],
+        [
+            ["Site-A", "Site-B", None, None, None],
+            ["18.485833", "20.0", "18.485833", "20.0", "18.485833"],
+            ["-99.791667", "-100.0", "-99.791667", "-100.0", "-99.791667"],
+        ],
+    )
+    points = points_from_tables([table], curated_role=None)
+    site_a = next(p for p in points if p["n_rows"] == 3)
+    assert site_a["label"] == "Site-A"
+    assert site_a["label_field"] == "SITE"
+
+
+def test_generic_tier_label_field_is_bare_like_the_specific_tier() -> None:
+    # unwrap_header does not strip "Input [...]" (only Parameter/
+    # Characteristic/Factor/Comment/Component), so the generic tier needs its
+    # own bare-name mapping to match the specific tier's shape (e.g.
+    # "ACCESION", not "Parameter [ACCESION]").
+    table = _table(
+        ["Input [Source Name]", "Parameter [latitude]", "Parameter [longitude]"],
+        [
+            ["SRC-1", "SRC-1", "SRC-1", "SRC-2"],
+            ["18.485833", "18.485833", "18.485833", "20.0"],
+            ["-99.791667", "-99.791667", "-99.791667", "-100.0"],
+        ],
+    )
+    points = points_from_tables([table], curated_role=None)
+    site = next(p for p in points if p["n_rows"] == 3)
+    assert site["label"] == "SRC-1"
+    assert site["label_field"] == "Source Name"
+
+
+def test_a_row_with_only_one_axis_parseable_is_dropped_entirely() -> None:
+    # The existing unparseable-rows test makes both axes fail together; this
+    # exercises the half-parsed path, where one axis is fine and the other is
+    # not within the same row.
+    table = _table(
+        ["Parameter [latitude]", "Parameter [longitude]"],
+        [["18.485833", "20.0"], ["not-a-number", "-100.0"]],
+    )
+    points = points_from_tables([table], curated_role=None)
     assert len(points) == 1
-    assert points[0]["n_rows"] == 3
-    assert points[0]["label"] == "ACC-1"
-    assert points[0]["label_field"] == "ACCESION"
+    assert points[0]["point"] == [-100.0, 20.0]
+
+
+def test_a_duplicate_axis_column_keeps_the_first_and_logs_the_discard(caplog) -> None:
+    table = _table(
+        ["Parameter [latitude]", "Parameter [latitude]", "Parameter [longitude]"],
+        [["18.485833"], ["99.0"], ["-99.791667"]],
+    )
+    with caplog.at_level("WARNING"):
+        points = points_from_tables([table], curated_role=None)
+    assert len(points) == 1
+    assert points[0]["point"] == [-99.791667, 18.485833]  # first latitude column wins
+    assert "Duplicate lat column" in caplog.text
+
+
+def test_multiple_tables_are_combined_and_sorted_across_tables() -> None:
+    table_a = _table(
+        ["Parameter [Material source latitude]", "Parameter [Material source longitude]"],
+        [["48.0"], ["11.0"]],
+        name="sheet_a",
+    )
+    table_b = _table(
+        ["Parameter [Biological material latitude]", "Parameter [Biological material longitude]"],
+        [["6.0"], ["51.0"]],
+        name="sheet_b",
+    )
+    points = points_from_tables([table_a, table_b], curated_role=None)
+    assert len(points) == 2
+    assert points[0]["role"] == "material-origin"
+    assert points[0]["point"] == [51.0, 6.0]
+    assert points[1]["role"] == "material-source"
+    assert points[1]["point"] == [11.0, 48.0]
 
 
 def test_label_is_null_when_no_candidate_qualifies() -> None:

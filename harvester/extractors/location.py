@@ -11,11 +11,14 @@ substring matching over-counted place names by a factor of four.
 """
 from __future__ import annotations
 
+import logging
 import re
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from harvester.isa_reader import Table
+
+logger = logging.getLogger(__name__)
 
 # Rounding applied before grouping and output: about 0.1 m, and the precision
 # the corpus itself uses.
@@ -231,8 +234,16 @@ def is_place_header(core: str) -> bool:
 # ---------------------------------------------------------------------------
 
 # Generic ISA identity columns: usable as a label, but only after any
-# domain-specific column has been tried.
-_GENERIC_LABEL_HEADERS = ("input [source name]", "input [sample name]")
+# domain-specific column has been tried. Mapped to the bare field name
+# because unwrap_header only strips Parameter/Characteristic/Factor/Comment/
+# Component wrappers, not "Input [...]" - without this map, a generic-tier
+# label_field would come back as the raw "Input [Source Name]" string while
+# every specific-tier label_field is bare (e.g. "ACCESION"), and label_field
+# is user-visible and exploded into a SQL view column by Task 11.
+_GENERIC_LABEL_HEADERS = {
+    "input [source name]": "Source Name",
+    "input [sample name]": "Sample Name",
+}
 
 
 def points_from_tables(tables: list[Table], *, curated_role: str | None) -> list[dict]:
@@ -285,6 +296,10 @@ def _axis_columns(table: Table) -> dict[str, tuple[int, int]]:
 
     Latitude and longitude are paired within one table only. Verified across
     the corpus: every ARC keeps both axes in the same sheet.
+
+    The FIRST column for a given (role, axis) wins; a later duplicate (e.g.
+    two `Parameter [latitude]` columns under the same role) is discarded with
+    a warning rather than silently overwriting the first one's index.
     """
     by_role: dict[str, dict[str, int]] = {}
     for idx, header in enumerate(table.headers):
@@ -295,7 +310,19 @@ def _axis_columns(table: Table) -> dict[str, tuple[int, int]]:
         if axis is None:
             continue
         role = role_from_header(core) or "unspecified"
-        by_role.setdefault(role, {})[axis] = idx
+        role_axes = by_role.setdefault(role, {})
+        if axis in role_axes:
+            logger.warning(
+                "Duplicate %s column for role %s in %s: keeping column %d, "
+                "discarding column %d",
+                axis,
+                role,
+                table.source,
+                role_axes[axis],
+                idx,
+            )
+            continue
+        role_axes[axis] = idx
     return {
         role: (axes["lat"], axes["lon"])
         for role, axes in by_role.items()
@@ -306,9 +333,20 @@ def _axis_columns(table: Table) -> dict[str, tuple[int, int]]:
 def _label_candidates(table: Table) -> list[tuple[int, str]]:
     """Candidate label columns, domain-specific ones before generic ISA ones.
 
-    A candidate whose distinct-value count equals the row count is rejected: it
-    is a per-row identifier, not a name for a place. Teosinte's POBL is exactly
-    that (3604 of 3604).
+    Two shapes are rejected as unusable labels, both measured on Teosinte:
+
+    - Row-unique: the column's distinct non-blank value count equals the
+      table's ROW count (not the non-blank cell count), so a per-row
+      identifier is rejected without penalising a sparse-but-good column that
+      happens to have all-distinct non-blank values. POBL is the motivating
+      case: 3604 distinct values across 3604 rows.
+    - Table-wide constant: every non-blank value in the column is identical
+      across the whole table. That names the dataset, not the site, so it
+      carries zero discriminating information as a per-point label.
+      Parameter [Species] is the motivating case: 2-3 values shared across
+      all 3604 rows and constant within every collection site, so left
+      unchecked it would win as the label for all 276 points ahead of
+      ESTADO/ACCESION.
     """
     specific: list[tuple[int, str]] = []
     generic: list[tuple[int, str]] = []
@@ -318,13 +356,17 @@ def _label_candidates(table: Table) -> list[tuple[int, str]]:
         core = unwrap_header(header)
         if axis_of(core) is not None:
             continue
-        cells = [c for c in table.columns[idx] if c not in (None, "")]
+        column = table.columns[idx]
+        cells = [c for c in column if c not in (None, "")]
         if not cells:
             continue
-        if len(set(cells)) == len(cells) and len(cells) > 1:
-            continue  # row-unique: an identifier, not a label
-        if header.strip().lower() in _GENERIC_LABEL_HEADERS:
-            generic.append((idx, core))
+        if len(set(cells)) == len(column) and len(column) > 1:
+            continue  # row-unique across the table: an identifier, not a label
+        if len(set(cells)) == 1 and len(cells) > 1:
+            continue  # table-wide constant: names the dataset, not the site
+        lowered = header.strip().lower()
+        if lowered in _GENERIC_LABEL_HEADERS:
+            generic.append((idx, _GENERIC_LABEL_HEADERS[lowered]))
         else:
             specific.append((idx, core))
     return specific + generic
