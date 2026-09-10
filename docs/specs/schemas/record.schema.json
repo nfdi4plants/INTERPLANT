@@ -107,6 +107,7 @@
         "keywords", "license",
         "arc_source_uri", "uniqueId",
         "record_quality", "harvested_at", "harvester_version",
+        "location_status", "locations",
         "contacts", "creators", "publications",
         "omics_domains", "experiment_context", "organism", "project",
         "studies", "assays"
@@ -126,6 +127,38 @@
         "record_quality":    { "enum": ["complete", "partial"] },
         "harvested_at":      { "type": "string", "format": "date-time" },
         "harvester_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$" },
+        "location_status": {
+          "$comment": "Which tier of the precedence chain supplied `geometry`.",
+          "enum": ["extracted", "geocoded", "institution", "absent"]
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["role", "point", "precision", "n_rows", "source"],
+            "properties": {
+              "role": {
+                "enum": [
+                  "experiment-site", "material-origin", "material-source",
+                  "collection-site", "stated-place", "custodian-institution",
+                  "unspecified"
+                ]
+              },
+              "label":       { "type": ["string", "null"] },
+              "label_field": { "type": ["string", "null"] },
+              "point": {
+                "$comment": "GeoJSON axis order: [longitude, latitude].",
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": { "type": "number" }
+              },
+              "precision": { "enum": ["exact", "admin1", "country", "institution"] },
+              "n_rows":    { "type": "integer", "minimum": 1 },
+              "source":    { "type": "string" }
+            }
+          }
+        },
         "contacts":          { "type": "array", "items": { "$ref": "#/$defs/Person" } },
         "creators":          { "type": "array", "items": { "$ref": "#/$defs/Person" } },
         "publications":      { "type": "array", "items": { "$ref": "#/$defs/Publication" } },

@@ -19,7 +19,7 @@ Every collection is described by one YAML file. Required keys:
 | `license`    | string | SPDX identifier preferred. |
 | `axis`       | enum   | `omics` or `experiment_context`. Identifies which collection axis this belongs to. |
 | `provider`   | object | `{ name, url }`. Usually DataPLANT. |
-| `extent`     | object | `spatial.bbox` + `temporal.interval`. Initial world-wide bbox is tightened dynamically by the catalog API. |
+| `extent`     | object | `spatial.bbox` + `temporal.interval`. The bbox stays world-wide and is NOT narrowed: a bbox is a superset hint, and one computed from a past harvest can exclude an ARC harvested later, causing a client to skip a collection that does contain matching records. |
 | `links`      | array  | `describedby`, `items`, `related` at minimum. |
 | `query_rule` | string | SQL `WHERE` fragment over `arc_records.properties`. |
 

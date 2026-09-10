@@ -3,10 +3,7 @@
   "type": "Feature",
   "conformsTo": ["http://www.opengis.net/spec/ogcapi-records-1/1.0/conf/core"],
   "time": { "interval": ["2020-04-01T00:00:00Z", "2024-09-30T00:00:00Z"] },
-  "geometry": {
-    "type": "Point",
-    "coordinates": [-3.2147, 56.4577]
-  },
+  "geometry": { "type": "Point", "coordinates": [6.7926, 51.1889] },
   "properties": {
     "title": "JHI Barley Field Trial",
     "description": "MIAPPE-structured multi-year observation-unit trial at the James Hutton Institute.",
@@ -49,7 +46,20 @@
 
     "record_quality": "complete",
     "harvested_at": "2026-05-14T03:00:00Z",
-    "harvester_version": "0.3.0"
+    "harvester_version": "0.3.0",
+
+    "location_status": "extracted",
+    "locations": [
+      {
+        "role": "experiment-site",
+        "label": "Campus Klein-Altendorf",
+        "label_field": "Experimental site name",
+        "point": [6.7926, 51.1889],
+        "precision": "exact",
+        "n_rows": 24,
+        "source": "studies/field_trial/isa.study.xlsx#plots"
+      }
+    ]
   },
   "links": [
     { "rel": "self", "href": "https://interplant.example.org/collections/dataplant-field-trials/items/jhi-barley-trial" },

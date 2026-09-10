@@ -42,7 +42,10 @@
 
     "record_quality": "partial",
     "harvested_at": "2026-05-14T03:00:00Z",
-    "harvester_version": "0.3.0"
+    "harvester_version": "0.3.0",
+
+    "location_status": "absent",
+    "locations": []
   },
   "links": [
     { "rel": "self", "href": "https://interplant.example.org/collections/dataplant-transcriptomics/items/example-partial-arc" },
