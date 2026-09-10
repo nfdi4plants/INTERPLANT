@@ -19,7 +19,7 @@
 | `properties.description` | `description` | copy |
 | `properties.created` | `date` | copy |
 | `time.interval` | `temporalCoverage` | wrap as `{lower, upper}` when both bounds non-null; omit otherwise |
-| `geometry` | `geometry` | copy; omit key when null |
+| `geometry` | `geometry` | copy; omit key when null. Record geometry is a Point or MultiPoint derived from properties.locations. |
 | `properties.keywords` | `keywords.topics[]` | wrap each as `{type:"topic", name, description:""}` |
 | `properties.omics_domains` | `keywords.omics[]` | wrap each as `{type:"omics", name, description:""}` |
 | `properties.experiment_context` | `keywords.contexts[]` | wrap as single `{type:"context", name, description:""}` |
@@ -28,7 +28,7 @@
 | `properties.contacts[].role` | `persons.<role>[]` | one person per role bucket; ORCID moved into `identifiers.orcid` |
 | `properties.creators` | `persons.author[]` | append to the `author` bucket |
 | `properties.assays[]` | `devices[]` | each assay → `{id, name: instrument_name || domain, type:"instrument", metadata:{domain}}` |
-| `properties.studies[]` | `events[]` | each study → `{id, type:"study", begin, end, geometry}` (geometry only when record-level geometry exists) |
+| `properties.studies[]` | `events[]` | each study -> `{id, type:"study", begin, end, geometry}` (geometry is the study's own points when its locations name it, else the record geometry) |
 | `properties.arc_source_uri` | `resources[]` | `{title:"ARC source", type:"relation", uri, metadata:{relationType:"source"}}` |
 | `properties.publications[]` | `resources[]` | `{title: pub.title, type:"relation", uri:"https://doi.org/<doi>", metadata:{relationType:"isDocumentedBy"}}` |
 | _(constant)_ | `organisations` | fixed `{provider:[DataPLANT], datacenter:[FZJ]}`; see `oai/mapping.py:ORGANISATIONS` |
@@ -86,4 +86,7 @@ Both must pass in CI.
 - `order` — no cross-record ordering; omitted.
 - `source` — fulltext pass-through; deferred.
 - `organisations` — implemented as a constant (provider DataPLANT, datacenter FZJ), confirmed with AWI 2026-08-10. ROR identifiers remain deferred (see open question #5).
-- Per-study event geometry — `events[]` carries record-level geometry only. Field-trial ARCs with multiple studies at different sites collapse to one geometry in v1; per-study geometry is a v2 enhancement.
+- Per-study event geometry - IMPLEMENTED. A location's `source` names the study
+  it came from (`studies/<identifier>/...`), so field-trial ARCs with studies at
+  different sites now carry distinct per-event geometry. Points from `assays/`
+  or from a fallback tier have no study attribution and stay on the record only.

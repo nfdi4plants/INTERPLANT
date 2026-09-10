@@ -31,6 +31,38 @@ ORGANISATIONS: dict[str, list[dict[str, Any]]] = {
 }
 
 
+def _geometry_by_study(locations: list[dict]) -> dict[str, dict]:
+    """Group location points by the study identifier in their source path.
+
+    A source reads "studies/<identifier>/isa.study.xlsx#<sheet>", so the second
+    path segment attributes a point to a study. Points from assays/ or from a
+    fallback tier (source "affiliation" or "place-name") carry no study
+    attribution and stay on the record only.
+    """
+    by_study: dict[str, list[list[float]]] = {}
+    for loc in locations:
+        source = loc.get("source") or ""
+        if not source.startswith("studies/"):
+            continue
+        parts = source.split("/")
+        if len(parts) < 2 or not parts[1]:
+            continue
+        point = [float(loc["point"][0]), float(loc["point"][1])]
+        coords = by_study.setdefault(parts[1], [])
+        if point not in coords:
+            coords.append(point)
+
+    out: dict[str, dict] = {}
+    for study_id, coords in by_study.items():
+        coords.sort()
+        out[study_id] = (
+            {"type": "Point", "coordinates": coords[0]}
+            if len(coords) == 1
+            else {"type": "MultiPoint", "coordinates": coords}
+        )
+    return out
+
+
 def map_record(record: dict[str, Any]) -> dict[str, Any]:
     p = record["properties"]
 
@@ -76,6 +108,8 @@ def map_record(record: dict[str, Any]) -> dict[str, Any]:
         for a in p.get("assays", [])
     ]
 
+    study_geometry = _geometry_by_study(p.get("locations", []))
+
     events: list[dict] = []
     for study in p.get("studies", []):
         event: dict[str, Any] = {
@@ -86,7 +120,12 @@ def map_record(record: dict[str, Any]) -> dict[str, Any]:
             event["begin"] = record["time"]["interval"][0]
         if record.get("time", {}).get("interval", [None, None])[1]:
             event["end"] = record["time"]["interval"][1]
-        if record.get("geometry"):
+        # Per-study geometry where the points name a study; otherwise the
+        # record geometry. Closes the v2 item parked in portal-mapping.md.
+        own = study_geometry.get(study["id"])
+        if own is not None:
+            event["geometry"] = own
+        elif record.get("geometry"):
             event["geometry"] = record["geometry"]
         events.append(event)
 
