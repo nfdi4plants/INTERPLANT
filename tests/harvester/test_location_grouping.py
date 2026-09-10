@@ -248,6 +248,56 @@ def test_a_table_with_only_one_axis_yields_nothing() -> None:
     assert points_from_tables([table], curated_role=None) == []
 
 
+def test_hemisphere_confirmed_swapped_columns_are_corrected(caplog) -> None:
+    # Measured on usadellab/quinoa_chileanfieldtrial: the "latitude" column
+    # holds '70°47′ W' and the "longitude" column holds '28°34′ S'. parse_coord
+    # rejects both in the declared orientation (hemisphere contradicts axis),
+    # but each parses cleanly on the OTHER axis, and the hemisphere letters
+    # confirm the swap rather than merely permitting it numerically.
+    table = _table(
+        [
+            "Characteristic [Geographic location (latitude)]",
+            "Characteristic [Geographic location (longitude)]",
+        ],
+        [["70°47′ W"], ["28°34′ S"]],
+    )
+    with caplog.at_level("WARNING"):
+        points = points_from_tables([table], curated_role=None)
+    assert len(points) == 1
+    assert points[0]["role"] == "experiment-site"
+    assert points[0]["point"] == [-70.783333, -28.566667]
+    assert "Swapped lat/lon columns" in caplog.text
+
+
+def test_a_bare_number_pair_that_fits_either_orientation_is_not_swapped() -> None:
+    # The declared "latitude" value (120.0) is out of range so the declared
+    # orientation yields zero pairs, and the swapped orientation happens to be
+    # numerically plausible (120.0 is a valid longitude, 45.0 a valid
+    # latitude) - but neither raw value carries a hemisphere letter, so this
+    # must NOT be treated as a swap. A bare number pair is not evidence.
+    table = _table(
+        ["Parameter [latitude]", "Parameter [longitude]"],
+        [["120.0"], ["45.0"]],
+    )
+    points = points_from_tables([table], curated_role=None)
+    assert points == []
+
+
+def test_declared_orientation_wins_when_it_yields_any_pair_even_with_bad_rows() -> None:
+    # Row 0 parses fine in the declared orientation. Row 1's "latitude" cell
+    # (999) is unparseable on any axis. Because the declared orientation
+    # already yields a pair, swap detection must never run - row 1 is simply
+    # dropped, not reinterpreted.
+    table = _table(
+        ["Parameter [latitude]", "Parameter [longitude]"],
+        [["18.485833", "999"], ["-99.791667", "-99.791667"]],
+    )
+    points = points_from_tables([table], curated_role=None)
+    assert len(points) == 1
+    assert points[0]["point"] == [-99.791667, 18.485833]
+    assert points[0]["n_rows"] == 1
+
+
 def test_points_are_ordered_deterministically() -> None:
     table = _table(
         ["Parameter [latitude]", "Parameter [longitude]"],

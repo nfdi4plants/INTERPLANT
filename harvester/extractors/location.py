@@ -270,15 +270,29 @@ def _points_from_table(table: Table, *, curated_role: str | None) -> list[dict]:
 
     entries: list[dict] = []
     for role, (lat_idx, lon_idx) in axes.items():
-        groups: dict[tuple[float, float], list[int]] = {}
         lat_cells = table.columns[lat_idx]
         lon_cells = table.columns[lon_idx]
-        for row in range(min(len(lat_cells), len(lon_cells))):
-            lat = parse_coord(lat_cells[row], axis="lat")
-            lon = parse_coord(lon_cells[row], axis="lon")
-            if lat is None or lon is None:
-                continue
-            groups.setdefault((lon, lat), []).append(row)
+        groups = _parsed_pairs(lat_cells, lon_cells, swapped=False)
+
+        # Only look for a swap when the declared orientation yields NOTHING.
+        # A table that parses fine as declared is never second-guessed, even
+        # if some of its rows are individually unparseable (those rows are
+        # just dropped, matching the pre-existing per-row behaviour).
+        if not groups:
+            swapped_groups = _parsed_pairs(lat_cells, lon_cells, swapped=True)
+            if swapped_groups and _swap_confirmed_by_hemisphere(
+                lat_cells, lon_cells, swapped_groups
+            ):
+                logger.warning(
+                    "Swapped lat/lon columns detected for role %s in %s: "
+                    "column %d (declared latitude) holds longitude values, "
+                    "column %d (declared longitude) holds latitude values",
+                    role,
+                    table.source,
+                    lat_idx,
+                    lon_idx,
+                )
+                groups = swapped_groups
 
         # Table-wide-constant rejection (in _label_candidates) only makes
         # sense when this role has more than one point to discriminate
@@ -297,6 +311,62 @@ def _points_from_table(table: Table, *, curated_role: str | None) -> list[dict]:
                 "source": table.source,
             })
     return entries
+
+
+def _parsed_pairs(
+    lat_cells: list[str | None], lon_cells: list[str | None], *, swapped: bool
+) -> dict[tuple[float, float], list[int]]:
+    """Group rows into (lon, lat) points, in the declared or swapped orientation.
+
+    `swapped=True` reads the lat-declared column as longitude and the
+    lon-declared column as latitude - i.e. it assumes the two columns were
+    mislabelled at the source, not that any individual value is wrong.
+    """
+    groups: dict[tuple[float, float], list[int]] = {}
+    for row in range(min(len(lat_cells), len(lon_cells))):
+        if swapped:
+            lat = parse_coord(lon_cells[row], axis="lat")
+            lon = parse_coord(lat_cells[row], axis="lon")
+        else:
+            lat = parse_coord(lat_cells[row], axis="lat")
+            lon = parse_coord(lon_cells[row], axis="lon")
+        if lat is None or lon is None:
+            continue
+        groups.setdefault((lon, lat), []).append(row)
+    return groups
+
+
+def _swap_confirmed_by_hemisphere(
+    lat_cells: list[str | None],
+    lon_cells: list[str | None],
+    swapped_groups: dict[tuple[float, float], list[int]],
+) -> bool:
+    """True when at least one swapped pair's raw text carries a hemisphere letter.
+
+    A numerically-plausible swap is not enough evidence on its own (a bare
+    "45" / "12" pair fits either orientation and must never trigger a swap).
+    Requiring an explicit N/S/E/W letter on at least one contributing cell
+    matches the quinoa case: parse_coord already refuses to accept a
+    hemisphere letter that contradicts the axis it is checked against, so a
+    row that only succeeds in the swapped orientation AND carries a
+    hemisphere letter is a row whose letter confirms that swap specifically.
+    """
+    for rows in swapped_groups.values():
+        for row in rows:
+            if _has_hemisphere(lat_cells[row]) or _has_hemisphere(lon_cells[row]):
+                return True
+    return False
+
+
+def _has_hemisphere(raw: object) -> bool:
+    """True when a raw cell value carries an explicit N/S/E/W suffix."""
+    if raw is None:
+        return False
+    text = str(raw).strip()
+    if not text:
+        return False
+    match = _COORD_VALUE.match(text)
+    return bool(match and match.group("hemi"))
 
 
 def _axis_columns(table: Table) -> dict[str, tuple[int, int]]:
