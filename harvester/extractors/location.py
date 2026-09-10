@@ -15,6 +15,9 @@ import logging
 import re
 from typing import TYPE_CHECKING, Literal
 
+from harvester.geo_roles import role_for_arc
+from harvester.geo_tables import load_institutions, load_places, lookup
+
 if TYPE_CHECKING:
     from harvester.isa_reader import Table
 
@@ -394,3 +397,160 @@ def _label_for(
         if len(values) == 1:
             return values.pop(), core
     return None, None
+
+
+# ---------------------------------------------------------------------------
+# Fallback resolution and precedence
+#
+# Precedence, first available wins: extracted, geocoded, institution, absent.
+# A place name from the study's own data outranks an affiliation because it
+# describes the material or site; an affiliation describes the custodian.
+#
+# locations[] always carries EVERY point from all tiers, so nothing is lost by
+# the chain. Only geometry and location_status reflect the winning tier, which
+# keeps the phase-2 Features collection complete even for a record whose
+# geometry came from an institution.
+# ---------------------------------------------------------------------------
+
+_TIER_BY_ROLE = {
+    "stated-place": "geocoded",
+    "custodian-institution": "institution",
+}
+_TIER_ORDER = ("extracted", "geocoded", "institution")
+
+
+def tier_of(role: str) -> str:
+    """Which precedence tier a role belongs to."""
+    return _TIER_BY_ROLE.get(role, "extracted")
+
+
+def arc_path_from_uri(uri: str) -> str | None:
+    """Extract a GitLab path_with_namespace from an ARC source URI.
+
+    Returns None for a local file:// URI, which therefore never matches a
+    curated override and correctly yields role "unspecified".
+    """
+    if not uri or not uri.startswith(("http://", "https://")):
+        return None
+    without_scheme = uri.split("://", 1)[1]
+    if "/" not in without_scheme:
+        return None
+    path = without_scheme.split("/", 1)[1].strip("/")
+    return path or None
+
+
+def _place_points(tables) -> list[dict]:
+    """Geocode place-name columns via the committed places table."""
+    places = load_places()
+    out: list[dict] = []
+    seen: set[tuple[float, float]] = set()
+    for table in tables:
+        for idx, header in enumerate(table.headers):
+            if is_structural_header(header) or idx >= len(table.columns):
+                continue
+            core = unwrap_header(header)
+            if not is_place_header(core):
+                continue
+            counts: dict[str, int] = {}
+            for cell in table.columns[idx]:
+                if cell in (None, ""):
+                    continue
+                counts[str(cell).strip()] = counts.get(str(cell).strip(), 0) + 1
+            for value, n_rows in sorted(counts.items()):
+                entry = lookup(places, value)
+                if entry is None:
+                    continue
+                point = [float(entry["point"][0]), float(entry["point"][1])]
+                key = (point[0], point[1])
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append({
+                    "role": "stated-place",
+                    "label": value,
+                    "label_field": core,
+                    "point": point,
+                    "precision": entry.get("precision", "country"),
+                    "n_rows": n_rows,
+                    "source": table.source,
+                })
+    return out
+
+
+def _institution_points(contacts) -> list[dict]:
+    """Resolve author affiliations via the committed institutions table.
+
+    Affiliation cells sometimes hold several institutions separated by ";";
+    each part resolves independently and becomes its own point.
+    """
+    institutions = load_institutions()
+    out: list[dict] = []
+    seen: set[tuple[float, float]] = set()
+    for contact in contacts:
+        raw = getattr(contact, "affiliation", None)
+        if not raw:
+            continue
+        for part in (p.strip() for p in str(raw).split(";")):
+            if not part:
+                continue
+            entry = lookup(institutions, part)
+            if entry is None:
+                continue
+            point = [float(entry["point"][0]), float(entry["point"][1])]
+            key = (point[0], point[1])
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({
+                "role": "custodian-institution",
+                "label": entry.get("name") or part,
+                "label_field": "Investigation Person Affiliation",
+                "point": point,
+                "precision": entry.get("precision", "institution"),
+                "n_rows": 1,
+                "source": "affiliation",
+            })
+    return out
+
+
+def resolve_locations(investigation, *, arc_source_uri: str) -> tuple[list[dict], str]:
+    """Return (locations, location_status) for one Investigation."""
+    arc_path = arc_path_from_uri(arc_source_uri)
+    curated_role = role_for_arc(arc_path) if arc_path else None
+
+    tables = list(getattr(investigation, "tables", None) or [])
+    locations: list[dict] = []
+    locations.extend(points_from_tables(tables, curated_role=curated_role))
+    locations.extend(_place_points(tables))
+    locations.extend(_institution_points(getattr(investigation, "contacts", None) or []))
+
+    present = {tier_of(loc["role"]) for loc in locations}
+    for tier in _TIER_ORDER:
+        if tier in present:
+            return locations, tier
+    return locations, "absent"
+
+
+def derive_geometry(locations: list[dict], status: str) -> dict | None:
+    """Derive the record geometry from the winning tier's points.
+
+    Point when every admitted point is identical, MultiPoint otherwise, null
+    when there are none. NEVER a bbox Polygon: dormancy_NhuTran_2025 spans 259
+    degrees of longitude, so a bbox would match nearly every spatial query
+    while being confidently wrong, which is worse than absent.
+    """
+    if status == "absent":
+        return None
+    coords: list[list[float]] = []
+    for loc in locations:
+        if tier_of(loc["role"]) != status:
+            continue
+        point = [float(loc["point"][0]), float(loc["point"][1])]
+        if point not in coords:
+            coords.append(point)
+    if not coords:
+        return None
+    coords.sort()
+    if len(coords) == 1:
+        return {"type": "Point", "coordinates": coords[0]}
+    return {"type": "MultiPoint", "coordinates": coords}
