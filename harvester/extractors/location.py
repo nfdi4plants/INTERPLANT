@@ -255,10 +255,40 @@ def points_from_tables(tables: list[Table], *, curated_role: str | None) -> list
 
     `curated_role` comes from harvester.geo_roles and applies only where a
     header declares no role of its own. A header-declared role always wins.
+
+    A (role, point) that recurs across different tables is merged into one
+    entry rather than reported once per table, mirroring _place_points'
+    existing cross-table merge for geocoded points: n_rows is summed, source
+    joins every contributing table with "; " in first-seen order, and the
+    first non-null label/label_field wins. flyover_redacted is the motivating
+    case: the same experiment-site coordinate is recorded once per assay
+    table (flyover_2025_01, flyover_2025_02), which would otherwise double-
+    count the same site as two identical points. Merging never crosses roles
+    or distinct points - only an exact (role, point) match merges.
     """
-    out: list[dict] = []
+    merged: dict[tuple[str, tuple[float, float]], dict] = {}
+    order: list[tuple[str, tuple[float, float]]] = []
     for table in tables:
-        out.extend(_points_from_table(table, curated_role=curated_role))
+        for entry in _points_from_table(table, curated_role=curated_role):
+            key = (entry["role"], (entry["point"][0], entry["point"][1]))
+            existing = merged.get(key)
+            if existing is None:
+                entry["source"] = [entry["source"]]
+                merged[key] = entry
+                order.append(key)
+                continue
+            existing["n_rows"] += entry["n_rows"]
+            if entry["source"] not in existing["source"]:
+                existing["source"].append(entry["source"])
+            if existing["label"] is None and entry["label"] is not None:
+                existing["label"] = entry["label"]
+                existing["label_field"] = entry["label_field"]
+
+    out: list[dict] = []
+    for key in order:
+        entry = merged[key]
+        entry["source"] = "; ".join(entry["source"])
+        out.append(entry)
     out.sort(key=lambda p: (p["role"], p["point"]))
     return out
 

@@ -298,6 +298,85 @@ def test_declared_orientation_wins_when_it_yields_any_pair_even_with_bad_rows() 
     assert points[0]["n_rows"] == 1
 
 
+def test_an_identical_point_repeated_across_tables_is_merged() -> None:
+    # flyover_redacted: the same experiment-site coordinate is recorded once
+    # per assay table (flyover_2025_01 n_rows=245, flyover_2025_02 n_rows=1108).
+    # Without a cross-table merge that yields two identical points instead of
+    # one, mirroring _place_points' existing cross-table merge for geocoded
+    # points.
+    table_a = _table(
+        ["Parameter [Latitude]", "Parameter [Longitude]"],
+        [["+49.42608333"] * 245, ["+7.75402778"] * 245],
+        name="flyover_2025_01",
+    )
+    table_b = _table(
+        ["Parameter [Latitude]", "Parameter [Longitude]"],
+        [["+49.42608333"] * 1108, ["+7.75402778"] * 1108],
+        name="flyover_2025_02",
+    )
+    points = points_from_tables([table_a, table_b], curated_role="experiment-site")
+    assert len(points) == 1
+    assert points[0]["n_rows"] == 245 + 1108
+    assert points[0]["source"] == (
+        "studies/s/isa.study.xlsx#flyover_2025_01; studies/s/isa.study.xlsx#flyover_2025_02"
+    )
+
+
+def test_merge_across_tables_prefers_the_first_non_null_label() -> None:
+    table_a = _table(
+        ["Parameter [latitude]", "Parameter [longitude]"],
+        [["18.485833"], ["-99.791667"]],
+        name="sheet_a",
+    )
+    table_b = _table(
+        ["Parameter [SITE]", "Parameter [latitude]", "Parameter [longitude]"],
+        [["Oaxaca"], ["18.485833"], ["-99.791667"]],
+        name="sheet_b",
+    )
+    points = points_from_tables([table_a, table_b], curated_role=None)
+    assert len(points) == 1
+    assert points[0]["n_rows"] == 2
+    assert points[0]["label"] == "Oaxaca"
+    assert points[0]["label_field"] == "SITE"
+
+
+def test_merge_does_not_cross_roles_at_the_same_point() -> None:
+    table_a = _table(
+        [
+            "Parameter [Biological material latitude]",
+            "Parameter [Biological material longitude]",
+        ],
+        [["51.0"], ["6.0"]],
+        name="sheet_a",
+    )
+    table_b = _table(
+        ["Parameter [Material source latitude]", "Parameter [Material source longitude]"],
+        [["51.0"], ["6.0"]],
+        name="sheet_b",
+    )
+    points = points_from_tables([table_a, table_b], curated_role=None)
+    assert len(points) == 2
+    roles = {p["role"] for p in points}
+    assert roles == {"material-origin", "material-source"}
+    assert all(p["n_rows"] == 1 for p in points)
+
+
+def test_merge_does_not_join_distinct_points() -> None:
+    table_a = _table(
+        ["Parameter [latitude]", "Parameter [longitude]"],
+        [["18.485833"], ["-99.791667"]],
+        name="sheet_a",
+    )
+    table_b = _table(
+        ["Parameter [latitude]", "Parameter [longitude]"],
+        [["20.0"], ["-100.0"]],
+        name="sheet_b",
+    )
+    points = points_from_tables([table_a, table_b], curated_role=None)
+    assert len(points) == 2
+    assert all(p["n_rows"] == 1 for p in points)
+
+
 def test_points_are_ordered_deterministically() -> None:
     table = _table(
         ["Parameter [latitude]", "Parameter [longitude]"],
