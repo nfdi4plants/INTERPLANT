@@ -58,6 +58,31 @@ def test_arc_path_from_uri_returns_none_for_a_local_file_uri() -> None:
     assert arc_path_from_uri("file:///home/mohamed/ARCs/ArcPrototype-main") is None
 
 
+def test_arc_path_from_uri_strips_a_trailing_git_suffix() -> None:
+    # acquire.py builds clone URLs as web_url.rstrip("/") + ".git".
+    assert arc_path_from_uri(
+        "https://git.nfdi4plants.org/usadellab/Teosinte.git"
+    ) == "usadellab/Teosinte"
+
+
+def test_arc_path_from_uri_drops_a_query_string() -> None:
+    assert arc_path_from_uri(
+        "https://git.nfdi4plants.org/usadellab/Teosinte?ref=main"
+    ) == "usadellab/Teosinte"
+
+
+def test_arc_path_from_uri_drops_a_trailing_slash() -> None:
+    assert arc_path_from_uri(
+        "https://git.nfdi4plants.org/usadellab/Teosinte/"
+    ) == "usadellab/Teosinte"
+
+
+def test_arc_path_from_uri_accepts_an_uppercase_scheme() -> None:
+    assert arc_path_from_uri(
+        "HTTPS://git.nfdi4plants.org/usadellab/Teosinte"
+    ) == "usadellab/Teosinte"
+
+
 def test_extracted_coordinates_win_the_precedence_chain() -> None:
     inv = _inv(tables=[_coord_table(), _place_table()],
                contacts=[_contact("Heinrich Heine University")])
@@ -74,6 +99,10 @@ def test_place_name_outranks_affiliation() -> None:
     inv = _inv(tables=[_place_table()], contacts=[_contact("Heinrich Heine University")])
     locations, status = resolve_locations(inv, arc_source_uri="https://x/y/z")
     assert status == "geocoded"
+    # Concrete coordinate, [lon, lat]: Germany's gazetteer centroid. A lon/lat
+    # swap in the geocoded tier must turn this red.
+    stated = [loc for loc in locations if loc["role"] == "stated-place"]
+    assert stated[0]["point"] == [10.4515, 51.1657]
 
 
 def test_affiliation_is_used_when_nothing_else_exists() -> None:
@@ -82,6 +111,9 @@ def test_affiliation_is_used_when_nothing_else_exists() -> None:
     assert status == "institution"
     assert locations[0]["role"] == "custodian-institution"
     assert locations[0]["precision"] == "institution"
+    # Concrete coordinate, [lon, lat]: Heinrich Heine University Duesseldorf.
+    # A lon/lat swap in the institution tier must turn this red.
+    assert locations[0]["point"] == [6.7926, 51.1889]
 
 
 def test_absent_when_no_source_yields_anything() -> None:
@@ -164,3 +196,38 @@ def test_derive_geometry_uses_only_the_winning_tier() -> None:
 
 def test_derive_geometry_is_null_when_absent() -> None:
     assert derive_geometry([], "absent") is None
+
+
+def test_derive_geometry_filters_by_the_institution_tier() -> None:
+    # Exercises the winning-tier filter for a tier other than "extracted":
+    # only the custodian-institution point is admitted when status is
+    # "institution", even though an experiment-site point is also present.
+    locations = [
+        {"role": "experiment-site", "point": [6.0, 51.0], "precision": "exact"},
+        {"role": "custodian-institution", "point": [13.0, 52.4],
+         "precision": "institution"},
+    ]
+    assert derive_geometry(locations, "institution") == {
+        "type": "Point", "coordinates": [13.0, 52.4]
+    }
+
+
+def test_place_name_n_rows_sums_across_tables() -> None:
+    # "Germany" named in two separate tables of the same ARC must produce ONE
+    # stated-place entry whose n_rows is the sum across both tables, not the
+    # first table's count with the second silently dropped.
+    first = _place_table()
+    second = Table(
+        name="a",
+        source="assays/a/isa.assay.xlsx#a",
+        headers=["Characteristic [geographic location]"],
+        columns=[["Germany", "Germany"]],
+    )
+    inv = _inv(tables=[first, second])
+    locations, _ = resolve_locations(inv, arc_source_uri="https://x/y/z")
+    stated = [loc for loc in locations if loc["role"] == "stated-place"]
+    assert len(stated) == 1
+    assert stated[0]["n_rows"] == 3
+    assert stated[0]["source"] == (
+        "studies/s/isa.study.xlsx#s; assays/a/isa.assay.xlsx#a"
+    )

@@ -14,12 +14,13 @@ from __future__ import annotations
 import logging
 import re
 from typing import TYPE_CHECKING, Literal
+from urllib.parse import urlsplit
 
 from harvester.geo_roles import role_for_arc
 from harvester.geo_tables import load_institutions, load_places, lookup
 
 if TYPE_CHECKING:
-    from harvester.isa_reader import Table
+    from harvester.isa_reader import Contact, Investigation, Table
 
 logger = logging.getLogger(__name__)
 
@@ -427,23 +428,45 @@ def tier_of(role: str) -> str:
 def arc_path_from_uri(uri: str) -> str | None:
     """Extract a GitLab path_with_namespace from an ARC source URI.
 
-    Returns None for a local file:// URI, which therefore never matches a
-    curated override and correctly yields role "unspecified".
+    Returns None for a local file:// URI (or any non-http(s) scheme), which
+    therefore never matches a curated override and correctly yields role
+    "unspecified".
+
+    Uses urlsplit rather than hand-rolled string slicing, matching
+    harvester.dedup.namespace_of, so a query string ("?ref=main") or trailing
+    slash is dropped and an uppercase scheme ("HTTPS://") still matches. A
+    trailing ".git" is stripped separately: acquire.py builds clone URLs as
+    `web_url.rstrip("/") + ".git"`, so ".git"-suffixed URIs circulate in this
+    codebase, and role_for_arc matches paths EXACTLY - an unstripped suffix
+    would silently miss a curated role with no signal.
     """
-    if not uri or not uri.startswith(("http://", "https://")):
+    if not uri:
         return None
-    without_scheme = uri.split("://", 1)[1]
-    if "/" not in without_scheme:
+    parsed = urlsplit(uri)
+    if parsed.scheme not in ("http", "https"):
         return None
-    path = without_scheme.split("/", 1)[1].strip("/")
+    path = parsed.path.strip("/")
+    if path.endswith(".git"):
+        path = path[: -len(".git")]
     return path or None
 
 
-def _place_points(tables) -> list[dict]:
-    """Geocode place-name columns via the committed places table."""
+def _place_points(tables: list[Table]) -> list[dict]:
+    """Geocode place-name columns via the committed places table.
+
+    The same place name can appear in more than one table of the same ARC
+    (a study table and an assay table both naming "Germany", say). Such
+    repeats accumulate into ONE entry per distinct point: n_rows is SUMMED
+    across every table it was seen in, rather than the first table's count
+    winning and the rest being silently dropped, because Task 11 explodes
+    n_rows into a published SQL view column. source joins every contributing
+    table's source with "; " so provenance is not lost either - keeping only
+    the first table's source would make it look like the count came from one
+    table when it did not.
+    """
     places = load_places()
-    out: list[dict] = []
-    seen: set[tuple[float, float]] = set()
+    by_point: dict[tuple[float, float], dict] = {}
+    order: list[tuple[float, float]] = []
     for table in tables:
         for idx, header in enumerate(table.headers):
             if is_structural_header(header) or idx >= len(table.columns):
@@ -462,22 +485,31 @@ def _place_points(tables) -> list[dict]:
                     continue
                 point = [float(entry["point"][0]), float(entry["point"][1])]
                 key = (point[0], point[1])
-                if key in seen:
-                    continue
-                seen.add(key)
-                out.append({
-                    "role": "stated-place",
-                    "label": value,
-                    "label_field": core,
-                    "point": point,
-                    "precision": entry.get("precision", "country"),
-                    "n_rows": n_rows,
-                    "source": table.source,
-                })
+                existing = by_point.get(key)
+                if existing is None:
+                    existing = {
+                        "role": "stated-place",
+                        "label": value,
+                        "label_field": core,
+                        "point": point,
+                        "precision": entry.get("precision", "country"),
+                        "n_rows": 0,
+                        "source": [],
+                    }
+                    by_point[key] = existing
+                    order.append(key)
+                existing["n_rows"] += n_rows
+                if table.source not in existing["source"]:
+                    existing["source"].append(table.source)
+    out: list[dict] = []
+    for key in order:
+        entry = by_point[key]
+        entry["source"] = "; ".join(entry["source"])
+        out.append(entry)
     return out
 
 
-def _institution_points(contacts) -> list[dict]:
+def _institution_points(contacts: list[Contact]) -> list[dict]:
     """Resolve author affiliations via the committed institutions table.
 
     Affiliation cells sometimes hold several institutions separated by ";";
@@ -487,7 +519,7 @@ def _institution_points(contacts) -> list[dict]:
     out: list[dict] = []
     seen: set[tuple[float, float]] = set()
     for contact in contacts:
-        raw = getattr(contact, "affiliation", None)
+        raw = contact.affiliation
         if not raw:
             continue
         for part in (p.strip() for p in str(raw).split(";")):
@@ -513,16 +545,25 @@ def _institution_points(contacts) -> list[dict]:
     return out
 
 
-def resolve_locations(investigation, *, arc_source_uri: str) -> tuple[list[dict], str]:
-    """Return (locations, location_status) for one Investigation."""
+def resolve_locations(
+    investigation: Investigation, *, arc_source_uri: str
+) -> tuple[list[dict], str]:
+    """Return (locations, location_status) for one Investigation.
+
+    Reads investigation.tables and investigation.contacts directly rather
+    than through getattr defaults: both fields default to an empty list on a
+    valid Investigation (see harvester.isa_reader), never None, so a missing
+    or renamed field should raise loudly here rather than silently degrade
+    every record to location_status "absent".
+    """
     arc_path = arc_path_from_uri(arc_source_uri)
     curated_role = role_for_arc(arc_path) if arc_path else None
 
-    tables = list(getattr(investigation, "tables", None) or [])
+    tables = list(investigation.tables)
     locations: list[dict] = []
     locations.extend(points_from_tables(tables, curated_role=curated_role))
     locations.extend(_place_points(tables))
-    locations.extend(_institution_points(getattr(investigation, "contacts", None) or []))
+    locations.extend(_institution_points(investigation.contacts))
 
     present = {tier_of(loc["role"]) for loc in locations}
     for tier in _TIER_ORDER:
