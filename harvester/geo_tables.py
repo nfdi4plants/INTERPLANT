@@ -15,6 +15,7 @@ harvester/geodata/ data directory.
 """
 from __future__ import annotations
 
+import copy
 import json
 from functools import lru_cache
 from pathlib import Path
@@ -24,31 +25,45 @@ INSTITUTIONS_PATH = GEODATA_DIR / "institutions.json"
 PLACES_PATH = GEODATA_DIR / "places.json"
 
 
+@lru_cache(maxsize=2)
 def _load(path: Path) -> dict[str, dict | None]:
+    """Read and cache one committed table. Both files are committed, so a
+    missing one is a deployment bug, not a valid empty state - raise loudly
+    rather than silently handing out an empty table."""
     if not path.exists():
-        return {}
+        raise FileNotFoundError(f"committed geodata table missing: {path}")
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-@lru_cache(maxsize=1)
 def load_institutions() -> dict[str, dict | None]:
-    """Affiliation string to resolved institution, or None when unresolvable."""
-    return _load(INSTITUTIONS_PATH)
+    """Affiliation string to resolved institution, or None when unresolvable.
+
+    Returns a fresh copy on every call so a caller mutating the result
+    cannot poison the cached table for later callers.
+    """
+    return copy.deepcopy(_load(INSTITUTIONS_PATH))
 
 
-@lru_cache(maxsize=1)
 def load_places() -> dict[str, dict | None]:
-    """Place name to resolved gazetteer entry, or None when unresolvable."""
-    return _load(PLACES_PATH)
+    """Place name to resolved gazetteer entry, or None when unresolvable.
+
+    Returns a fresh copy on every call; see load_institutions.
+    """
+    return copy.deepcopy(_load(PLACES_PATH))
 
 
 def lookup(table: dict[str, dict | None], key: str) -> dict | None:
-    """Case- and whitespace-insensitive lookup. None when absent or explicitly null."""
+    """Case- and whitespace-insensitive lookup. None when absent or explicitly null.
+
+    An exact key match always wins over a case/whitespace-insensitive scan
+    match, even when the exact entry's value is the explicit null - this
+    keeps the result independent of a table's insertion order when it
+    happens to hold more than one case variant of the same key.
+    """
     if not key:
         return None
-    entry = table.get(key)
-    if entry is not None:
-        return entry
+    if key in table:
+        return table[key]
     wanted = key.strip().casefold()
     for candidate, value in table.items():
         if candidate.strip().casefold() == wanted:

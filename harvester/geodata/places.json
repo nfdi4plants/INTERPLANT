@@ -1,6 +1,30 @@
 {
-  "Germany": { "point": [10.4515, 51.1657], "precision": "country" },
-  "Guerrero": { "point": [-99.5451, 17.5545], "precision": "admin1" },
-  "México": { "point": [-102.5528, 23.6345], "precision": "country" },
-  "Mexico": { "point": [-102.5528, 23.6345], "precision": "country" }
+  "Germany": {
+    "point": [
+      10.4515,
+      51.1657
+    ],
+    "precision": "country"
+  },
+  "Guerrero": {
+    "point": [
+      -99.5451,
+      17.5545
+    ],
+    "precision": "admin1"
+  },
+  "Mexico": {
+    "point": [
+      -102.5528,
+      23.6345
+    ],
+    "precision": "country"
+  },
+  "México": {
+    "point": [
+      -102.5528,
+      23.6345
+    ],
+    "precision": "country"
+  }
 }

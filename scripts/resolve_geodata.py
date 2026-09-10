@@ -5,13 +5,20 @@ Run this ON DEMAND only, never as part of a harvest:
     uv run python scripts/resolve_geodata.py --affiliations affils.txt
     uv run python scripts/resolve_geodata.py --places places.txt
 
+Add --dry-run to see which strings are new (not already a key in the
+committed table, case- and whitespace-insensitively) without making any
+network call or touching the file.
+
 It rewrites harvester/geodata/institutions.json and places.json sorted by key,
 so a review of the diff can catch a wrong match. Unresolved or low-confidence
 strings are written as an explicit null, which records "looked up, nothing
 matched" and is distinct from a key that was never tried. Keys already
-present in the committed table are left untouched, so a re-run never
-silently overwrites a reviewed entry - delete the key first if it needs
-re-resolving.
+present in the committed table - matched case- and whitespace-insensitively,
+the same rule harvester.geo_tables.lookup uses - are left untouched, so a
+re-run never silently overwrites a reviewed entry and never adds a case
+variant of a key that already has a reviewed answer. Delete the existing key
+first if it needs re-resolving. The file is left untouched (no write at all)
+when a run resolves nothing new.
 
 Same pattern as scripts/pin_portal_schema.py: the committed copy is what the
 harvester reads, and refreshing it is a deliberate, reviewable act.
@@ -21,6 +28,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
+from collections.abc import Callable
 from pathlib import Path
 
 import httpx
@@ -37,6 +46,11 @@ NOMINATIM_API = "https://nominatim.openstreetmap.org/search"
 # it if the diff shows wrong matches, lower it if too much lands in null.
 # TODO: this threshold has not been tuned against a live run yet.
 MIN_CONFIDENCE = 0.8
+
+# Nominatim's usage policy caps unauthenticated requests at 1/second; a bulk
+# --places run without this would be throttled or blocked. ROR has no such
+# documented cap, so no delay is applied to affiliation resolution.
+NOMINATIM_DELAY_SECONDS = 1.0
 
 _UA = {"User-Agent": "interplant-geodata-resolver (m.abouzid@fz-juelich.de)"}
 
@@ -100,20 +114,68 @@ def resolve_place(client: httpx.Client, raw: str) -> dict | None:
     }
 
 
-def refresh(path: Path, strings: list[str], resolver, client: httpx.Client) -> None:
-    table = load(path)
+def _pending_strings(table: dict, strings: list[str]) -> list[str]:
+    """Strings not already a key in table, case/whitespace-insensitively,
+    deduplicated the same way so a run never adds two case variants of the
+    same new key."""
+    existing = {k.strip().casefold() for k in table}
+    seen: set[str] = set()
+    pending = []
     for raw in strings:
         # Affiliation cells sometimes hold several institutions in one string.
         for part in (p.strip() for p in raw.split(";")):
-            if not part or part in table:
+            if not part:
                 continue
-            try:
-                table[part] = resolver(client, part)
-            except Exception as exc:  # noqa: BLE001 - one bad string must not abort the run
-                print(f"  ! {part[:60]}: {type(exc).__name__}: {exc}", file=sys.stderr)
+            key = part.casefold()
+            if key in existing or key in seen:
                 continue
-            status = "resolved" if table[part] else "NULL (needs review)"
-            print(f"  {status}: {part[:70]}")
+            seen.add(key)
+            pending.append(part)
+    return pending
+
+
+def refresh(
+    path: Path,
+    strings: list[str],
+    resolver: Callable[[httpx.Client, str], dict | None],
+    client: httpx.Client,
+    *,
+    delay: float = 0.0,
+    dry_run: bool = False,
+) -> None:
+    table = load(path)
+    pending = _pending_strings(table, strings)
+
+    if not pending:
+        print(f"no new entries for {path}, skipping write")
+        return
+
+    if dry_run:
+        print(f"[dry-run] {path}: {len(pending)} string(s) would be resolved "
+              "(no network call made):")
+        for part in pending:
+            print(f"  ? {part[:70]}")
+        return
+
+    changed = False
+    for part in pending:
+        try:
+            result = resolver(client, part)
+        except Exception as exc:  # one bad string must not abort the run
+            print(f"  ! {part[:60]}: {type(exc).__name__}: {exc}", file=sys.stderr)
+            continue
+        finally:
+            if delay:
+                time.sleep(delay)
+        table[part] = result
+        changed = True
+        status = "resolved" if result else "NULL (needs review)"
+        print(f"  {status}: {part[:70]}")
+
+    if not changed:
+        print(f"no new entries resolved for {path}, skipping write")
+        return
+
     save(path, table)
 
 
@@ -122,6 +184,8 @@ def main() -> int:
     parser.add_argument("--affiliations", type=Path,
                         help="file of affiliation strings, one per line")
     parser.add_argument("--places", type=Path, help="file of place names, one per line")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="print which strings are new without resolving or writing")
     args = parser.parse_args()
     if not args.affiliations and not args.places:
         parser.error("give --affiliations and/or --places")
@@ -134,7 +198,7 @@ def main() -> int:
                 if line.strip()
             ]
             print(f"resolving {len(lines)} affiliation strings")
-            refresh(INSTITUTIONS, lines, resolve_affiliation, client)
+            refresh(INSTITUTIONS, lines, resolve_affiliation, client, dry_run=args.dry_run)
         if args.places:
             lines = [
                 line.strip()
@@ -142,7 +206,10 @@ def main() -> int:
                 if line.strip()
             ]
             print(f"resolving {len(lines)} place names")
-            refresh(PLACES, lines, resolve_place, client)
+            refresh(
+                PLACES, lines, resolve_place, client,
+                delay=NOMINATIM_DELAY_SECONDS, dry_run=args.dry_run,
+            )
     return 0
 
 

@@ -1,45 +1,63 @@
 {
   "AFFILIATION_PERSON2": null,
   "Donald Danforth Plant Science Center": {
-    "ror": "https://ror.org/02qenvw40",
+    "confidence": 1.0,
     "name": "Donald Danforth Plant Science Center",
-    "point": [-90.4068, 38.6631],
+    "point": [
+      -90.4068,
+      38.6631
+    ],
     "precision": "institution",
-    "confidence": 1.0
+    "ror": "https://ror.org/02qenvw40"
   },
   "Forschungszentrum Jülich GmbH, IBG-1: Institute for Bio- and Geosciences": {
-    "ror": "https://ror.org/02nv7yv05",
+    "confidence": 1.0,
     "name": "Forschungszentrum Jülich",
-    "point": [6.4114, 50.9046],
+    "point": [
+      6.4114,
+      50.9046
+    ],
     "precision": "institution",
-    "confidence": 1.0
+    "ror": "https://ror.org/02nv7yv05"
   },
   "Heinrich Heine University": {
-    "ror": "https://ror.org/024z2rq82",
+    "confidence": 1.0,
     "name": "Heinrich Heine University Düsseldorf",
-    "point": [6.7926, 51.1889],
+    "point": [
+      6.7926,
+      51.1889
+    ],
     "precision": "institution",
-    "confidence": 1.0
+    "ror": "https://ror.org/024z2rq82"
   },
   "Heinrich-Heine-Universität": {
-    "ror": "https://ror.org/024z2rq82",
+    "confidence": 1.0,
     "name": "Heinrich Heine University Düsseldorf",
-    "point": [6.7926, 51.1889],
+    "point": [
+      6.7926,
+      51.1889
+    ],
     "precision": "institution",
-    "confidence": 1.0
+    "ror": "https://ror.org/024z2rq82"
   },
   "Institute of Plant Genetics, Heinrich-Heine-Universität Düsseldorf": {
-    "ror": "https://ror.org/024z2rq82",
+    "confidence": 1.0,
     "name": "Heinrich Heine University Düsseldorf",
-    "point": [6.7926, 51.1889],
+    "point": [
+      6.7926,
+      51.1889
+    ],
     "precision": "institution",
-    "confidence": 1.0
+    "ror": "https://ror.org/024z2rq82"
   },
   "Max Planck Institute of Molecular Plant Physiology": {
-    "ror": "https://ror.org/02k181882",
+    "confidence": 1.0,
     "name": "Max Planck Institute of Molecular Plant Physiology",
-    "point": [13.0207, 52.4110],
+    "point": [
+      13.0207,
+      52.411
+    ],
     "precision": "institution",
-    "confidence": 1.0
+    "ror": "https://ror.org/02k181882"
   }
 }
