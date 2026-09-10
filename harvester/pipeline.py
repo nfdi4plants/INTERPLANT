@@ -48,6 +48,7 @@ class ArcOutcome:
     n_assays: int = 0
     omics_classified: int = 0
     omics_total: int = 0
+    location_status: str = "absent"
 
 
 def build_validator() -> Draft202012Validator:
@@ -145,6 +146,7 @@ def ingest_arc(
         )
         out.build_ok = True
         out.record_id = record["id"]
+        out.location_status = record["properties"]["location_status"]
     except Exception as exc:  # noqa: BLE001
         out.build_error = f"{type(exc).__name__}: {exc}"
         return out

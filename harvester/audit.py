@@ -24,7 +24,26 @@ def aggregate(report) -> dict:
         "n_upserted": sum(1 for r in o if r.upsert_ok),
         "omics_classified": sum(r.omics_classified for r in o),
         "omics_total": sum(r.omics_total for r in o),
+        "location_status_counts": _location_status_counts(o),
     }
+
+
+_LOCATION_TIERS = ("extracted", "geocoded", "institution", "absent")
+
+
+def _location_status_counts(outcomes) -> dict[str, int]:
+    """Count records per location tier.
+
+    Every tier is present even at zero so the JSON artifact stays diffable
+    between runs. A sudden collapse in "extracted" or "institution" is the
+    signal that a geodata refresh is overdue.
+    """
+    counts = dict.fromkeys(_LOCATION_TIERS, 0)
+    for outcome in outcomes:
+        tier = getattr(outcome, "location_status", None) or "absent"
+        if tier in counts:
+            counts[tier] += 1
+    return counts
 
 
 def write_run_report(report, out_dir) -> tuple[Path, Path]:
@@ -61,6 +80,11 @@ def write_run_report(report, out_dir) -> tuple[Path, Path]:
         f"parsed {agg['n_parsed']}, filtered {agg['n_filtered']}, "
         f"built {agg['n_built']}, validated {agg['n_valid']}, "
         f"suppressed {agg['n_suppressed']}, upserted {agg['n_upserted']}"
+    )
+    lc = agg["location_status_counts"]
+    a(
+        f"- Locations: extracted {lc['extracted']}, geocoded {lc['geocoded']}, "
+        f"institution {lc['institution']}, absent {lc['absent']}"
     )
     omics = (
         f"{agg['omics_classified']}/{agg['omics_total']}"
