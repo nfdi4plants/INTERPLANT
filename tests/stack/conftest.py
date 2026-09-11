@@ -13,11 +13,16 @@ from urllib.parse import urlparse
 
 import psycopg
 import pytest
+from psycopg.conninfo import make_conninfo
 
 from harvester import db
 
 DEFAULT_PG_DSN = "postgresql://interplant:interplant@localhost:5432/interplant"
 DEFAULT_PYGEOAPI_URL = "http://localhost:5000"
+
+# Shared by test_pygeoapi_role.py and test_swap_survives_slow_reader.py, which
+# both provision the pygeoapi_ro role with this password before connecting as it.
+RO_PASSWORD = "test-ro-password"
 
 _STACK_DIR = Path(__file__).parent
 
@@ -88,6 +93,18 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 @pytest.fixture
 def pg_dsn() -> str:
     return os.environ.get("INTERPLANT_PG_DSN", DEFAULT_PG_DSN)
+
+
+@pytest.fixture
+def ro_dsn(pg_dsn: str) -> str:
+    """The pygeoapi_ro role's DSN, derived from pg_dsn rather than hardcoded.
+
+    pg_dsn already points at the right host (localhost in dev, `db` in CI, a
+    docker-network address wherever else), so swapping in the ro role's user
+    and password keeps this test suite pointed at the same Postgres instead
+    of a hardcoded localhost that CI's Postgres never listens on.
+    """
+    return make_conninfo(pg_dsn, user="pygeoapi_ro", password=RO_PASSWORD)
 
 
 @pytest.fixture

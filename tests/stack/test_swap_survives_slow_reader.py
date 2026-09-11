@@ -19,10 +19,9 @@ import time
 import psycopg
 import pytest
 
-pytestmark = pytest.mark.db
+from tests.stack.conftest import RO_PASSWORD
 
-_PASSWORD = "test-ro-password"
-_RO_DSN = f"host=localhost port=5432 dbname=interplant user=pygeoapi_ro password={_PASSWORD}"
+pytestmark = pytest.mark.db
 
 
 @pytest.fixture
@@ -32,14 +31,14 @@ def role_ready(pg_dsn: str):
     with psycopg.connect(pg_dsn, autocommit=True) as admin:
         db.apply_schema(admin)
         db.apply_catalog_views(admin)
-        db.apply_pygeoapi_role(admin, password=_PASSWORD)
+        db.apply_pygeoapi_role(admin, password=RO_PASSWORD)
     yield
 
 
-def _hold_a_slow_read(seconds: float, outcome: dict) -> threading.Thread:
+def _hold_a_slow_read(seconds: float, outcome: dict, ro_dsn: str) -> threading.Thread:
     def run() -> None:
         try:
-            with psycopg.connect(_RO_DSN) as conn:
+            with psycopg.connect(ro_dsn) as conn:
                 with conn.transaction():
                     with conn.cursor() as cur:
                         cur.execute(
@@ -58,10 +57,10 @@ def _hold_a_slow_read(seconds: float, outcome: dict) -> threading.Thread:
     return thread
 
 
-def _hold_an_idle_transaction(seconds: float, outcome: dict) -> threading.Thread:
+def _hold_an_idle_transaction(seconds: float, outcome: dict, ro_dsn: str) -> threading.Thread:
     def run() -> None:
         try:
-            with psycopg.connect(_RO_DSN) as conn:
+            with psycopg.connect(ro_dsn) as conn:
                 with conn.transaction():
                     with conn.cursor() as cur:
                         cur.execute("SELECT count(*) FROM public.arc_locations")
@@ -78,9 +77,9 @@ def _hold_an_idle_transaction(seconds: float, outcome: dict) -> threading.Thread
     return thread
 
 
-def test_the_swap_wins_against_a_slow_reader(role_ready, pg_dsn: str) -> None:
+def test_the_swap_wins_against_a_slow_reader(role_ready, pg_dsn: str, ro_dsn: str) -> None:
     outcome: dict[str, str] = {}
-    reader = _hold_a_slow_read(12, outcome)
+    reader = _hold_a_slow_read(12, outcome, ro_dsn)
     time.sleep(1)  # let the reader take ACCESS SHARE first
 
     started = time.perf_counter()
@@ -109,9 +108,11 @@ def test_the_swap_wins_against_a_slow_reader(role_ready, pg_dsn: str) -> None:
     )
 
 
-def test_the_swap_wins_against_an_idle_in_transaction_reader(role_ready, pg_dsn: str) -> None:
+def test_the_swap_wins_against_an_idle_in_transaction_reader(
+    role_ready, pg_dsn: str, ro_dsn: str
+) -> None:
     outcome: dict[str, str] = {}
-    reader = _hold_an_idle_transaction(12, outcome)
+    reader = _hold_an_idle_transaction(12, outcome, ro_dsn)
     time.sleep(1)  # let the reader take ACCESS SHARE first
 
     started = time.perf_counter()

@@ -5,32 +5,23 @@ has to be enforced by the database rather than by pygeoapi's good behaviour.
 """
 from __future__ import annotations
 
-import shutil
-
 import psycopg
 import pytest
 
-pytestmark = [
-    pytest.mark.db,
-    pytest.mark.skipif(
-        shutil.which("docker") is None,
-        reason="needs the docker dev stack on localhost:5432",
-    ),
-]
+from tests.stack.conftest import RO_PASSWORD
 
-_RO_DSN_TEMPLATE = "host=localhost port=5432 dbname=interplant user=pygeoapi_ro password={}"
-_PASSWORD = "test-ro-password"
+pytestmark = pytest.mark.db
 
 
 @pytest.fixture
-def ro_conn(pg_dsn: str):
+def ro_conn(pg_dsn: str, ro_dsn: str):
     from harvester import db
 
     with psycopg.connect(pg_dsn, autocommit=True) as admin:
         db.apply_schema(admin)
         db.apply_catalog_views(admin)
-        db.apply_pygeoapi_role(admin, password=_PASSWORD)
-    with psycopg.connect(_RO_DSN_TEMPLATE.format(_PASSWORD), autocommit=True) as conn:
+        db.apply_pygeoapi_role(admin, password=RO_PASSWORD)
+    with psycopg.connect(ro_dsn, autocommit=True) as conn:
         yield conn
 
 
