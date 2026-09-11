@@ -218,10 +218,16 @@ order, verifying each step, and stop before step 6 if anything fails.
    absent when this box was surveyed (2026-08-20); if it still is, install it
    before running `install.sh`, because `interplant-pygeoapi.service` has
    `Requires=docker.service` and will not start without it.
-4. Run `deploy/install.sh`. It now also applies the catalog views and creates
-   the `pygeoapi_ro` role with the password from `INTERPLANT_PG_RO_PASSWORD`.
-   The script restarts the unit rather than `enable --now`, so the container
-   runs the just-deployed config, not the previous deploy's.
+4. Run `deploy/install.sh`. It also installs the postgis apt package and runs
+   `CREATE EXTENSION IF NOT EXISTS postgis` against the `interplant` database,
+   then applies the catalog views and creates the `pygeoapi_ro` role with the
+   password from `INTERPLANT_PG_RO_PASSWORD`. The script restarts the unit
+   rather than `enable --now`, so the container runs the just-deployed config,
+   not the previous deploy's. This applies to EXISTING installs too - re-run
+   `install.sh` (it is idempotent): the nightly refresh re-applies the catalog
+   views after every publish, and a box without the extension fails there
+   identically to a fresh install (`function st_geomfromgeojson(jsonb) does not
+   exist`).
 5. Verify locally on the VM before exposing anything:
 
         curl -s "http://192.0.2.10:8001/ogc/collections?f=json" | head -40
@@ -266,8 +272,6 @@ throughout - nothing here can affect earth-data.de.
   pure-Python wheel and the endpoint needs only Flask, psycopg and gunicorn,
   so containers buy nothing for those while costing us CVE patching that
   Ubuntu otherwise does for free.
-- No PostGIS. Nothing in the OAI serving path needs it; it arrives with the
-  catalogue work.
 - No local nginx. Marie's proxy already terminates TLS and buffers. A local
   nginx becomes worthwhile when pygeoapi needs to share a port.
 

@@ -19,6 +19,14 @@ echo "== packages =="
 sudo apt-get update
 sudo apt-get install -y postgresql python3-venv git
 
+# PostGIS: the catalog views and the arc-locations collection compute
+# geometries with ST_* functions, so the extension must exist or the
+# schema step dies. Install the package matching the server version apt
+# just installed. Dev is blind to this because the compose db image
+# ships the extension pre-created.
+pg_major=$(sudo -u postgres psql -tAc "SHOW server_version" | cut -d. -f1)
+sudo apt-get install -y "postgresql-${pg_major}-postgis-3"
+
 # Deploy-token credentials are supplied per invocation via -c, never written
 # into .git/config, so the token does not end up readable in the checkout.
 # TOKENFILE holds two lines: username, then token.
@@ -118,6 +126,10 @@ for _key in INTERPLANT_PG_RO_PASSWORD CONTAINER_HOST CONTAINER_PORT; do
 done
 
 echo "== pygeoapi role =="
+# The catalog views call ST_* functions, so the extension must exist in
+# the interplant database before the schema block applies them. Runs as
+# postgres: extension creation is not something the owner role can do.
+sudo -u postgres psql -v ON_ERROR_STOP=1 -d interplant -c "CREATE EXTENSION IF NOT EXISTS postgis"
 # pygeoapi_ro is a LOGIN role with the session timeouts the OGC API relies
 # on. install.sh's own instructions create interplant with `createuser
 # --pwprompt`, which grants neither CREATEROLE nor superuser, so the role
