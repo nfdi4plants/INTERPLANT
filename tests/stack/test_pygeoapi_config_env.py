@@ -59,8 +59,9 @@ def _run_in_container(env: dict[str, str] | None) -> subprocess.CompletedProcess
 
 
 def test_defaults_resolve_to_the_dev_values() -> None:
-    # No environment set: the ${VAR:-default} defaults must reproduce exactly
-    # what the dev stack ran on before this change, or dev silently breaks.
+    # No environment set: the ${VAR:-default} fallbacks are the committed
+    # contract, not dev's runtime - compose overrides them explicitly now, and
+    # a bare config still pointing at the dev database is the point of the pin.
     proc = _run_in_container(None)
     assert proc.returncode == 0, proc.stderr
     host, password, url = proc.stdout.split()
