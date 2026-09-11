@@ -87,6 +87,28 @@ def test_a_point_merged_across_two_studies_attributes_to_both() -> None:
     assert events["site_b"]["geometry"] == {"type": "Point", "coordinates": [6.0, 51.0]}
 
 
+def test_study_geometry_respects_the_records_winning_tier() -> None:
+    # harvester.extractors.location.derive_geometry filters record geometry to
+    # the winning precedence tier (extracted > geocoded > institution); event
+    # geometry must respect the same precedence rather than mixing tiers just
+    # because both points happen to attribute to the same study.
+    record = _record(
+        locations=[
+            {"role": "experiment-site", "label": None, "label_field": None,
+             "point": [6.0, 51.0], "precision": "exact", "n_rows": 1,
+             "source": "studies/site_a/isa.study.xlsx#t"},
+            {"role": "stated-place", "label": "Somewhere", "label_field": "Country",
+             "point": [11.0, 48.0], "precision": "country", "n_rows": 1,
+             "source": "studies/site_a/isa.study.xlsx#t"},
+        ],
+        studies=[{"id": "site_a", "title": "A"}],
+        geometry={"type": "Point", "coordinates": [6.0, 51.0]},
+    )
+    assert record["properties"]["location_status"] == "extracted"
+    event = map_record(record)["events"][0]
+    assert event["geometry"] == {"type": "Point", "coordinates": [6.0, 51.0]}
+
+
 def test_a_merged_source_with_an_assay_segment_still_attributes_to_its_study() -> None:
     # An assay-then-study merged source must not fail the startswith("studies/")
     # check just because the first segment is not a study. Record-level

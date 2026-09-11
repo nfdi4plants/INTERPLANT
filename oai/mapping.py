@@ -31,7 +31,22 @@ ORGANISATIONS: dict[str, list[dict[str, Any]]] = {
 }
 
 
-def _geometry_by_study(locations: list[dict]) -> dict[str, dict]:
+# Duplicated from harvester.extractors.location's _TIER_BY_ROLE / tier_of:
+# harvester/ is deliberately not part of the oai image (oai/Dockerfile only
+# COPYs oai/), so this module cannot import it. Keep this in sync with the
+# original - it is the same precedence table, extracted > geocoded >
+# institution, first available tier wins.
+_TIER_BY_ROLE = {
+    "stated-place": "geocoded",
+    "custodian-institution": "institution",
+}
+
+
+def _tier_of(role: str) -> str:
+    return _TIER_BY_ROLE.get(role, "extracted")
+
+
+def _geometry_by_study(locations: list[dict], status: str) -> dict[str, dict]:
     """Group location points by the study identifier(s) in their source path.
 
     A source segment reads "studies/<identifier>/isa.study.xlsx#<sheet>", so
@@ -44,9 +59,19 @@ def _geometry_by_study(locations: list[dict]) -> dict[str, dict]:
     whose source has no studies/ segment at all (assays only, or a fallback
     tier: "affiliation" or a place-name source) carry no study attribution
     and stay on the record only.
+
+    Only points in the record's winning precedence tier (`status`) are
+    admitted, mirroring harvester.extractors.location.derive_geometry: a
+    study holding both an extracted-tier and a geocoded-tier point must get
+    only the extracted one, the same as the record geometry does. No point is
+    admitted when status is "absent".
     """
+    if status == "absent":
+        return {}
     by_study: dict[str, list[list[float]]] = {}
     for loc in locations:
+        if _tier_of(loc["role"]) != status:
+            continue
         source = loc.get("source") or ""
         point = [float(loc["point"][0]), float(loc["point"][1])]
         for segment in source.split("; "):
@@ -115,7 +140,7 @@ def map_record(record: dict[str, Any]) -> dict[str, Any]:
         for a in p.get("assays", [])
     ]
 
-    study_geometry = _geometry_by_study(p.get("locations", []))
+    study_geometry = _geometry_by_study(p.get("locations", []), p["location_status"])
 
     events: list[dict] = []
     for study in p.get("studies", []):
