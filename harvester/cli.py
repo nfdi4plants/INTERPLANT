@@ -421,6 +421,9 @@ def _refresh(args) -> int:
         # view drift would appear; CREATE OR REPLACE VIEW is idempotent, so this is
         # cheap. Without it, public.arc_locations can vanish and every OGC locations
         # query 500s until someone runs `make catalog-views` by hand.
+        # A failure here is deliberately loud: the publish has already swapped, so
+        # raising fails the run and reaches a human instead of shipping a corpus
+        # whose serving views silently vanished.
         db.apply_catalog_views(conn)
         return 0
     finally:
