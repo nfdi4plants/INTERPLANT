@@ -40,3 +40,15 @@ def test_oai_and_harvester_tier_tables_agree_on_every_role():
             f"({harvester_tier!r}) and oai.mapping._tier_of ({oai_tier!r}) - "
             "the duplicated tier tables have drifted"
         )
+
+
+def test_oai_and_harvester_agree_on_the_precedence_order():
+    # M1's per-study chain duplicated _TIER_ORDER as well as the role map, so
+    # the same silent-drift argument applies to it: a reordering on one side
+    # alone would pick a different winning tier for a study than the record
+    # geometry picks, with no exception and no log line.
+    assert harvester_location._TIER_ORDER == oai_mapping._TIER_ORDER, (
+        f"tier precedence order disagrees between harvester.extractors.location "
+        f"({harvester_location._TIER_ORDER!r}) and oai.mapping "
+        f"({oai_mapping._TIER_ORDER!r}) - the duplicated tier tables have drifted"
+    )
