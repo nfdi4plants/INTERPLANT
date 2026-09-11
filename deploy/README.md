@@ -224,20 +224,27 @@ order, verifying each step, and stop before step 6 if anything fails.
    runs the just-deployed config, not the previous deploy's.
 5. Verify locally on the VM before exposing anything:
 
-        curl -s "http://192.0.2.10:8001/collections?f=json" | head -40
-        curl -s "http://192.0.2.10:8001/collections/arc-locations/items?f=json&limit=2"
+        curl -s "http://192.0.2.10:8001/ogc/collections?f=json" | head -40
+        curl -s "http://192.0.2.10:8001/ogc/collections/arc-locations/items?f=json&limit=2"
 
-   Expect nine collections and real point features.
+   Expect nine collections and real point features. The `/ogc` prefix is
+   required, not optional: `SCRIPT_NAME=/ogc` mounts the API under that path,
+   and a path without it makes gunicorn return HTTP 500 with a `<title>Bad
+   Request</title>` "Configuration problem" page, which looks like a broken
+   install. A 500 here is a path mismatch, not a failed deployment.
 6. Ask Marie two things at once: to map the public path to
    `192.0.2.10:8001`, and whether her proxy passes the `/ogc` prefix
    through unchanged. The OAI precedent passes `/oai` through, and
-   `SCRIPT_NAME=/ogc` assumes the same: gunicorn prepends `SCRIPT_NAME` to
-   every route and link and rejects requests whose path does not start with
-   it. Set `SCRIPT_NAME` to whatever the proxy forwards (empty means the app
-   serves at `/`), with `INTERPLANT_OGC_BASE_URL` sharing that path. Then
-   apply the `ufw` rules for 8001 that `install.sh` printed. Like port 8000,
-   the script prints and does not apply: until you run them, 8001 is
-   reachable from the whole internal network.
+   `SCRIPT_NAME=/ogc` assumes the same. Without the prefix gunicorn returns
+   HTTP 500 with `<title>Bad Request</title>` (a "Configuration problem"
+   page), which looks like a broken install - do not roll back over it: the
+   path mismatch is the cause, not the deployment. Confirm the prefix with
+   Marie (pass-through, as for `/oai`) and set `SCRIPT_NAME` to match
+   whatever the proxy forwards (empty means the app serves at `/`), with
+   `INTERPLANT_OGC_BASE_URL` sharing that path. Then apply the `ufw` rules
+   for 8001 that `install.sh` printed. Like port 8000, the script prints and
+   does not apply: until you run them, 8001 is reachable from the whole
+   internal network.
 7. Verify from outside that the `links` carry the public URL, not the internal
    address. This is the `server.url` check: if the links say `192.0.2.10`,
    `INTERPLANT_OGC_BASE_URL` is wrong.
