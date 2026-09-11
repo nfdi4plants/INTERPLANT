@@ -23,6 +23,11 @@
 GRANT CONNECT ON DATABASE interplant TO pygeoapi_ro;
 GRANT USAGE ON SCHEMA public TO pygeoapi_ro;
 
+-- REVOKE ALL is the self-healing step: it clears whatever a removed
+-- grant line used to give. Running it over a PostGIS-enabled database
+-- prints one harmless NOTICE per relation the role has no privileges on
+-- ("no privileges could be revoked for spatial_ref_sys", ...). Those
+-- lines are expected, not a failure.
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM pygeoapi_ro;
 GRANT SELECT ON public.arc_records TO pygeoapi_ro;
 GRANT SELECT ON public.arc_locations TO pygeoapi_ro;
