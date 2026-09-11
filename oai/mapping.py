@@ -140,7 +140,9 @@ def map_record(record: dict[str, Any]) -> dict[str, Any]:
         for a in p.get("assays", [])
     ]
 
-    study_geometry = _geometry_by_study(p.get("locations", []), p["location_status"])
+    study_geometry = _geometry_by_study(
+        p.get("locations", []), p.get("location_status", "absent")
+    )
 
     events: list[dict] = []
     for study in p.get("studies", []):

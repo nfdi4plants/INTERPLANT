@@ -124,3 +124,16 @@ def test_a_merged_source_with_an_assay_segment_still_attributes_to_its_study() -
     )
     event = map_record(record)["events"][0]
     assert event["geometry"] == {"type": "Point", "coordinates": [6.0, 51.0]}
+
+
+def test_a_prebranch_payload_without_location_fields_maps_without_raising() -> None:
+    # H1: records upserted before this branch have no location_status or
+    # locations key at all (git show main:harvester/build.py never wrote
+    # them). oai/mapping.py must degrade to "absent" rather than 500 the
+    # public OAI endpoint on a stale row.
+    record = _record(locations=[], studies=[{"id": "s", "title": "S"}], geometry=None)
+    del record["properties"]["location_status"]
+    del record["properties"]["locations"]
+    result = map_record(record)
+    assert "geometry" not in result["events"][0]
+
