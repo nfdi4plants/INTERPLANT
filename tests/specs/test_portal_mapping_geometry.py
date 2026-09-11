@@ -126,6 +126,30 @@ def test_a_merged_source_with_an_assay_segment_still_attributes_to_its_study() -
     assert event["geometry"] == {"type": "Point", "coordinates": [6.0, 51.0]}
 
 
+def test_a_study_with_only_a_losing_tier_gets_its_own_point_not_another_studys() -> None:
+    # M1: b9a888a fixed intra-study tier mixing by filtering to the RECORD's
+    # winning tier, but that excludes a study whose own points are all in a
+    # losing tier - it then falls through to record geometry, i.e. to a
+    # DIFFERENT study's coordinates. site_b's own data says Brazil; at HEAD
+    # it was published at site_a's German field site instead.
+    record = _record(
+        locations=[
+            {"role": "experiment-site", "label": None, "label_field": None,
+             "point": [6.0, 51.0], "precision": "exact", "n_rows": 1,
+             "source": "studies/site_a/isa.study.xlsx#t"},
+            {"role": "stated-place", "label": "Brazil", "label_field": "Country",
+             "point": [-51.9, -14.2], "precision": "country", "n_rows": 1,
+             "source": "studies/site_b/isa.study.xlsx#t"},
+        ],
+        studies=[{"id": "site_a", "title": "A"}, {"id": "site_b", "title": "B"}],
+        geometry={"type": "Point", "coordinates": [6.0, 51.0]},
+    )
+    assert record["properties"]["location_status"] == "extracted"
+    events = {e["id"]: e for e in map_record(record)["events"]}
+    assert events["site_a"]["geometry"] == {"type": "Point", "coordinates": [6.0, 51.0]}
+    assert events["site_b"]["geometry"] == {"type": "Point", "coordinates": [-51.9, -14.2]}
+
+
 def test_a_prebranch_payload_without_location_fields_maps_without_raising() -> None:
     # H1: records upserted before this branch have no location_status or
     # locations key at all (git show main:harvester/build.py never wrote

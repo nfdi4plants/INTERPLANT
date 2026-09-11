@@ -40,6 +40,7 @@ _TIER_BY_ROLE = {
     "stated-place": "geocoded",
     "custodian-institution": "institution",
 }
+_TIER_ORDER = ("extracted", "geocoded", "institution")
 
 
 def _tier_of(role: str) -> str:
@@ -60,18 +61,19 @@ def _geometry_by_study(locations: list[dict], status: str) -> dict[str, dict]:
     tier: "affiliation" or a place-name source) carry no study attribution
     and stay on the record only.
 
-    Only points in the record's winning precedence tier (`status`) are
-    admitted, mirroring harvester.extractors.location.derive_geometry: a
-    study holding both an extracted-tier and a geocoded-tier point must get
-    only the extracted one, the same as the record geometry does. No point is
-    admitted when status is "absent".
+    The precedence chain (extracted > geocoded > institution) is applied PER
+    STUDY, not against the record's winning tier: a study whose own points
+    are all in a tier that lost at the record level still has a best tier of
+    its own, and must be admitted as that tier rather than excluded and
+    falling back to a DIFFERENT study's record-level geometry (M1). `status`
+    is only used for the "absent" short-circuit below - "absent" means
+    resolve_locations found no points anywhere, so there is nothing to group.
     """
     if status == "absent":
         return {}
-    by_study: dict[str, list[list[float]]] = {}
+    by_study: dict[str, list[tuple[str, list[float]]]] = {}
     for loc in locations:
-        if _tier_of(loc["role"]) != status:
-            continue
+        tier = _tier_of(loc["role"])
         source = loc.get("source") or ""
         point = [float(loc["point"][0]), float(loc["point"][1])]
         for segment in source.split("; "):
@@ -80,12 +82,18 @@ def _geometry_by_study(locations: list[dict], status: str) -> dict[str, dict]:
             parts = segment.split("/")
             if len(parts) < 2 or not parts[1]:
                 continue
-            coords = by_study.setdefault(parts[1], [])
-            if point not in coords:
-                coords.append(point)
+            by_study.setdefault(parts[1], []).append((tier, point))
 
     out: dict[str, dict] = {}
-    for study_id, coords in by_study.items():
+    for study_id, tiered_points in by_study.items():
+        present = {tier for tier, _ in tiered_points}
+        best_tier = next((t for t in _TIER_ORDER if t in present), None)
+        if best_tier is None:
+            continue
+        coords: list[list[float]] = []
+        for tier, point in tiered_points:
+            if tier == best_tier and point not in coords:
+                coords.append(point)
         coords.sort()
         out[study_id] = (
             {"type": "Point", "coordinates": coords[0]}
