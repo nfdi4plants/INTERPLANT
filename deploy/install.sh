@@ -117,6 +117,20 @@ for _key in INTERPLANT_PG_RO_PASSWORD CONTAINER_HOST CONTAINER_PORT; do
     fi
 done
 
+echo "== pygeoapi role =="
+# pygeoapi_ro is a LOGIN role with the session timeouts the OGC API relies
+# on. install.sh's own instructions create interplant with `createuser
+# --pwprompt`, which grants neither CREATEROLE nor superuser, so the role
+# itself must be created and configured as postgres. The schema block
+# below then applies the grants, which interplant can do as owner of the
+# database, schema and views.
+sudo -u postgres psql -v ON_ERROR_STOP=1 -d interplant -f "$REPO/sql/pygeoapi_role_lifecycle.sql"
+# Password travels as a psql variable (:'pw': is properly quoted), the
+# same no-mangling guarantee the schema block's systemd-run provides.
+pw=$(sed -n 's/^INTERPLANT_PG_RO_PASSWORD=//p' "$ENVFILE")
+sudo -u postgres psql -v ON_ERROR_STOP=1 -d interplant -v pw="$pw" \
+    -c "ALTER ROLE pygeoapi_ro WITH PASSWORD :'pw'"
+
 echo "== schema =="
 # Read the env file with systemd-run rather than reconstructing it through
 # xargs, which would mangle any password containing shell metacharacters.
@@ -129,7 +143,7 @@ sudo systemd-run --pipe --wait --quiet \
 c = db.connect(os.environ["INTERPLANT_PG_DSN"])
 db.apply_schema(c)
 db.apply_catalog_views(c)
-db.apply_pygeoapi_role(c, password=os.environ["INTERPLANT_PG_RO_PASSWORD"])
+db.apply_pygeoapi_role(c)
 print("schema, catalog views and pygeoapi role applied")'
 
 echo "== pygeoapi image =="

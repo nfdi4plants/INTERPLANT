@@ -73,7 +73,8 @@ def seeded_locations(pg_dsn: str):
         # Dev is served as pygeoapi_ro, so a fixture that rebuilt the views must
         # restore their ACLs (another test's DROP ... CASCADE may have taken
         # them). Mirrors the contract install.sh guarantees on production.
-        db.apply_pygeoapi_role(conn, password=RO_PASSWORD)
+        db.create_pygeoapi_role(conn, password=RO_PASSWORD)
+        db.apply_pygeoapi_role(conn)
         yield conn
 
 

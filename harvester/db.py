@@ -17,6 +17,7 @@ _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 _VIEWS_PATH = Path(__file__).parent.parent / "sql" / "catalog_views.sql"
 _GENERATED_VIEWS_PATH = Path(__file__).parent.parent / "sql" / "catalog_collections.generated.sql"
 _PYGEOAPI_ROLE_PATH = Path(__file__).parent.parent / "sql" / "pygeoapi_role.sql"
+_PYGEOAPI_LIFECYCLE_PATH = Path(__file__).parent.parent / "sql" / "pygeoapi_role_lifecycle.sql"
 
 # Fixed advisory lock key serializing the refresh pipeline. Arbitrary but
 # must never change once deployed: it is only meaningful as long as every
@@ -66,24 +67,33 @@ def apply_catalog_views(conn: psycopg.Connection) -> None:
         cur.execute(_GENERATED_VIEWS_PATH.read_text(encoding="utf-8"))
 
 
-def apply_pygeoapi_role(conn: psycopg.Connection, *, password: str) -> None:
-    """Create or update the read-only role pygeoapi connects as.
+def create_pygeoapi_role(conn: psycopg.Connection, *, password: str) -> None:
+    """Create and configure the read-only role pygeoapi connects as.
 
-    The password is set separately from the DDL so the SQL file stays free of
-    credentials and can be read in a diff. Idempotent: safe to re-run on every
-    install, which is how the role picks up a rotated password. CONNECT is
-    granted on the database the caller is connected to, not a hardcoded name.
+    Requires a superuser connection (CREATEROLE on the role plus ADMIN on it):
+    install.sh runs this as the postgres system user, the dev stack as the
+    bootstrap interplant role. The password is set separately from the DDL so
+    the SQL file stays free of credentials and can be read in a diff.
+    Idempotent: safe to re-run; re-applying resets the password, which is how
+    a rotation is applied.
     """
     with conn.cursor() as cur:
-        cur.execute(_PYGEOAPI_ROLE_PATH.read_text(encoding="utf-8"))
-        cur.execute(
-            sql.SQL("GRANT CONNECT ON DATABASE {} TO pygeoapi_ro").format(
-                sql.Identifier(conn.info.dbname)
-            )
-        )
+        cur.execute(_PYGEOAPI_LIFECYCLE_PATH.read_text(encoding="utf-8"))
         cur.execute(
             sql.SQL("ALTER ROLE pygeoapi_ro WITH PASSWORD {}").format(sql.Literal(password))
         )
+
+
+def apply_pygeoapi_role(conn: psycopg.Connection) -> None:
+    """Apply the grants the read-only role needs to serve the catalog.
+
+    These are grants a database owner can apply without CREATEROLE, so this
+    runs after create_pygeoapi_role as the interplant role (production's
+    interplant is created via `createuser --pwprompt` with no CREATEROLE).
+    SELECT-only, on the nine serving views.
+    """
+    with conn.cursor() as cur:
+        cur.execute(_PYGEOAPI_ROLE_PATH.read_text(encoding="utf-8"))
 
 
 def upsert_record(

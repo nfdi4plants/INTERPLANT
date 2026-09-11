@@ -20,7 +20,8 @@ def ro_conn(pg_dsn: str, ro_dsn: str):
     with psycopg.connect(pg_dsn, autocommit=True) as admin:
         db.apply_schema(admin)
         db.apply_catalog_views(admin)
-        db.apply_pygeoapi_role(admin, password=RO_PASSWORD)
+        db.create_pygeoapi_role(admin, password=RO_PASSWORD)
+        db.apply_pygeoapi_role(admin)
     with psycopg.connect(ro_dsn, autocommit=True) as conn:
         yield conn
 

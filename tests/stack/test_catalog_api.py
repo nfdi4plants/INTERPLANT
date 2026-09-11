@@ -43,7 +43,8 @@ def seeded(pg_dsn: str, pygeoapi_reachable: bool, pygeoapi_url: str):
         # recreated views start with owner-only privileges. Dev now serves as
         # pygeoapi_ro, exactly like production: re-provision the role the way
         # install.sh does, or every query through the provider 500s.
-        db.apply_pygeoapi_role(conn, password=RO_PASSWORD)
+        db.create_pygeoapi_role(conn, password=RO_PASSWORD)
+        db.apply_pygeoapi_role(conn)
     yield
 
 

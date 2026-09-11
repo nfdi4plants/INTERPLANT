@@ -30,6 +30,7 @@ services:
       - ./harvester/schema.sql:/sql/00_schema.sql:ro
       - ./sql/catalog_views.sql:/sql/10_views.sql:ro
       - ./sql/catalog_collections.generated.sql:/sql/20_generated.sql:ro
+      - ./sql/pygeoapi_role_lifecycle.sql:/sql/25_lifecycle.sql:ro
       - ./sql/pygeoapi_role.sql:/sql/30_role.sql:ro
     entrypoint:
       - sh
@@ -38,8 +39,9 @@ services:
         psql -h db -U interplant -d interplant -v ON_ERROR_STOP=1 -f /sql/00_schema.sql &&
         psql -h db -U interplant -d interplant -v ON_ERROR_STOP=1 -f /sql/10_views.sql &&
         psql -h db -U interplant -d interplant -v ON_ERROR_STOP=1 -f /sql/20_generated.sql &&
-        psql -h db -U interplant -d interplant -v ON_ERROR_STOP=1 -f /sql/30_role.sql &&
-        psql -h db -U interplant -d interplant -v ON_ERROR_STOP=1 -c "ALTER ROLE pygeoapi_ro WITH PASSWORD '${INTERPLANT_PG_RO_PASSWORD:-test-ro-password}'"
+        psql -h db -U interplant -d interplant -v ON_ERROR_STOP=1 -f /sql/25_lifecycle.sql &&
+        psql -h db -U interplant -d interplant -v ON_ERROR_STOP=1 -c "ALTER ROLE pygeoapi_ro WITH PASSWORD '${INTERPLANT_PG_RO_PASSWORD:-test-ro-password}'" &&
+        psql -h db -U interplant -d interplant -v ON_ERROR_STOP=1 -f /sql/30_role.sql
     depends_on:
       db:
         condition: service_healthy

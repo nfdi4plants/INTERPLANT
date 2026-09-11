@@ -31,7 +31,8 @@ def role_ready(pg_dsn: str):
     with psycopg.connect(pg_dsn, autocommit=True) as admin:
         db.apply_schema(admin)
         db.apply_catalog_views(admin)
-        db.apply_pygeoapi_role(admin, password=RO_PASSWORD)
+        db.create_pygeoapi_role(admin, password=RO_PASSWORD)
+        db.apply_pygeoapi_role(admin)
     yield
 
 

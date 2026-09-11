@@ -1,5 +1,8 @@
--- Read-only role for pygeoapi. Applied by deploy/install.sh via
--- harvester.db.apply_pygeoapi_role, which substitutes the password.
+-- Grants for the pygeoapi_ro role. Applied by deploy/install.sh via
+-- harvester.db.apply_pygeoapi_role after the role exists: the creation and
+-- the session timeouts live in sql/pygeoapi_role_lifecycle.sql, which runs as
+-- a superuser. This file is grants-only because interplant can apply these as
+-- owner of the database, schema and views without CREATEROLE.
 --
 -- pygeoapi is public and unauthenticated, so its credential is enforced
 -- read-only by the database rather than by the application's good behaviour.
@@ -7,34 +10,17 @@
 -- the API exposes, so granting the base table would hand a public service
 -- more than it can ever serve.
 --
--- statement_timeout is 3s, and it is load-bearing rather than cosmetic.
--- harvester/publish.py sets lock_timeout = '5s' around TRUNCATE public.records,
--- so a reader holding ACCESS SHARE for longer aborts the nightly publish and
--- the corpus goes stale - which matters because AWI's harvest applies a 5-day
--- TTL to records it stops seeing. Measured worst-case query at 100x realistic
--- corpus size was 59ms, so 3s is ample headroom while staying clear of 5s.
--- See tests/stack/test_swap_survives_slow_reader.py.
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'pygeoapi_ro') THEN
-    CREATE ROLE pygeoapi_ro LOGIN;
-  END IF;
-END
-$$;
+-- The role's statement_timeout (3s) and idle_in_transaction_session_timeout
+-- (3s) are load-bearing against the swap's 5s lock_timeout; see
+-- sql/pygeoapi_role_lifecycle.sql for the rationale and tests/stack/
+-- test_swap_survives_slow_reader.py for the measurements.
 
-ALTER ROLE pygeoapi_ro SET statement_timeout = '3s';
-
--- statement_timeout bounds the STATEMENT, not the transaction. A reader whose
--- query finishes fast but whose transaction stays open still holds ACCESS
--- SHARE on the lock the swap needs, and no statement is running for
--- statement_timeout to cancel. Measured: such a reader blocked the swap at
--- 5.0s with LockNotAvailable despite statement_timeout being set. pygeoapi's
--- pooled sessions sit idle with no open transaction, so this makes the bound
--- structural instead of resting on the client's good manners.
-ALTER ROLE pygeoapi_ro SET idle_in_transaction_session_timeout = '3s';
-
--- CONNECT is granted by harvester.db.apply_pygeoapi_role on the connected
--- database, so the file stays free of a hardcoded database name.
+-- CONNECT is granted explicitly rather than relied on from PUBLIC's default,
+-- so a future lock-down of the default fails loudly here instead of as a
+-- mystery connect error. The database name is fixed: the API serves exactly
+-- the interplant catalog, and install.sh provisions this role on that
+-- database by name.
+GRANT CONNECT ON DATABASE interplant TO pygeoapi_ro;
 GRANT USAGE ON SCHEMA public TO pygeoapi_ro;
 
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM pygeoapi_ro;
