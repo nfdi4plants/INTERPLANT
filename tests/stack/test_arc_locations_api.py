@@ -51,15 +51,21 @@ def test_a_point_carries_its_record_id_for_joining_back(seeded_locations, pygeoa
 def test_a_multi_point_record_yields_one_feature_per_point(seeded_locations, pygeoapi_url) -> None:
     """dataplant-multi has 3 location rows; record_id alone is not a unique id,
     so id_field must point at a column that is - otherwise pygeoapi's
-    PostgreSQL provider collapses every row sharing a record_id into one."""
+    PostgreSQL provider collapses every row sharing a record_id into one.
+
+    Filtered server-side on record_id rather than paging and filtering here:
+    this view holds one row per point, so a real corpus puts thousands of rows
+    in front of the seeded ones (a single ARC in the live corpus contributes
+    387). A client-side filter over the first page passes only while the
+    database is nearly empty.
+    """
     resp = httpx.get(
         f"{pygeoapi_url}/collections/arc-locations/items",
-        params={"f": "json", "limit": 100},
+        params={"f": "json", "record_id": "dataplant-multi", "limit": 100},
         timeout=30,
     )
     resp.raise_for_status()
-    feats = resp.json()["features"]
-    ours = [f for f in feats if f["properties"]["record_id"] == "dataplant-multi"]
+    ours = resp.json()["features"]
     assert len(ours) == 3
     assert len({f["id"] for f in ours}) == 3
 
@@ -68,10 +74,14 @@ def test_role_filter_returns_every_matching_point(seeded_locations, pygeoapi_url
     """dataplant-multi has 2 collection-site points; both must come back, not 1."""
     resp = httpx.get(
         f"{pygeoapi_url}/collections/arc-locations/items",
-        params={"f": "json", "role": "collection-site", "limit": 50},
+        params={
+            "f": "json",
+            "role": "collection-site",
+            "record_id": "dataplant-multi",
+            "limit": 50,
+        },
         timeout=30,
     )
     resp.raise_for_status()
-    feats = resp.json()["features"]
-    ours = [f for f in feats if f["properties"]["record_id"] == "dataplant-multi"]
+    ours = resp.json()["features"]
     assert len(ours) == 2
