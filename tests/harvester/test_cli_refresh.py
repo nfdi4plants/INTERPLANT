@@ -26,6 +26,7 @@ def stubbed(monkeypatch):
 
     monkeypatch.setattr(cli.db, "connect", lambda dsn, schema=None: _FakeConn())
     monkeypatch.setattr(cli.db, "apply_schema", lambda conn: None)
+    monkeypatch.setattr(cli.db, "apply_catalog_views", lambda conn: None)
     monkeypatch.setattr(cli.db, "try_advisory_lock", lambda conn: True)
     monkeypatch.setattr(
         cli.db, "truncate_staging",

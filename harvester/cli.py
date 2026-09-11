@@ -416,6 +416,12 @@ def _refresh(args) -> int:
             )
             return 1
         logger.info("Published %d records (%s)", count, gate.reason)
+        # Re-applied after every successful publish, not just at install. The nightly
+        # path is the only thing that routinely changes this database, so it is where
+        # view drift would appear; CREATE OR REPLACE VIEW is idempotent, so this is
+        # cheap. Without it, public.arc_locations can vanish and every OGC locations
+        # query 500s until someone runs `make catalog-views` by hand.
+        db.apply_catalog_views(conn)
         return 0
     finally:
         conn.close()
