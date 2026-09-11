@@ -5,10 +5,18 @@ has to be enforced by the database rather than by pygeoapi's good behaviour.
 """
 from __future__ import annotations
 
+import shutil
+
 import psycopg
 import pytest
 
-pytestmark = pytest.mark.db
+pytestmark = [
+    pytest.mark.db,
+    pytest.mark.skipif(
+        shutil.which("docker") is None,
+        reason="needs the docker dev stack on localhost:5432",
+    ),
+]
 
 _RO_DSN_TEMPLATE = "host=localhost port=5432 dbname=interplant user=pygeoapi_ro password={}"
 _PASSWORD = "test-ro-password"
@@ -53,3 +61,33 @@ def test_the_role_carries_a_statement_timeout_under_the_swap_lock_timeout(ro_con
         cur.execute("SHOW statement_timeout")
         value = cur.fetchone()[0]
     assert value == "3s", f"expected 3s, got {value!r}"
+
+
+def test_every_served_collection_is_readable_by_the_role(ro_conn) -> None:
+    """Grants are hand-listed in sql/pygeoapi_role.sql; seven view names are
+    generated from catalog/collections/*.yaml. Adding a descriptor creates a
+    view and collection with no grant - a 500 in production with green CI
+    unless something pins the two together."""
+    from pathlib import Path
+
+    import yaml
+
+    config = yaml.safe_load(
+        Path(__file__).parent.parent.parent.joinpath("pygeoapi-config.yml").read_text()
+    )
+    tables = [
+        provider["table"]
+        for resource in config["resources"].values()
+        if isinstance(resource, dict) and resource.get("type") == "collection"
+        for provider in resource["providers"]
+    ]
+    assert len(tables) == 9, f"expected 9 served tables, found {len(tables)}"
+    for table in tables:
+        with ro_conn.cursor() as cur:
+            cur.execute(f"SELECT 1 FROM public.{table} LIMIT 1")  # noqa: S608 - name derived from the committed config
+
+
+def test_the_role_cannot_write_through_a_view(ro_conn) -> None:
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        with ro_conn.cursor() as cur:
+            cur.execute("INSERT INTO public.arc_records_genomics (id) VALUES ('x')")
