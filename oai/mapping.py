@@ -31,6 +31,78 @@ ORGANISATIONS: dict[str, list[dict[str, Any]]] = {
 }
 
 
+# Duplicated from harvester.extractors.location's _TIER_BY_ROLE / tier_of:
+# harvester/ is deliberately not part of the oai image (oai/Dockerfile only
+# COPYs oai/), so this module cannot import it. Keep this in sync with the
+# original - it is the same precedence table, extracted > geocoded >
+# institution, first available tier wins.
+_TIER_BY_ROLE = {
+    "stated-place": "geocoded",
+    "custodian-institution": "institution",
+}
+_TIER_ORDER = ("extracted", "geocoded", "institution")
+
+
+def _tier_of(role: str) -> str:
+    return _TIER_BY_ROLE.get(role, "extracted")
+
+
+def _geometry_by_study(locations: list[dict], status: str) -> dict[str, dict]:
+    """Group location points by the study identifier(s) in their source path.
+
+    A source segment reads "studies/<identifier>/isa.study.xlsx#<sheet>", so
+    its second path segment attributes a point to a study. An identical
+    (role, point) seen in several tables is merged by
+    harvester.extractors.location.points_from_tables, which joins the
+    contributing tables' source paths with "; " - so one location's source
+    can name several studies (or a mix of studies and assays), and every
+    segment must be parsed independently rather than only the first. Points
+    whose source has no studies/ segment at all (assays only, or a fallback
+    tier: "affiliation" or a place-name source) carry no study attribution
+    and stay on the record only.
+
+    The precedence chain (extracted > geocoded > institution) is applied PER
+    STUDY, not against the record's winning tier: a study whose own points
+    are all in a tier that lost at the record level still has a best tier of
+    its own, and must be admitted as that tier rather than excluded and
+    falling back to a DIFFERENT study's record-level geometry (M1). `status`
+    is only used for the "absent" short-circuit below - "absent" means
+    resolve_locations found no points anywhere, so there is nothing to group.
+    """
+    if status == "absent":
+        return {}
+    by_study: dict[str, list[tuple[str, list[float]]]] = {}
+    for loc in locations:
+        tier = _tier_of(loc["role"])
+        source = loc.get("source") or ""
+        point = [float(loc["point"][0]), float(loc["point"][1])]
+        for segment in source.split("; "):
+            if not segment.startswith("studies/"):
+                continue
+            parts = segment.split("/")
+            if len(parts) < 2 or not parts[1]:
+                continue
+            by_study.setdefault(parts[1], []).append((tier, point))
+
+    out: dict[str, dict] = {}
+    for study_id, tiered_points in by_study.items():
+        present = {tier for tier, _ in tiered_points}
+        best_tier = next((t for t in _TIER_ORDER if t in present), None)
+        if best_tier is None:
+            continue
+        coords: list[list[float]] = []
+        for tier, point in tiered_points:
+            if tier == best_tier and point not in coords:
+                coords.append(point)
+        coords.sort()
+        out[study_id] = (
+            {"type": "Point", "coordinates": coords[0]}
+            if len(coords) == 1
+            else {"type": "MultiPoint", "coordinates": coords}
+        )
+    return out
+
+
 def map_record(record: dict[str, Any]) -> dict[str, Any]:
     p = record["properties"]
 
@@ -76,6 +148,10 @@ def map_record(record: dict[str, Any]) -> dict[str, Any]:
         for a in p.get("assays", [])
     ]
 
+    study_geometry = _geometry_by_study(
+        p.get("locations", []), p.get("location_status", "absent")
+    )
+
     events: list[dict] = []
     for study in p.get("studies", []):
         event: dict[str, Any] = {
@@ -86,7 +162,12 @@ def map_record(record: dict[str, Any]) -> dict[str, Any]:
             event["begin"] = record["time"]["interval"][0]
         if record.get("time", {}).get("interval", [None, None])[1]:
             event["end"] = record["time"]["interval"][1]
-        if record.get("geometry"):
+        # Per-study geometry where the points name a study; otherwise the
+        # record geometry. Closes the v2 item parked in portal-mapping.md.
+        own = study_geometry.get(study["id"])
+        if own is not None:
+            event["geometry"] = own
+        elif record.get("geometry"):
             event["geometry"] = record["geometry"]
         events.append(event)
 

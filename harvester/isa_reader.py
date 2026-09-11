@@ -20,8 +20,11 @@ Verified API notes (arctrl 3.0.5):
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Identifier for the stub study synthesised when an ARC has assays but no
 # studies at all (some ARCs register assays only at the ARC level).
@@ -35,6 +38,21 @@ class Assay:
     measurement_type: str | None
     technology_type: str | None = None
     technology_platform: str | None = None
+
+
+@dataclass(frozen=True)
+class Table:
+    """One ISA annotation table (one worksheet of a study or assay file).
+
+    `columns` is parallel to `headers`: columns[i] holds the cell texts of the
+    column headed by headers[i]. `source` is "<file path>#<sheet name>", which
+    is what a record's locations[].source reports.
+    """
+
+    name: str
+    source: str
+    headers: list[str]
+    columns: list[list[str | None]]
 
 
 @dataclass(frozen=True)
@@ -63,6 +81,7 @@ class Investigation:
     studies: list[Study] = field(default_factory=list)
     organisms: list[str] = field(default_factory=list)
     license: str | None = None
+    tables: list[Table] = field(default_factory=list)
     arc_root: Path | None = None
 
 
@@ -94,6 +113,7 @@ class IsaReader:
             studies=_assemble_studies(study_specs, assays),
             organisms=_organisms_from(arc),
             license=_license_from(arc),
+            tables=_tables_from(arc),
             arc_root=arc_root,
         )
 
@@ -134,6 +154,66 @@ def _organism_values_from_table(table) -> list[str]:
         return values
     except Exception:  # noqa: BLE001 - never let table parsing break ingest
         return []
+
+
+def _tables_from(arc) -> list[Table]:
+    """Collect every annotation table from the ARC's studies and assays.
+
+    Both are scanned because coordinates are not always in studies/: two of the
+    fourteen ARCs with usable coordinates keep them exclusively under assays/
+    (agdafair/flyover_redacted, tntranloc/dormancy_NhuTran_2025), and a third
+    (frommer/DAP_Seq) has them in both.
+
+    Defensive per table: `_tables_of` guards each table individually, so an
+    arctrl shape surprise on one table yields fewer tables rather than
+    breaking ingest, matching _organism_values_from_table's contract.
+    """
+    out: list[Table] = []
+    for study in (getattr(arc, "Studies", None) or []):
+        ident = str(getattr(study, "Identifier", "") or "")
+        out.extend(_tables_of(study, f"studies/{ident}/isa.study.xlsx"))
+    for assay in (getattr(arc, "Assays", None) or []):
+        ident = str(getattr(assay, "Identifier", "") or "")
+        out.extend(_tables_of(assay, f"assays/{ident}/isa.assay.xlsx"))
+    return out
+
+
+def _tables_of(container, file_path: str) -> list[Table]:
+    """Convert one study's or assay's arctrl tables into plain Table objects."""
+    out: list[Table] = []
+    for table in (getattr(container, "Tables", None) or []):
+        name = str(getattr(table, "Name", "") or "")
+        source = f"{file_path}#{name}"
+        try:
+            headers = [str(h) for h in (getattr(table, "Headers", None) or [])]
+            columns: list[list[str | None]] = []
+            for column in (getattr(table, "Columns", None) or []):
+                columns.append(
+                    [
+                        _cell_text(cell)
+                        for cell in (getattr(column, "Cells", None) or [])
+                    ]
+                )
+            if len(columns) != len(headers):
+                logger.warning(
+                    "Skipping table %s: %d headers but %d columns (length skew)",
+                    source,
+                    len(headers),
+                    len(columns),
+                )
+                continue
+            out.append(
+                Table(
+                    name=name,
+                    source=source,
+                    headers=headers,
+                    columns=columns,
+                )
+            )
+        except Exception as exc:  # noqa: BLE001 - never let one bad table break ingest
+            logger.warning("Skipping table %s: %s", source, type(exc).__name__)
+            continue
+    return out
 
 
 def _license_from(arc) -> str | None:
@@ -225,6 +305,39 @@ def _assay_from(assay) -> Assay:
         technology_type=technology_type,
         technology_platform=technology_platform,
     )
+
+
+def _cell_text(cell) -> str | None:
+    """Return the display text of one ArcTable cell, used only by _tables_of.
+
+    Measured on agdafair/flyover_redacted's coordinate columns: arctrl wraps a
+    cell carrying a unit annotation (there, the UO degree term) in a
+    CompositeCell with `is_unitized=True`. str(cell) on such a cell appends
+    the unit name ('+7.75402778 degree'), which the location extractor's
+    anchored _COORD_VALUE regex then rejects outright, so every flyover row
+    was silently dropped. cell.GetContent() returns
+    [value, unit_name, unit_term_uri, unit_term_uri] instead; we want only
+    the bare value at index 0. investigation.tables is consumed only by
+    harvester/extractors/location.py (verified by grep), which drops the
+    unit token from both the coordinate-parsing path and the label path.
+    The label path is where the behaviour visibly changes: _label_for
+    publishes a candidate column's raw cell text as locations[].label, so a
+    unitized column that wins the label race now publishes a unitless value
+    instead of the unit-suffixed text it would have carried before this fix.
+
+    Deliberately NOT folded into _annotation_name: that function's contract
+    (OntologyAnnotation -> .Name, plain strings pass through) is relied on by
+    the organism, license and assay-type paths, which never see unitized
+    cells and must not change behaviour.
+    """
+    if getattr(cell, "is_unitized", False):
+        try:
+            content = cell.GetContent()
+            if content:
+                return _str_or_none(content[0])
+        except Exception:  # noqa: BLE001 - fall back to the plain-string path below
+            pass
+    return _annotation_name(cell)
 
 
 def _annotation_name(value) -> str | None:

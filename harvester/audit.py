@@ -24,7 +24,37 @@ def aggregate(report) -> dict:
         "n_upserted": sum(1 for r in o if r.upsert_ok),
         "omics_classified": sum(r.omics_classified for r in o),
         "omics_total": sum(r.omics_total for r in o),
+        "n_not_built": sum(1 for r in o if not r.build_ok),
+        "location_status_counts": _location_status_counts(o),
     }
+
+
+_LOCATION_TIERS = ("extracted", "geocoded", "institution", "absent")
+
+
+def _location_status_counts(outcomes) -> dict[str, int]:
+    """Count BUILT records per location tier.
+
+    Gated on build_ok, like every other counter in aggregate(): ArcOutcome's
+    location_status field defaults to "absent" and is only ever overwritten
+    on build success (harvester/pipeline.py), so an outcome that never
+    reached build_record (clone failure, parse failure, filtered) still reads
+    "absent" - without this gate it is indistinguishable from an ARC that was
+    built and genuinely had no location. Every tier is present even at zero
+    so the JSON artifact stays diffable between runs. A sudden collapse in
+    "extracted" or "institution" among BUILT ARCs is the signal that a
+    geodata refresh is overdue; a rise in the un-gated n_not_built count
+    signals a clone-storm or parse-timeout night instead, and the two must
+    not be conflated.
+    """
+    counts = dict.fromkeys(_LOCATION_TIERS, 0)
+    for outcome in outcomes:
+        if not outcome.build_ok:
+            continue
+        tier = getattr(outcome, "location_status", None) or "absent"
+        if tier in counts:
+            counts[tier] += 1
+    return counts
 
 
 def write_run_report(report, out_dir) -> tuple[Path, Path]:
@@ -61,6 +91,12 @@ def write_run_report(report, out_dir) -> tuple[Path, Path]:
         f"parsed {agg['n_parsed']}, filtered {agg['n_filtered']}, "
         f"built {agg['n_built']}, validated {agg['n_valid']}, "
         f"suppressed {agg['n_suppressed']}, upserted {agg['n_upserted']}"
+    )
+    lc = agg["location_status_counts"]
+    a(
+        f"- Locations (of {agg['n_built']} built): extracted {lc['extracted']}, "
+        f"geocoded {lc['geocoded']}, institution {lc['institution']}, "
+        f"absent {lc['absent']} ({agg['n_not_built']} not built)"
     )
     omics = (
         f"{agg['omics_classified']}/{agg['omics_total']}"

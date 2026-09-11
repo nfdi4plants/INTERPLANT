@@ -412,3 +412,46 @@ resources:
       - organism
       - keywords
       - arc_source_uri
+  arc-locations:
+    type: collection
+    title: INTERPLANT ARC locations
+    description: 'One point per extracted or derived ARC location. Where a Records entry
+  
+      carries a single representative geometry, this collection carries every
+  
+      point behind it, each tagged with its role and the precision of its
+  
+      derivation. Teosinte appears here as its 276 collection sites.'
+    keywords:
+    - locations
+    - geospatial
+    - arc
+    - dataplant
+    extents:
+      spatial:
+        bbox:
+        - -180
+        - -90
+        - 180
+        - 90
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+    links: []
+    providers:
+    - type: feature
+      name: PostgreSQL
+      data:
+        host: db
+        port: 5432
+        dbname: interplant
+        user: interplant
+        password: interplant
+      id_field: id
+      table: arc_locations
+      geom_field: geom
+      properties:
+      - record_id
+      - role
+      - label
+      - precision
+      - n_rows
+      - source

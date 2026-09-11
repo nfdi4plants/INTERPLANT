@@ -1,0 +1,25 @@
+id: arc-locations
+title: INTERPLANT ARC locations
+description: |
+  One point per extracted or derived ARC location. Where a Records entry
+  carries a single representative geometry, this collection carries every
+  point behind it, each tagged with its role and the precision of its
+  derivation. Teosinte appears here as its 276 collection sites.
+keywords: [locations, geospatial, arc, dataplant]
+license: CC-BY-4.0
+axis: geo
+provider:
+  name: DataPLANT
+  url: https://nfdi4plants.org
+extent:
+  spatial:
+    bbox: [[-180, -90, 180, 90]]
+  temporal:
+    interval: [["2010-01-01T00:00:00Z", null]]
+links:
+  - rel: describedby
+    href: /schemas/record.schema.json
+    title: L2 record schema
+  - rel: items
+    href: /collections/arc-locations/items
+    title: Location points in this collection

@@ -19,11 +19,22 @@ Every collection is described by one YAML file. Required keys:
 | `license`    | string | SPDX identifier preferred. |
 | `axis`       | enum   | `omics` or `experiment_context`. Identifies which collection axis this belongs to. |
 | `provider`   | object | `{ name, url }`. Usually DataPLANT. |
-| `extent`     | object | `spatial.bbox` + `temporal.interval`. Initial world-wide bbox is tightened dynamically by the catalog API. |
+| `extent`     | object | `spatial.bbox` + `temporal.interval`. The bbox stays world-wide and is NOT narrowed: a bbox is a superset hint, and one computed from a past harvest can exclude an ARC harvested later, causing a client to skip a collection that does contain matching records. |
 | `links`      | array  | `describedby`, `items`, `related` at minimum. |
 | `query_rule` | string | SQL `WHERE` fragment over `arc_records.properties`. |
 
 Optional: `featured` (array of record ids), `narrative` (Markdown for overview page).
+
+This schema, including the required `query_rule` and the `axis` enum, governs
+only the `dataplant-*` omics/experiment_context descriptors below.
+`catalog/collections/arc-locations.yaml` is a geodata descriptor outside this
+schema: it has no `query_rule` (arc-locations is a fixed view, not a filtered
+one) and uses `axis: geo`, which is not in the enum. `scripts/generate_catalog.py`'s
+schema validation and `tests/specs/test_collection_descriptors.py` both glob
+`dataplant-*.yaml`, so neither ever sees arc-locations.yaml; that glob is what
+draws the line. `generate_catalog.py` still reads arc-locations.yaml
+separately (`LOCATIONS_DESCRIPTOR`) to emit its own `arc_locations` view and
+pygeoapi resource, just without the schema check or the query_rule machinery.
 
 ## 2. The 11 collections
 

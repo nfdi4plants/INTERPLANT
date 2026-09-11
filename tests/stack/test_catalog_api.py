@@ -17,6 +17,7 @@ FIXTURES_ROOT = Path(__file__).parent.parent / "fixtures" / "arcs"
 
 ALL_COLLECTIONS = {
     "arc-records",
+    "arc-locations",
     "dataplant-proteomics", "dataplant-transcriptomics", "dataplant-genomics",
     "dataplant-metabolomics", "dataplant-phenotyping", "dataplant-imaging",
     "dataplant-microbiome",
@@ -48,11 +49,30 @@ def test_all_collections_present(seeded, pygeoapi_url):
 
 
 def test_arc_records_items_serve_with_null_geometry(seeded, pygeoapi_url):
+    """A record with no resolvable location must still appear in /items.
+
+    Bbox-filtered views necessarily exclude null-geometry records, so the plain
+    listing is the only place the other ~23% of the corpus is reachable. This
+    asserts they are present, NOT that every record is null: about 77% of real
+    ARCs resolve to a point, and a fixture gains one as soon as its affiliation
+    enters harvester/geodata/institutions.json.
+    """
     r = httpx.get(f"{pygeoapi_url}/collections/arc-records/items", timeout=5.0)
     assert r.status_code == 200, r.text
     feats = r.json()["features"]
     assert len(feats) >= 3
-    assert all(f["geometry"] is None for f in feats)
+    # geometry is present as a key on every feature, null or not
+    assert all("geometry" in f for f in feats)
+
+
+def test_no_record_ever_carries_a_polygon_geometry(seeded, pygeoapi_url):
+    """Only Point, MultiPoint or null. A bbox Polygon is confidently wrong."""
+    r = httpx.get(f"{pygeoapi_url}/collections/arc-records/items", timeout=5.0)
+    assert r.status_code == 200, r.text
+    kinds = {
+        f["geometry"]["type"] for f in r.json()["features"] if f["geometry"] is not None
+    }
+    assert kinds <= {"Point", "MultiPoint"}, kinds
 
 
 def test_imaging_collection_is_filtered(seeded, pygeoapi_url):

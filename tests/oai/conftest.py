@@ -97,5 +97,7 @@ def _MINIMAL_PAYLOAD(identifier: str) -> dict:
             "publications": [],
             "assays": [],
             "studies": [],
+            "location_status": "absent",
+            "locations": [],
         },
     }

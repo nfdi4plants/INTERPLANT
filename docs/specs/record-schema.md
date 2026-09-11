@@ -16,13 +16,13 @@ A record is a GeoJSON Feature with OGC API Records extensions. Required top-leve
 | `type`       | string | Always `"Feature"`. |
 | `conformsTo` | array  | OGC API Records conformance URIs. |
 | `time`       | object | `{ "interval": [start, end] }` - ISO 8601. Either bound may be `null`. |
-| `geometry`   | object or `null` | GeoJSON geometry. `null` for lab-based ARCs and field/greenhouse ARCs with no ISA geometry. |
+| `geometry`   | object or `null` | GeoJSON Point or MultiPoint, or null. Derived from properties.locations by the precedence chain; never a bbox Polygon. |
 | `properties` | object | Record-level metadata (§ 2). |
 | `links`      | array  | OGC API Records links (§ 4). |
 
 ## 2. Properties
 
-Required: `title`, `description`, `created`, `updated`, `keywords`, `license`, `arc_source_uri`, `uniqueId`, `contacts`, `creators`, `publications`, `omics_domains`, `experiment_context`, `organism`, `project`, `studies`, `assays`, `record_quality`, `harvested_at`, `harvester_version`.
+Required: `title`, `description`, `created`, `updated`, `keywords`, `license`, `arc_source_uri`, `uniqueId`, `contacts`, `creators`, `publications`, `omics_domains`, `experiment_context`, `organism`, `project`, `studies`, `assays`, `record_quality`, `harvested_at`, `harvester_version`, `location_status`, `locations`.
 
 Optional: `doi`, `language`.
 
@@ -43,6 +43,7 @@ All four are required on every record. These are the only fields that drive coll
 | `experiment_context` | one of `field`, `greenhouse`, `lab`, `mixed`. |
 | `organism`           | array of organism strings, normalized to NCBI Taxonomy where possible. May be empty for non-biological ARCs. |
 | `project`            | array of consortium/project labels. May be empty. |
+| `location_status`    | one of `extracted`, `geocoded`, `institution`, `absent`. Says which tier supplied `geometry`, so a derived institution point is never mistaken for a measured coordinate. |
 
 ## 4. Links
 
