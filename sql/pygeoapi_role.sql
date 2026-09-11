@@ -24,6 +24,15 @@ $$;
 
 ALTER ROLE pygeoapi_ro SET statement_timeout = '3s';
 
+-- statement_timeout bounds the STATEMENT, not the transaction. A reader whose
+-- query finishes fast but whose transaction stays open still holds ACCESS
+-- SHARE on the lock the swap needs, and no statement is running for
+-- statement_timeout to cancel. Measured: such a reader blocked the swap at
+-- 5.0s with LockNotAvailable despite statement_timeout being set. pygeoapi's
+-- pooled sessions sit idle with no open transaction, so this makes the bound
+-- structural instead of resting on the client's good manners.
+ALTER ROLE pygeoapi_ro SET idle_in_transaction_session_timeout = '3s';
+
 GRANT CONNECT ON DATABASE interplant TO pygeoapi_ro;
 GRANT USAGE ON SCHEMA public TO pygeoapi_ro;
 
