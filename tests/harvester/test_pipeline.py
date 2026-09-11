@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from harvester import pipeline
+from harvester import pipeline, timeouts
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "arcs" / "ArcPrototype"
 
@@ -41,13 +41,20 @@ def _ingest(**kwargs):
     )
 
 
-def test_unmet_parse_budget_is_reported_as_parse_timeout():
+def test_unmet_parse_budget_is_reported_as_parse_timeout(monkeypatch):
     """A budget arctrl cannot meet degrades to a recorded failure, not a stall.
 
     Runs the real arctrl path deliberately: arctrl catches our ParseTimeout and
     re-raises a generic "Could not load ARC" error, so this pins the behaviour we
     depend on to keep timeouts distinct from malformed data in the audit report.
+
+    The fixture parses in about 130ms; the default 0.2s re-arm interval exceeds
+    that, so only one alarm ever fires and whichever arctrl contract it lands in
+    decides the outcome (measured: 4/7 runs came back parse_ok=True). Patching
+    the interval to 5ms gives about 25 interrupts across the parse, so arctrl
+    cannot recover on all of them (measured: 8/8 runs came back parse_ok=False).
     """
+    monkeypatch.setattr(timeouts, "_REARM_INTERVAL", 0.005)
     outcome = _ingest(parse_timeout=0.01)
     assert outcome.parse_ok is False
     assert outcome.parse_exc_type == "ParseTimeout"
