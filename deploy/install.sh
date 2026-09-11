@@ -140,6 +140,16 @@ sudo -u postgres psql -v ON_ERROR_STOP=1 -d interplant -f "$REPO/sql/pygeoapi_ro
 # Password travels as a psql variable (:'pw': is properly quoted), the
 # same no-mangling guarantee the schema block's systemd-run provides.
 pw=$(sed -n 's/^INTERPLANT_PG_RO_PASSWORD=//p' "$ENVFILE")
+# systemd's EnvironmentFile parser strips the quotes from KEY="value",
+# so the container and the schema block see the bare password; sed does
+# not strip them. Remove one surrounding pair here, or a quoted value
+# would set the DATABASE password with quote characters while pygeoapi
+# connects with the unquoted one - and the public API would 500 on
+# authentication while the preflight check happily passed.
+pw=${pw#\"}
+pw=${pw%\"}
+pw=${pw#\'}
+pw=${pw%\'}
 sudo -u postgres psql -v ON_ERROR_STOP=1 -d interplant -v pw="$pw" \
     -c "ALTER ROLE pygeoapi_ro WITH PASSWORD :'pw'"
 
