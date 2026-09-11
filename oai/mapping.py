@@ -32,25 +32,32 @@ ORGANISATIONS: dict[str, list[dict[str, Any]]] = {
 
 
 def _geometry_by_study(locations: list[dict]) -> dict[str, dict]:
-    """Group location points by the study identifier in their source path.
+    """Group location points by the study identifier(s) in their source path.
 
-    A source reads "studies/<identifier>/isa.study.xlsx#<sheet>", so the second
-    path segment attributes a point to a study. Points from assays/ or from a
-    fallback tier (source "affiliation" or "place-name") carry no study
-    attribution and stay on the record only.
+    A source segment reads "studies/<identifier>/isa.study.xlsx#<sheet>", so
+    its second path segment attributes a point to a study. An identical
+    (role, point) seen in several tables is merged by
+    harvester.extractors.location.points_from_tables, which joins the
+    contributing tables' source paths with "; " - so one location's source
+    can name several studies (or a mix of studies and assays), and every
+    segment must be parsed independently rather than only the first. Points
+    whose source has no studies/ segment at all (assays only, or a fallback
+    tier: "affiliation" or a place-name source) carry no study attribution
+    and stay on the record only.
     """
     by_study: dict[str, list[list[float]]] = {}
     for loc in locations:
         source = loc.get("source") or ""
-        if not source.startswith("studies/"):
-            continue
-        parts = source.split("/")
-        if len(parts) < 2 or not parts[1]:
-            continue
         point = [float(loc["point"][0]), float(loc["point"][1])]
-        coords = by_study.setdefault(parts[1], [])
-        if point not in coords:
-            coords.append(point)
+        for segment in source.split("; "):
+            if not segment.startswith("studies/"):
+                continue
+            parts = segment.split("/")
+            if len(parts) < 2 or not parts[1]:
+                continue
+            coords = by_study.setdefault(parts[1], [])
+            if point not in coords:
+                coords.append(point)
 
     out: dict[str, dict] = {}
     for study_id, coords in by_study.items():

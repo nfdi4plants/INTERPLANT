@@ -64,3 +64,41 @@ def test_no_geometry_key_when_the_record_has_none() -> None:
     record = _record(locations=[], studies=[{"id": "s", "title": "S"}], geometry=None)
     record["properties"]["location_status"] = "absent"
     assert "geometry" not in map_record(record)["events"][0]
+
+
+def test_a_point_merged_across_two_studies_attributes_to_both() -> None:
+    # harvester.extractors.location merges an identical (role, point) seen in
+    # several tables, joining their source paths with "; ". A source that
+    # names two studies must attribute the point to both, not just the first.
+    # Record-level geometry is deliberately None so a study wrongly falling
+    # back to it (instead of its own point) shows up as a missing key rather
+    # than a value that happens to match.
+    record = _record(
+        locations=[
+            {"role": "experiment-site", "label": None, "label_field": None,
+             "point": [6.0, 51.0], "precision": "exact", "n_rows": 2,
+             "source": "studies/site_a/isa.study.xlsx#t; studies/site_b/isa.study.xlsx#t"},
+        ],
+        studies=[{"id": "site_a", "title": "A"}, {"id": "site_b", "title": "B"}],
+        geometry=None,
+    )
+    events = {e["id"]: e for e in map_record(record)["events"]}
+    assert events["site_a"]["geometry"] == {"type": "Point", "coordinates": [6.0, 51.0]}
+    assert events["site_b"]["geometry"] == {"type": "Point", "coordinates": [6.0, 51.0]}
+
+
+def test_a_merged_source_with_an_assay_segment_still_attributes_to_its_study() -> None:
+    # An assay-then-study merged source must not fail the startswith("studies/")
+    # check just because the first segment is not a study. Record-level
+    # geometry is None for the same reason as above.
+    record = _record(
+        locations=[
+            {"role": "experiment-site", "label": None, "label_field": None,
+             "point": [6.0, 51.0], "precision": "exact", "n_rows": 2,
+             "source": "assays/flyover_2025_01/isa.assay.xlsx#t; studies/site_a/isa.study.xlsx#t"},
+        ],
+        studies=[{"id": "site_a", "title": "A"}],
+        geometry=None,
+    )
+    event = map_record(record)["events"][0]
+    assert event["geometry"] == {"type": "Point", "coordinates": [6.0, 51.0]}
