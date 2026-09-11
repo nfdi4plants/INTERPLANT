@@ -243,7 +243,9 @@ def is_place_header(core: str) -> bool:
 # Component wrappers, not "Input [...]" - without this map, a generic-tier
 # label_field would come back as the raw "Input [Source Name]" string while
 # every specific-tier label_field is bare (e.g. "ACCESION"), and label_field
-# is user-visible and exploded into a SQL view column by Task 11.
+# is user-visible in the L2 record's locations[] entries (it is not exploded
+# into the published SQL view - see _LOCATION_PROPERTIES in
+# scripts/generate_catalog.py).
 _GENERIC_LABEL_HEADERS = {
     "input [source name]": "Source Name",
     "input [sample name]": "Sample Name",
