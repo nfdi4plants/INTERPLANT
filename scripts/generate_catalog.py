@@ -69,8 +69,8 @@ def derive_view_name(descriptor_id: str) -> str:
 def build_view_sql(descriptor: dict) -> str:
     view = derive_view_name(descriptor["id"])
     return (
-        f"CREATE OR REPLACE VIEW {view} AS "
-        f"SELECT * FROM arc_records WHERE {descriptor['query_rule']};"
+        f"CREATE OR REPLACE VIEW public.{view} AS "
+        f"SELECT * FROM public.arc_records WHERE {descriptor['query_rule']};"
     )
 
 
