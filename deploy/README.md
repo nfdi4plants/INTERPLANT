@@ -45,10 +45,10 @@ so the checkout on disk carries no credentials.
 
 ## Verifying before AWI is told anything
 
-`install.sh` only prints the `ufw` commands that restrict port 8000; it does
-not run them (there is no proxy address to allow yet). Until you run them
-yourself, port 8000 is reachable from the whole internal network - confirm
-the current state with `sudo ufw status` rather than assuming it is closed.
+`install.sh` prints the `ufw` commands that restrict ports 8000 and 8001 and
+runs none of them (there is no proxy address to allow yet). Until you run them
+yourself, both ports are reachable from the whole internal network - confirm
+the current state with `sudo ufw status` rather than assuming they are closed.
 
 From the VM itself:
 
@@ -192,12 +192,118 @@ specific release, or to roll back:
 Rolling back the code does not roll back the database. The schema is additive so
 far, but check before assuming an older tag can read a newer `records` table.
 
+## Publishing the OGC API
+
+pygeoapi serves the published corpus as nine collections, and this branch's
+`deploy/interplant-pygeoapi.service` starts serving them from the internal
+interface the moment `install.sh` runs. The public path under `www.plabipd.de`
+is still to be agreed with Marie; `/ogc` is the example used everywhere below
+and is already baked into `INTERPLANT_OGC_BASE_URL` - and therefore into every
+`link` pygeoapi emits, so the path cannot be guessed now and corrected silently
+later: anything already harvested would carry the wrong URLs. Roll out in
+order, verifying each step, and stop before step 6 if anything fails.
+
+1. Merge `feat/arc-location-geometry` first. The nine served collections are
+   the catalog views that branch adds; this feature serves nothing without
+   them.
+2. Fill the new variables in `/etc/interplant/env` (see
+   `deploy/interplant.env.example`): the six `INTERPLANT_PG_*` variables for
+   the read-only database access, plus `CONTAINER_HOST`, `CONTAINER_PORT`,
+   `SCRIPT_NAME` and `INTERPLANT_OGC_BASE_URL`. Keep
+   `INTERPLANT_PG_PASSWORD` and `INTERPLANT_PG_RO_PASSWORD` identical:
+   `install.sh` sets the `pygeoapi_ro` role's password from the RO variable,
+   and pygeoapi itself connects with the plain one, so drift means a public
+   500. Then `chmod 0600` and `chown root:root`, as the template demands.
+3. Confirm Docker is installed on the VM: `docker --version`. Docker was
+   absent when this box was surveyed (2026-08-20); if it still is, install it
+   before running `install.sh`, because `interplant-pygeoapi.service` has
+   `Requires=docker.service` and will not start without it.
+4. Run `deploy/install.sh`. It also installs the postgis apt package and runs
+   `CREATE EXTENSION IF NOT EXISTS postgis` against the `interplant` database,
+   then applies the catalog views and creates the `pygeoapi_ro` role with the
+   password from `INTERPLANT_PG_RO_PASSWORD`. The script restarts the unit
+   rather than `enable --now`, so the container runs the just-deployed config,
+   not the previous deploy's. This applies to EXISTING installs too - re-run
+   `install.sh` (it is idempotent): the nightly refresh re-applies the catalog
+   views after every publish, and a box without the extension fails there
+   identically to a fresh install (`function st_geomfromgeojson(jsonb) does not
+   exist`).
+5. Verify locally on the VM before exposing anything:
+
+        curl -s "http://192.0.2.10:8001/ogc/collections?f=json" | head -40
+        curl -s "http://192.0.2.10:8001/ogc/collections/arc-locations/items?f=json&limit=2"
+
+   Expect nine collections and real point features. The `/ogc` prefix is
+   required, not optional: `SCRIPT_NAME=/ogc` mounts the API under that path,
+   and a path without it makes gunicorn return HTTP 500 with a `<title>Bad
+   Request</title>` "Configuration problem" page, which looks like a broken
+   install. A 500 here is a path mismatch, not a failed deployment.
+6. Ask Marie two things at once: to map the public path to
+   `192.0.2.10:8001`, and whether her proxy passes the `/ogc` prefix
+   through unchanged. The OAI precedent passes `/oai` through, and
+   `SCRIPT_NAME=/ogc` assumes the same. Without the prefix gunicorn returns
+   HTTP 500 with `<title>Bad Request</title>` (a "Configuration problem"
+   page), which looks like a broken install - do not roll back over it: the
+   path mismatch is the cause, not the deployment. Confirm the prefix with
+   Marie (pass-through, as for `/oai`) and set `SCRIPT_NAME` to match
+   whatever the proxy forwards (empty means the app serves at `/`), with
+   `INTERPLANT_OGC_BASE_URL` sharing that path. Then apply the `ufw` rules
+   for 8001 that `install.sh` printed. Like port 8000, the script prints and
+   does not apply: until you run them, 8001 is reachable from the whole
+   internal network.
+7. Verify from outside that the `links` carry the public URL, not the internal
+   address. This is the `server.url` check: if the links say `192.0.2.10`,
+   `INTERPLANT_OGC_BASE_URL` is wrong.
+8. After the next nightly, confirm the publish succeeded with pygeoapi live:
+   check the newest report under `/var/lib/interplant/harvest-runs/`. The lock
+   behaviour is already pinned by `tests/stack/test_swap_survives_slow_reader.py`,
+   so this is confirmation under real traffic, not the first time anyone finds
+   out.
+
+**Rolling back** is `sudo systemctl stop interplant-pygeoapi.service`: the
+unit stops, the container leaves, and nothing else moves. The OAI endpoint is a
+separate unit and is never loaded by this one, so `www.plabipd.de/oai` stays up
+throughout - nothing here can affect earth-data.de.
+
 ## What is deliberately not here
 
-- No Docker. `arctrl` is a pure-Python wheel and the endpoint needs only Flask,
-  psycopg and gunicorn, so containers buy nothing here while costing us CVE
-  patching that Ubuntu otherwise does for free.
-- No PostGIS. Nothing in the OAI serving path needs it; it arrives with the
-  catalogue work.
+- No Docker except the pygeoapi container, whose exception is recorded in the
+  next section together with the obligation it carries. `arctrl` is a
+  pure-Python wheel and the endpoint needs only Flask, psycopg and gunicorn,
+  so containers buy nothing for those while costing us CVE patching that
+  Ubuntu otherwise does for free.
 - No local nginx. Marie's proxy already terminates TLS and buffers. A local
   nginx becomes worthwhile when pygeoapi needs to share a port.
+
+## The one container on this box: pygeoapi
+
+Decision 1 of the deployment design
+(`docs/superpowers/specs/2026-08-20-production-deployment-design.md`) decides
+for native installs, and names the case where containers earn their place:
+reproducing awkward dependencies. `arctrl` turned out not to be awkward - it
+ships as a pure wheel with no runtime - but pygeoapi genuinely is, so it is the
+deliberate exception to "no Docker" above. GDAL, rasterio, fiona and netCDF4
+are not a clean install on a stock 24.04 box, and the upstream image is the
+supported way they are served. Revisit the exception if pygeoapi ever becomes
+installable without GDAL: the container's reason for existing is the dependency
+alone, so an installable pygeoapi retires it the way `arctrl`'s pure-wheel
+status retired the container for the OAI endpoint.
+
+- The image is pinned to `geopython/pygeoapi:0.23.4` and must never be
+  `latest`. Nothing rebuilds it and nothing watches these tags for CVEs; the
+  pin is the only guarantee of what is being served.
+- The unit forwards a fixed list of environment variables into the container
+  with bare `docker run -e` flags, pulled from the unit's `EnvironmentFile`.
+  The owner DSNs (`INTERPLANT_DSN`, `INTERPLANT_PG_DSN`) are deliberately
+  not in that list, so the public container carries only the `pygeoapi_ro`
+  credential. The bind address, port and URL prefix come from
+  `CONTAINER_HOST`, `CONTAINER_PORT` and `SCRIPT_NAME`, not from the YAML's
+  `server.bind` placeholders, which only pygeoapi's standalone dev server
+  reads.
+- **The obligation that comes with the exception.** Decision 1's security
+  argument is not cancelled by it: native installs win because
+  `unattended-upgrades` patches Ubuntu's own packages for free, and no process
+  exists to do the same for a pinned image. Whoever operates this VM owns
+  periodically checking for a newer pygeoapi release and bumping the pin. Left
+  implicit, this becomes an unpatched public service - and the OGC API is
+  public and unauthenticated.

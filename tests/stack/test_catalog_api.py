@@ -12,6 +12,7 @@ import pytest
 
 from harvester import batch, db
 from harvester.acquire import iter_local_arcs
+from tests.stack.conftest import RO_PASSWORD
 
 FIXTURES_ROOT = Path(__file__).parent.parent / "fixtures" / "arcs"
 
@@ -38,6 +39,12 @@ def seeded(pg_dsn: str, pygeoapi_reachable: bool, pygeoapi_url: str):
             run_timestamp="20260624T000000Z", source="local",
         )
         db.apply_catalog_views(conn)
+        # DROP TABLE ... CASCADE took the views and their ACLs with it, so the
+        # recreated views start with owner-only privileges. Dev now serves as
+        # pygeoapi_ro, exactly like production: re-provision the role the way
+        # install.sh does, or every query through the provider 500s.
+        db.create_pygeoapi_role(conn, password=RO_PASSWORD)
+        db.apply_pygeoapi_role(conn)
     yield
 
 

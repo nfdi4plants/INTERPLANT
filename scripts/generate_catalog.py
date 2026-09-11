@@ -34,9 +34,17 @@ _PROPERTIES = [
     "title", "description", "created", "omics_domains",
     "experiment_context", "organism", "keywords", "arc_source_uri",
 ]
+# Placeholders, not literals: pygeoapi's loader expands ${VAR:-default} at
+# read time (pygeoapi/util.py). Dev needs no environment at all because the
+# defaults are the compose values; production sets the real ones in
+# /etc/interplant/env. One committed file serves both, so `--check` stays a
+# meaningful gate and no credential is committed.
 _DB = {
-    "host": "db", "port": 5432, "dbname": "interplant",
-    "user": "interplant", "password": "interplant",
+    "host": "${INTERPLANT_PG_HOST:-db}",
+    "port": "${INTERPLANT_PG_PORT:-5432}",
+    "dbname": "${INTERPLANT_PG_DBNAME:-interplant}",
+    "user": "${INTERPLANT_PG_USER:-interplant}",
+    "password": "${INTERPLANT_PG_PASSWORD:-interplant}",
 }
 
 
@@ -61,8 +69,8 @@ def derive_view_name(descriptor_id: str) -> str:
 def build_view_sql(descriptor: dict) -> str:
     view = derive_view_name(descriptor["id"])
     return (
-        f"CREATE OR REPLACE VIEW {view} AS "
-        f"SELECT * FROM arc_records WHERE {descriptor['query_rule']};"
+        f"CREATE OR REPLACE VIEW public.{view} AS "
+        f"SELECT * FROM public.arc_records WHERE {descriptor['query_rule']};"
     )
 
 

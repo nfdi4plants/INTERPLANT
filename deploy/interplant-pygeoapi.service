@@ -1,0 +1,43 @@
+[Unit]
+Description=INTERPLANT OGC API (pygeoapi)
+After=network-online.target docker.service postgresql.service
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+EnvironmentFile=/etc/interplant/env
+# The ONE service on this VM that runs in a container, and deliberately so:
+# pygeoapi pulls GDAL, rasterio, fiona and netCDF4, which is exactly the
+# "awkward dependency" case the native-install decision named as the thing
+# containers are for. See deploy/README.md. The tag is pinned, never latest,
+# because nothing watches these images for CVEs and the service is public.
+# Bare `-e VAR` forwards each var from the unit's EnvironmentFile into the
+# container. The owner DSNs (INTERPLANT_DSN, INTERPLANT_PG_DSN) are
+# deliberately NOT forwarded, so the public, unauthenticated container carries
+# only the pygeoapi_ro credential. CONTAINER_HOST/CONTAINER_PORT are the
+# image's actual bind knobs (/entrypoint.sh) - server.bind in the YAML is
+# ignored by gunicorn - and SCRIPT_NAME mounts the API under the public path.
+ExecStartPre=-/usr/bin/docker rm -f interplant-pygeoapi
+ExecStart=/usr/bin/docker run --rm --name interplant-pygeoapi \
+    --network host \
+    -e INTERPLANT_PG_HOST \
+    -e INTERPLANT_PG_PORT \
+    -e INTERPLANT_PG_DBNAME \
+    -e INTERPLANT_PG_USER \
+    -e INTERPLANT_PG_PASSWORD \
+    -e INTERPLANT_OGC_BASE_URL \
+    -e CONTAINER_HOST \
+    -e CONTAINER_PORT \
+    -e SCRIPT_NAME \
+    -v /opt/interplant/pygeoapi-config.yml:/pygeoapi/local.config.yml:ro \
+    geopython/pygeoapi:0.23.4
+ExecStop=/usr/bin/docker stop interplant-pygeoapi
+Restart=on-failure
+RestartSec=5s
+# A first cold start may pull the pinned image, which systemd's default 90s
+# start timeout is too tight for; 600s leaves room for the pull plus boot.
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

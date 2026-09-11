@@ -19,6 +19,14 @@ echo "== packages =="
 sudo apt-get update
 sudo apt-get install -y postgresql python3-venv git
 
+# PostGIS: the catalog views and the arc-locations collection compute
+# geometries with ST_* functions, so the extension must exist or the
+# schema step dies. Install the package matching the server version apt
+# just installed. Dev is blind to this because the compose db image
+# ships the extension pre-created.
+pg_major=$(sudo -u postgres psql -tAc "SHOW server_version" | cut -d. -f1)
+sudo apt-get install -y "postgresql-${pg_major}-postgis-3"
+
 # Deploy-token credentials are supplied per invocation via -c, never written
 # into .git/config, so the token does not end up readable in the checkout.
 # TOKENFILE holds two lines: username, then token.
@@ -95,6 +103,56 @@ if [ ! -f "$ENVFILE" ]; then
     exit 1
 fi
 
+# Preflight the new hard dependencies up front. Checking here rather than
+# letting `set -e` catch a missing piece mid-units matters: an abort in the
+# units block would come after `systemctl restart interplant-oai.service` but
+# before `systemctl enable --now interplant-refresh.timer`, silently cancelling
+# the nightly. docker and the container bind keys are the pygeoapi service's
+# requirements; a late failure would leave the OAI restarted and the timer off.
+if ! command -v docker >/dev/null 2>&1; then
+    echo "MISSING docker. The pinned pygeoapi image needs it; install with:"
+    echo "  sudo apt-get install -y docker.io"
+    exit 1
+fi
+# CONTAINER_HOST/CONTAINER_PORT guard the image's silent fallback to the
+# formula `${VAR:=default}`, i.e. 0.0.0.0:80, while the firewall notes below
+# only admit 8001 (and the proxy expects it).
+for _key in INTERPLANT_PG_RO_PASSWORD CONTAINER_HOST CONTAINER_PORT; do
+    if ! grep -q "^${_key}=." "$ENVFILE"; then
+        echo "MISSING $_key in $ENVFILE"
+        echo "Set $_key (see deploy/interplant.env.example), then re-run install.sh."
+        exit 1
+    fi
+done
+
+echo "== pygeoapi role =="
+# The catalog views call ST_* functions, so the extension must exist in
+# the interplant database before the schema block applies them. Runs as
+# postgres: extension creation is not something the owner role can do.
+sudo -u postgres psql -v ON_ERROR_STOP=1 -d interplant -c "CREATE EXTENSION IF NOT EXISTS postgis"
+# pygeoapi_ro is a LOGIN role with the session timeouts the OGC API relies
+# on. install.sh's own instructions create interplant with `createuser
+# --pwprompt`, which grants neither CREATEROLE nor superuser, so the role
+# itself must be created and configured as postgres. The schema block
+# below then applies the grants, which interplant can do as owner of the
+# database, schema and views.
+sudo -u postgres psql -v ON_ERROR_STOP=1 -d interplant -f "$REPO/sql/pygeoapi_role_lifecycle.sql"
+# Password travels as a psql variable (:'pw': is properly quoted), the
+# same no-mangling guarantee the schema block's systemd-run provides.
+pw=$(sed -n 's/^INTERPLANT_PG_RO_PASSWORD=//p' "$ENVFILE")
+# systemd's EnvironmentFile parser strips the quotes from KEY="value",
+# so the container and the schema block see the bare password; sed does
+# not strip them. Remove one surrounding pair here, or a quoted value
+# would set the DATABASE password with quote characters while pygeoapi
+# connects with the unquoted one - and the public API would 500 on
+# authentication while the preflight check happily passed.
+pw=${pw#\"}
+pw=${pw%\"}
+pw=${pw#\'}
+pw=${pw%\'}
+sudo -u postgres psql -v ON_ERROR_STOP=1 -d interplant -v pw="$pw" \
+    -c "ALTER ROLE pygeoapi_ro WITH PASSWORD :'pw'"
+
 echo "== schema =="
 # Read the env file with systemd-run rather than reconstructing it through
 # xargs, which would mangle any password containing shell metacharacters.
@@ -106,7 +164,15 @@ sudo systemd-run --pipe --wait --quiet \
     'import os; from harvester import db
 c = db.connect(os.environ["INTERPLANT_PG_DSN"])
 db.apply_schema(c)
-print("schema applied")'
+db.apply_catalog_views(c)
+db.apply_pygeoapi_role(c)
+print("schema, catalog views and pygeoapi role applied")'
+
+echo "== pygeoapi image =="
+# Pre-warm the pinned image while install.sh is still just a script. The first
+# systemctl restart would otherwise pull it under systemd's default 90s start
+# timeout and Restart=on-failure would flap. The tag is pinned, never latest.
+sudo docker pull geopython/pygeoapi:0.23.4
 
 echo "== units =="
 sudo cp "$REPO"/deploy/interplant-*.service "$REPO"/deploy/interplant-*.timer \
@@ -121,6 +187,11 @@ sudo systemctl enable interplant-oai.service
 # this stays correct on the first install too. Do not simplify this back to
 # `enable --now`.
 sudo systemctl restart interplant-oai.service
+sudo systemctl enable interplant-pygeoapi.service
+# Same reasoning as the OAI unit above: `restart` (not `enable --now`) so an
+# upgrade cannot leave the old image serving while DEPLOYED_COMMIT claims the
+# new one is live.
+sudo systemctl restart interplant-pygeoapi.service
 sudo systemctl enable --now interplant-refresh.timer   # timer: --now is correct
 
 echo "== firewall =="
@@ -128,6 +199,8 @@ echo "MANUAL STEP, not applied by this script. Once Marie supplies the proxy"
 echo "address, run these yourself:"
 echo "  sudo ufw allow from <PROXY_IP> to any port 8000 proto tcp"
 echo "  sudo ufw deny 8000"
+echo "  sudo ufw allow from <PROXY_IP> to any port 8001 proto tcp"
+echo "  sudo ufw deny 8001"
 echo "Port 8000 is reachable from the whole internal network until you do."
 
 echo "Done. Check: systemctl status interplant-oai; systemctl list-timers interplant-refresh"

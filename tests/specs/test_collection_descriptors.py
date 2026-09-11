@@ -58,8 +58,8 @@ def test_build_view_sql():
     desc = {"id": "dataplant-imaging", "query_rule": "'imaging' = ANY(omics_domains)"}
     sql = gen.build_view_sql(desc)
     assert sql == (
-        "CREATE OR REPLACE VIEW arc_records_imaging AS "
-        "SELECT * FROM arc_records WHERE 'imaging' = ANY(omics_domains);"
+        "CREATE OR REPLACE VIEW public.arc_records_imaging AS "
+        "SELECT * FROM public.arc_records WHERE 'imaging' = ANY(omics_domains);"
     )
 
 
