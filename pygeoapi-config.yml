@@ -7,7 +7,7 @@ server:
   bind:
     host: 0.0.0.0
     port: 80
-  url: http://localhost:5000
+  url: ${INTERPLANT_OGC_BASE_URL:-http://localhost:5000}
   mimetype: application/json; charset=UTF-8
   encoding: utf-8
   languages:
@@ -65,11 +65,11 @@ resources:
       - type: record
         name: PostgreSQL
         data:
-          host: db
-          port: 5432
-          dbname: interplant
-          user: interplant
-          password: interplant
+          host: ${INTERPLANT_PG_HOST:-db}
+          port: ${INTERPLANT_PG_PORT:-5432}
+          dbname: ${INTERPLANT_PG_DBNAME:-interplant}
+          user: ${INTERPLANT_PG_USER:-interplant}
+          password: ${INTERPLANT_PG_PASSWORD:-interplant}
         id_field: id
         table: arc_records
         geom_field: geom
@@ -113,11 +113,11 @@ resources:
     - type: record
       name: PostgreSQL
       data:
-        host: db
-        port: 5432
-        dbname: interplant
-        user: interplant
-        password: interplant
+        host: ${INTERPLANT_PG_HOST:-db}
+        port: ${INTERPLANT_PG_PORT:-5432}
+        dbname: ${INTERPLANT_PG_DBNAME:-interplant}
+        user: ${INTERPLANT_PG_USER:-interplant}
+        password: ${INTERPLANT_PG_PASSWORD:-interplant}
       id_field: id
       table: arc_records_genomics
       geom_field: geom
@@ -159,11 +159,11 @@ resources:
     - type: record
       name: PostgreSQL
       data:
-        host: db
-        port: 5432
-        dbname: interplant
-        user: interplant
-        password: interplant
+        host: ${INTERPLANT_PG_HOST:-db}
+        port: ${INTERPLANT_PG_PORT:-5432}
+        dbname: ${INTERPLANT_PG_DBNAME:-interplant}
+        user: ${INTERPLANT_PG_USER:-interplant}
+        password: ${INTERPLANT_PG_PASSWORD:-interplant}
       id_field: id
       table: arc_records_imaging
       geom_field: geom
@@ -206,11 +206,11 @@ resources:
     - type: record
       name: PostgreSQL
       data:
-        host: db
-        port: 5432
-        dbname: interplant
-        user: interplant
-        password: interplant
+        host: ${INTERPLANT_PG_HOST:-db}
+        port: ${INTERPLANT_PG_PORT:-5432}
+        dbname: ${INTERPLANT_PG_DBNAME:-interplant}
+        user: ${INTERPLANT_PG_USER:-interplant}
+        password: ${INTERPLANT_PG_PASSWORD:-interplant}
       id_field: id
       table: arc_records_metabolomics
       geom_field: geom
@@ -253,11 +253,11 @@ resources:
     - type: record
       name: PostgreSQL
       data:
-        host: db
-        port: 5432
-        dbname: interplant
-        user: interplant
-        password: interplant
+        host: ${INTERPLANT_PG_HOST:-db}
+        port: ${INTERPLANT_PG_PORT:-5432}
+        dbname: ${INTERPLANT_PG_DBNAME:-interplant}
+        user: ${INTERPLANT_PG_USER:-interplant}
+        password: ${INTERPLANT_PG_PASSWORD:-interplant}
       id_field: id
       table: arc_records_microbiome
       geom_field: geom
@@ -299,11 +299,11 @@ resources:
     - type: record
       name: PostgreSQL
       data:
-        host: db
-        port: 5432
-        dbname: interplant
-        user: interplant
-        password: interplant
+        host: ${INTERPLANT_PG_HOST:-db}
+        port: ${INTERPLANT_PG_PORT:-5432}
+        dbname: ${INTERPLANT_PG_DBNAME:-interplant}
+        user: ${INTERPLANT_PG_USER:-interplant}
+        password: ${INTERPLANT_PG_PASSWORD:-interplant}
       id_field: id
       table: arc_records_phenotyping
       geom_field: geom
@@ -347,11 +347,11 @@ resources:
     - type: record
       name: PostgreSQL
       data:
-        host: db
-        port: 5432
-        dbname: interplant
-        user: interplant
-        password: interplant
+        host: ${INTERPLANT_PG_HOST:-db}
+        port: ${INTERPLANT_PG_PORT:-5432}
+        dbname: ${INTERPLANT_PG_DBNAME:-interplant}
+        user: ${INTERPLANT_PG_USER:-interplant}
+        password: ${INTERPLANT_PG_PASSWORD:-interplant}
       id_field: id
       table: arc_records_proteomics
       geom_field: geom
@@ -395,11 +395,11 @@ resources:
     - type: record
       name: PostgreSQL
       data:
-        host: db
-        port: 5432
-        dbname: interplant
-        user: interplant
-        password: interplant
+        host: ${INTERPLANT_PG_HOST:-db}
+        port: ${INTERPLANT_PG_PORT:-5432}
+        dbname: ${INTERPLANT_PG_DBNAME:-interplant}
+        user: ${INTERPLANT_PG_USER:-interplant}
+        password: ${INTERPLANT_PG_PASSWORD:-interplant}
       id_field: id
       table: arc_records_transcriptomics
       geom_field: geom
@@ -440,11 +440,11 @@ resources:
     - type: feature
       name: PostgreSQL
       data:
-        host: db
-        port: 5432
-        dbname: interplant
-        user: interplant
-        password: interplant
+        host: ${INTERPLANT_PG_HOST:-db}
+        port: ${INTERPLANT_PG_PORT:-5432}
+        dbname: ${INTERPLANT_PG_DBNAME:-interplant}
+        user: ${INTERPLANT_PG_USER:-interplant}
+        password: ${INTERPLANT_PG_PASSWORD:-interplant}
       id_field: id
       table: arc_locations
       geom_field: geom
