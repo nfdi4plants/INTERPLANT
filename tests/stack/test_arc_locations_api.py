@@ -7,6 +7,12 @@ import pytest
 pytestmark = pytest.mark.db
 
 
+@pytest.fixture(autouse=True)
+def _requires_pygeoapi(pygeoapi_reachable: bool, pygeoapi_url: str):
+    if not pygeoapi_reachable:
+        pytest.skip(f"pygeoapi not reachable at {pygeoapi_url}")
+
+
 def test_collection_is_advertised(pygeoapi_url) -> None:
     resp = httpx.get(f"{pygeoapi_url}/collections", params={"f": "json"}, timeout=30)
     resp.raise_for_status()
