@@ -33,7 +33,8 @@ ALTER ROLE pygeoapi_ro SET statement_timeout = '3s';
 -- structural instead of resting on the client's good manners.
 ALTER ROLE pygeoapi_ro SET idle_in_transaction_session_timeout = '3s';
 
-GRANT CONNECT ON DATABASE interplant TO pygeoapi_ro;
+-- CONNECT is granted by harvester.db.apply_pygeoapi_role on the connected
+-- database, so the file stays free of a hardcoded database name.
 GRANT USAGE ON SCHEMA public TO pygeoapi_ro;
 
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM pygeoapi_ro;

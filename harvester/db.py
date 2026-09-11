@@ -71,10 +71,16 @@ def apply_pygeoapi_role(conn: psycopg.Connection, *, password: str) -> None:
 
     The password is set separately from the DDL so the SQL file stays free of
     credentials and can be read in a diff. Idempotent: safe to re-run on every
-    install, which is how the role picks up a rotated password.
+    install, which is how the role picks up a rotated password. CONNECT is
+    granted on the database the caller is connected to, not a hardcoded name.
     """
     with conn.cursor() as cur:
         cur.execute(_PYGEOAPI_ROLE_PATH.read_text(encoding="utf-8"))
+        cur.execute(
+            sql.SQL("GRANT CONNECT ON DATABASE {} TO pygeoapi_ro").format(
+                sql.Identifier(conn.info.dbname)
+            )
+        )
         cur.execute(
             sql.SQL("ALTER ROLE pygeoapi_ro WITH PASSWORD {}").format(sql.Literal(password))
         )
