@@ -1,0 +1,26 @@
+[Unit]
+Description=INTERPLANT OGC API (pygeoapi)
+After=network-online.target docker.service postgresql.service
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+EnvironmentFile=/etc/interplant/env
+# The ONE service on this VM that runs in a container, and deliberately so:
+# pygeoapi pulls GDAL, rasterio, fiona and netCDF4, which is exactly the
+# "awkward dependency" case the native-install decision named as the thing
+# containers are for. See deploy/README.md. The tag is pinned, never latest,
+# because nothing watches these images for CVEs and the service is public.
+ExecStartPre=-/usr/bin/docker rm -f interplant-pygeoapi
+ExecStart=/usr/bin/docker run --rm --name interplant-pygeoapi \
+    --network host \
+    --env-file /etc/interplant/env \
+    -v /opt/interplant/pygeoapi-config.yml:/pygeoapi/local.config.yml:ro \
+    geopython/pygeoapi:0.23.4
+ExecStop=/usr/bin/docker stop interplant-pygeoapi
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

@@ -106,7 +106,9 @@ sudo systemd-run --pipe --wait --quiet \
     'import os; from harvester import db
 c = db.connect(os.environ["INTERPLANT_PG_DSN"])
 db.apply_schema(c)
-print("schema applied")'
+db.apply_catalog_views(c)
+db.apply_pygeoapi_role(c, password=os.environ["INTERPLANT_PG_RO_PASSWORD"])
+print("schema, catalog views and pygeoapi role applied")'
 
 echo "== units =="
 sudo cp "$REPO"/deploy/interplant-*.service "$REPO"/deploy/interplant-*.timer \
@@ -121,6 +123,11 @@ sudo systemctl enable interplant-oai.service
 # this stays correct on the first install too. Do not simplify this back to
 # `enable --now`.
 sudo systemctl restart interplant-oai.service
+sudo systemctl enable interplant-pygeoapi.service
+# Same reasoning as the OAI unit above: `restart` (not `enable --now`) so an
+# upgrade cannot leave the old image serving while DEPLOYED_COMMIT claims the
+# new one is live.
+sudo systemctl restart interplant-pygeoapi.service
 sudo systemctl enable --now interplant-refresh.timer   # timer: --now is correct
 
 echo "== firewall =="
@@ -128,6 +135,8 @@ echo "MANUAL STEP, not applied by this script. Once Marie supplies the proxy"
 echo "address, run these yourself:"
 echo "  sudo ufw allow from <PROXY_IP> to any port 8000 proto tcp"
 echo "  sudo ufw deny 8000"
+echo "  sudo ufw allow from <PROXY_IP> to any port 8001 proto tcp"
+echo "  sudo ufw deny 8001"
 echo "Port 8000 is reachable from the whole internal network until you do."
 
 echo "Done. Check: systemctl status interplant-oai; systemctl list-timers interplant-refresh"
