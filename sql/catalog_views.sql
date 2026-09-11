@@ -28,23 +28,32 @@ FROM public.records;
 --
 -- payload point is [longitude, latitude], matching GeoJSON. ST_MakePoint takes
 -- (x, y) = (longitude, latitude), so element 0 comes first.
+--
+-- id is a synthetic "<record id>:<ordinal>" key, needed because record_id is
+-- not unique in this view (one record explodes into many rows) and pygeoapi's
+-- PostgreSQL feature provider requires id_field to be unique. It is NOT a
+-- durable identifier: the ordinal comes from jsonb_array_elements WITH
+-- ORDINALITY over the harvester's emitted order, and the view is rebuilt after
+-- every harvest, so a given point's id can change between harvests. Fine for a
+-- queryable derived view, not something to cite.
 CREATE OR REPLACE VIEW public.arc_locations AS
 SELECT
+  r.id || ':' || loc.ord                                           AS id,
   r.id                                                             AS record_id,
-  loc->>'role'                                                     AS role,
-  loc->>'label'                                                    AS label,
-  loc->>'precision'                                                AS precision,
-  (loc->>'n_rows')::int                                            AS n_rows,
-  loc->>'source'                                                   AS source,
+  loc.loc->>'role'                                                  AS role,
+  loc.loc->>'label'                                                 AS label,
+  loc.loc->>'precision'                                             AS precision,
+  (loc.loc->>'n_rows')::int                                         AS n_rows,
+  loc.loc->>'source'                                                AS source,
   ST_SetSRID(
     ST_MakePoint(
-      (loc->'point'->>0)::double precision,
-      (loc->'point'->>1)::double precision
+      (loc.loc->'point'->>0)::double precision,
+      (loc.loc->'point'->>1)::double precision
     ),
     4326
   )                                                                AS geom
 FROM public.records r
 CROSS JOIN LATERAL jsonb_array_elements(
   COALESCE(r.payload->'properties'->'locations', '[]'::jsonb)
-) AS loc
-WHERE loc->'point' IS NOT NULL;
+) WITH ORDINALITY AS loc(loc, ord)
+WHERE loc.loc->'point' IS NOT NULL;

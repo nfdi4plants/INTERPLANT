@@ -445,7 +445,7 @@ resources:
         dbname: interplant
         user: interplant
         password: interplant
-      id_field: record_id
+      id_field: id
       table: arc_locations
       geom_field: geom
       properties:

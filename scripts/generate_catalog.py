@@ -125,7 +125,7 @@ def build_locations_resource(descriptor: dict) -> dict:
                 "type": "feature",
                 "name": "PostgreSQL",
                 "data": dict(_DB),
-                "id_field": "record_id",
+                "id_field": "id",
                 "table": "arc_locations",
                 "geom_field": "geom",
                 "properties": list(_LOCATION_PROPERTIES),
