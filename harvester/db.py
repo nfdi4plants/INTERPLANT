@@ -16,6 +16,7 @@ from psycopg.types.json import Jsonb
 _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 _VIEWS_PATH = Path(__file__).parent.parent / "sql" / "catalog_views.sql"
 _GENERATED_VIEWS_PATH = Path(__file__).parent.parent / "sql" / "catalog_collections.generated.sql"
+_PYGEOAPI_ROLE_PATH = Path(__file__).parent.parent / "sql" / "pygeoapi_role.sql"
 
 # Fixed advisory lock key serializing the refresh pipeline. Arbitrary but
 # must never change once deployed: it is only meaningful as long as every
@@ -63,6 +64,20 @@ def apply_catalog_views(conn: psycopg.Connection) -> None:
     with conn.cursor() as cur:
         cur.execute(_VIEWS_PATH.read_text(encoding="utf-8"))
         cur.execute(_GENERATED_VIEWS_PATH.read_text(encoding="utf-8"))
+
+
+def apply_pygeoapi_role(conn: psycopg.Connection, *, password: str) -> None:
+    """Create or update the read-only role pygeoapi connects as.
+
+    The password is set separately from the DDL so the SQL file stays free of
+    credentials and can be read in a diff. Idempotent: safe to re-run on every
+    install, which is how the role picks up a rotated password.
+    """
+    with conn.cursor() as cur:
+        cur.execute(_PYGEOAPI_ROLE_PATH.read_text(encoding="utf-8"))
+        cur.execute(
+            sql.SQL("ALTER ROLE pygeoapi_ro WITH PASSWORD {}").format(sql.Literal(password))
+        )
 
 
 def upsert_record(
