@@ -95,6 +95,28 @@ if [ ! -f "$ENVFILE" ]; then
     exit 1
 fi
 
+# Preflight the new hard dependencies up front. Checking here rather than
+# letting `set -e` catch a missing piece mid-units matters: an abort in the
+# units block would come after `systemctl restart interplant-oai.service` but
+# before `systemctl enable --now interplant-refresh.timer`, silently cancelling
+# the nightly. docker and the container bind keys are the pygeoapi service's
+# requirements; a late failure would leave the OAI restarted and the timer off.
+if ! command -v docker >/dev/null 2>&1; then
+    echo "MISSING docker. The pinned pygeoapi image needs it; install with:"
+    echo "  sudo apt-get install -y docker.io"
+    exit 1
+fi
+# CONTAINER_HOST/CONTAINER_PORT guard the image's silent fallback to the
+# formula `${VAR:=default}`, i.e. 0.0.0.0:80, while the firewall notes below
+# only admit 8001 (and the proxy expects it).
+for _key in INTERPLANT_PG_RO_PASSWORD CONTAINER_HOST CONTAINER_PORT; do
+    if ! grep -q "^${_key}=." "$ENVFILE"; then
+        echo "MISSING $_key in $ENVFILE"
+        echo "Set $_key (see deploy/interplant.env.example), then re-run install.sh."
+        exit 1
+    fi
+done
+
 echo "== schema =="
 # Read the env file with systemd-run rather than reconstructing it through
 # xargs, which would mangle any password containing shell metacharacters.
@@ -109,6 +131,12 @@ db.apply_schema(c)
 db.apply_catalog_views(c)
 db.apply_pygeoapi_role(c, password=os.environ["INTERPLANT_PG_RO_PASSWORD"])
 print("schema, catalog views and pygeoapi role applied")'
+
+echo "== pygeoapi image =="
+# Pre-warm the pinned image while install.sh is still just a script. The first
+# systemctl restart would otherwise pull it under systemd's default 90s start
+# timeout and Restart=on-failure would flap. The tag is pinned, never latest.
+sudo docker pull geopython/pygeoapi:0.23.4
 
 echo "== units =="
 sudo cp "$REPO"/deploy/interplant-*.service "$REPO"/deploy/interplant-*.timer \

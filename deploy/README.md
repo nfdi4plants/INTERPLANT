@@ -208,8 +208,8 @@ order, verifying each step, and stop before step 6 if anything fails.
    them.
 2. Fill the new variables in `/etc/interplant/env` (see
    `deploy/interplant.env.example`): the six `INTERPLANT_PG_*` variables for
-   the read-only database access, plus `INTERPLANT_OGC_BIND_HOST`,
-   `INTERPLANT_OGC_BIND_PORT` and `INTERPLANT_OGC_BASE_URL`. Keep
+   the read-only database access, plus `CONTAINER_HOST`, `CONTAINER_PORT`,
+   `SCRIPT_NAME` and `INTERPLANT_OGC_BASE_URL`. Keep
    `INTERPLANT_PG_PASSWORD` and `INTERPLANT_PG_RO_PASSWORD` identical:
    `install.sh` sets the `pygeoapi_ro` role's password from the RO variable,
    and pygeoapi itself connects with the plain one, so drift means a public
@@ -228,10 +228,16 @@ order, verifying each step, and stop before step 6 if anything fails.
         curl -s "http://192.0.2.10:8001/collections/arc-locations/items?f=json&limit=2"
 
    Expect nine collections and real point features.
-6. Ask Marie to map the public path to `192.0.2.10:8001`, then apply the
-   `ufw` rules for 8001 that `install.sh` printed. Like port 8000, the script
-   prints and does not apply: until you run them, 8001 is reachable from the
-   whole internal network.
+6. Ask Marie two things at once: to map the public path to
+   `192.0.2.10:8001`, and whether her proxy passes the `/ogc` prefix
+   through unchanged. The OAI precedent passes `/oai` through, and
+   `SCRIPT_NAME=/ogc` assumes the same: gunicorn prepends `SCRIPT_NAME` to
+   every route and link and rejects requests whose path does not start with
+   it. Set `SCRIPT_NAME` to whatever the proxy forwards (empty means the app
+   serves at `/`), with `INTERPLANT_OGC_BASE_URL` sharing that path. Then
+   apply the `ufw` rules for 8001 that `install.sh` printed. Like port 8000,
+   the script prints and does not apply: until you run them, 8001 is
+   reachable from the whole internal network.
 7. Verify from outside that the `links` carry the public URL, not the internal
    address. This is the `server.url` check: if the links say `192.0.2.10`,
    `INTERPLANT_OGC_BASE_URL` is wrong.
@@ -275,6 +281,14 @@ status retired the container for the OAI endpoint.
 - The image is pinned to `geopython/pygeoapi:0.23.4` and must never be
   `latest`. Nothing rebuilds it and nothing watches these tags for CVEs; the
   pin is the only guarantee of what is being served.
+- The unit forwards a fixed list of environment variables into the container
+  with bare `docker run -e` flags, pulled from the unit's `EnvironmentFile`.
+  The owner DSNs (`INTERPLANT_DSN`, `INTERPLANT_PG_DSN`) are deliberately
+  not in that list, so the public container carries only the `pygeoapi_ro`
+  credential. The bind address, port and URL prefix come from
+  `CONTAINER_HOST`, `CONTAINER_PORT` and `SCRIPT_NAME`, not from the YAML's
+  `server.bind` placeholders, which only pygeoapi's standalone dev server
+  reads.
 - **The obligation that comes with the exception.** Decision 1's security
   argument is not cancelled by it: native installs win because
   `unattended-upgrades` patches Ubuntu's own packages for free, and no process
