@@ -12,7 +12,15 @@ server:
     - en-US
   cors: true
   pretty_print: true
-  limit: 50
+  # pygeoapi 0.19+ replaced the scalar `limit` with this block. Leaving the
+  # old key set silently capped every collection at the built-in default of
+  # 10, ignored the client's `limit` parameter, and made the items HTML
+  # template raise UndefinedError on config['server']['limits'], so every
+  # /items?f=html page returned HTTP 500 while the JSON looked healthy.
+  limits:
+    default_items: 50
+    max_items: 1000
+    on_exceed: throttle
   map:
     url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
