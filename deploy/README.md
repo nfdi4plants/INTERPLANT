@@ -208,8 +208,11 @@ order, verifying each step, and stop before step 6 if anything fails.
    them.
 2. Fill the new variables in `/etc/interplant/env` (see
    `deploy/interplant.env.example`): the six `INTERPLANT_PG_*` variables for
-   the read-only database access, plus `CONTAINER_HOST`, `CONTAINER_PORT`,
-   `SCRIPT_NAME` and `INTERPLANT_OGC_BASE_URL`. Keep
+   the read-only database access, plus `CONTAINER_HOST`, `CONTAINER_PORT`
+   and `INTERPLANT_OGC_BASE_URL`. Do NOT add `SCRIPT_NAME` here: both units
+   load this file, gunicorn reads that variable from its environment, and a
+   value here mounts the OAI endpoint under the OGC prefix, taking
+   `www.plabipd.de/oai` down (it lives in `interplant-pygeoapi.service`). Keep
    `INTERPLANT_PG_PASSWORD` and `INTERPLANT_PG_RO_PASSWORD` identical:
    `install.sh` sets the `pygeoapi_ro` role's password from the RO variable,
    and pygeoapi itself connects with the plain one, so drift means a public
@@ -246,8 +249,9 @@ order, verifying each step, and stop before step 6 if anything fails.
    page), which looks like a broken install - do not roll back over it: the
    path mismatch is the cause, not the deployment. Confirm the prefix with
    Marie (pass-through, as for `/oai`) and set `SCRIPT_NAME` to match
-   whatever the proxy forwards (empty means the app serves at `/`), with
-   `INTERPLANT_OGC_BASE_URL` sharing that path. Then apply the `ufw` rules
+   whatever the proxy forwards (empty means the app serves at `/`) by editing
+   `Environment=SCRIPT_NAME=` in `interplant-pygeoapi.service`, never the
+   shared env file, with `INTERPLANT_OGC_BASE_URL` sharing that path. Then apply the `ufw` rules
    for 8001 that `install.sh` printed. Like port 8000, the script prints and
    does not apply: until you run them, 8001 is reachable from the whole
    internal network.

@@ -7,6 +7,15 @@ Wants=network-online.target
 [Service]
 Type=exec
 EnvironmentFile=/etc/interplant/env
+# SCRIPT_NAME lives HERE, not in the shared env file, and must stay here.
+# gunicorn reads SCRIPT_NAME from the environment of whatever it is serving,
+# and interplant-oai.service loads the same EnvironmentFile: a SCRIPT_NAME
+# line in /etc/interplant/env mounts the OAI endpoint under this value too,
+# and every https://www.plabipd.de/oai request then fails with "Configuration
+# problem: Request path '/oai' does not start with SCRIPT_NAME". That took the
+# public OAI endpoint - the one AWI harvests - down on 2026-09-14. Set after
+# EnvironmentFile= so it wins if the variable is ever set there again.
+Environment=SCRIPT_NAME=/ogc
 # The ONE service on this VM that runs in a container, and deliberately so:
 # pygeoapi pulls GDAL, rasterio, fiona and netCDF4, which is exactly the
 # "awkward dependency" case the native-install decision named as the thing

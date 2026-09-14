@@ -187,3 +187,29 @@ def test_the_role_password_is_not_interpolated_through_a_c_string():
                 "-c string goes to the server verbatim and the install fails "
                 "with `syntax error at or near \":\"`"
             )
+
+
+def test_script_name_is_scoped_to_the_pygeoapi_unit_only():
+    # Both units load /etc/interplant/env and gunicorn reads SCRIPT_NAME from
+    # its environment, so a SCRIPT_NAME line in the shared file mounts the OAI
+    # endpoint under the OGC prefix too and every /oai request fails with
+    # "Configuration problem". This took www.plabipd.de/oai - the endpoint AWI
+    # harvests - down on 2026-09-14.
+    env_example = (DEPLOY / "interplant.env.example").read_text(encoding="utf-8")
+    for line in env_example.splitlines():
+        assert not line.strip().startswith("SCRIPT_NAME="), (
+            "SCRIPT_NAME must not live in the shared env file; set it with "
+            "Environment= in interplant-pygeoapi.service instead"
+        )
+
+    pygeoapi = (DEPLOY / "interplant-pygeoapi.service").read_text(encoding="utf-8")
+    assert "Environment=SCRIPT_NAME=/ogc" in pygeoapi, (
+        "the OGC API is mounted under a path prefix; without this the proxy's "
+        "/ogc requests reach an app serving at /"
+    )
+    # Order matters: systemd applies Environment= and EnvironmentFile= in the
+    # order written, so this must come after the file to override a stray value.
+    assert pygeoapi.index("EnvironmentFile=") < pygeoapi.index("Environment=SCRIPT_NAME=")
+
+    oai = (DEPLOY / "interplant-oai.service").read_text(encoding="utf-8")
+    assert "SCRIPT_NAME" not in oai, "the OAI endpoint serves at /, with no prefix"
