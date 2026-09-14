@@ -137,8 +137,10 @@ sudo -u postgres psql -v ON_ERROR_STOP=1 -d interplant -c "CREATE EXTENSION IF N
 # below then applies the grants, which interplant can do as owner of the
 # database, schema and views.
 sudo -u postgres psql -v ON_ERROR_STOP=1 -d interplant -f "$REPO/sql/pygeoapi_role_lifecycle.sql"
-# Password travels as a psql variable (:'pw': is properly quoted), the
-# same no-mangling guarantee the schema block's systemd-run provides.
+# Password travels as a psql variable (:'pw' is properly quoted), the
+# same no-mangling guarantee the schema block's systemd-run provides. The
+# statement goes in on stdin, not -c: psql only substitutes :variables in
+# input it parses itself, and a -c string is handed to the server verbatim.
 pw=$(sed -n 's/^INTERPLANT_PG_RO_PASSWORD=//p' "$ENVFILE")
 # systemd's EnvironmentFile parser strips the quotes from KEY="value",
 # so the container and the schema block see the bare password; sed does
@@ -150,8 +152,8 @@ pw=${pw#\"}
 pw=${pw%\"}
 pw=${pw#\'}
 pw=${pw%\'}
-sudo -u postgres psql -v ON_ERROR_STOP=1 -d interplant -v pw="$pw" \
-    -c "ALTER ROLE pygeoapi_ro WITH PASSWORD :'pw'"
+sudo -u postgres psql -q -v ON_ERROR_STOP=1 -d interplant -v pw="$pw" \
+    <<<"ALTER ROLE pygeoapi_ro WITH PASSWORD :'pw';"
 
 echo "== schema =="
 # Read the env file with systemd-run rather than reconstructing it through

@@ -176,3 +176,14 @@ def test_readme_does_not_promise_a_third_page():
         "operator told to expect a third page that cannot exist will misread a "
         "healthy endpoint as broken"
     )
+
+
+def test_the_role_password_is_not_interpolated_through_a_c_string():
+    text = (DEPLOY / "install.sh").read_text(encoding="utf-8")
+    for line in text.splitlines():
+        if ":'pw'" in line:
+            assert " -c " not in line, (
+                "psql substitutes :variables only in input it parses itself; a "
+                "-c string goes to the server verbatim and the install fails "
+                "with `syntax error at or near \":\"`"
+            )
