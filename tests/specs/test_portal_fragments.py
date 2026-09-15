@@ -61,9 +61,7 @@ def test_endpoint_placeholder_is_identical_in_script_and_services():
     assert match is not None, "could not find ENDPOINT = '...' in the harvester script"
     endpoint = match.group(1)
 
-    # Unconditional: this is the actual drift detector and must survive even
-    # after the REPLACE-ME tripwire below is removed at deployment time.
+    # The actual drift detector. The REPLACE-ME tripwires that used to sit below
+    # it were removed when the live host was filled in; this assertion is the
+    # permanent guard that the three copies of the endpoint stay equal.
     assert endpoint == entry["url"] == entry["provider"]["metadata"]["apiUrl"]
-
-    assert "REPLACE-ME" in script, "the host is still unresolved; see portal/README.md"
-    assert "REPLACE-ME" in entry["url"]
