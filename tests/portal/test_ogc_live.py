@@ -28,10 +28,14 @@ pytestmark = pytest.mark.skipif(
 )
 
 # Observed on the live corpus 2026-09-15 (153 records): 125 carry contacts,
-# 93 carry an ORCID. Used only as sanity floors, never as equality checks -
-# the corpus grows, so a shrinking count would be a real regression but an
-# exact count is not the thing being tested here.
-_MIN_ORCID_DOCUMENTS = 1
+# 93 carry an ORCID, which are exactly the counts the OAI path carries. Used
+# as floors rather than equality checks because the corpus grows; set well
+# below the observed values so ordinary churn does not trip them, but high
+# enough that a collapse in attribution does. A floor of 1 would have passed
+# even if the contacts mapping silently stopped working for all but one
+# record, which is the failure this is here to catch.
+_MIN_PERSON_DOCUMENTS = 80
+_MIN_ORCID_DOCUMENTS = 50
 
 
 def _oai_unique_ids() -> set[str]:
@@ -99,6 +103,7 @@ def test_live_harvest_is_complete_valid_and_shares_identity_with_oai(
 
     # 4. Attribution survived the round trip: at least one document carries a
     # real ORCID through Task 1's view and Task 3's get_persons mapping.
+    person_documents = [d for d in documents if d.get("persons")]
     orcid_documents = [
         d for d in documents
         if any(
@@ -107,6 +112,11 @@ def test_live_harvest_is_complete_valid_and_shares_identity_with_oai(
             for person in people
         )
     ]
+    assert len(person_documents) >= _MIN_PERSON_DOCUMENTS, (
+        f"attribution collapsed: only {len(person_documents)} of {len(documents)} "
+        f"documents carry any person"
+    )
     assert len(orcid_documents) >= _MIN_ORCID_DOCUMENTS, (
-        f"expected at least one harvested document with an ORCID, got {len(orcid_documents)}"
+        f"ORCIDs collapsed: only {len(orcid_documents)} of {len(documents)} "
+        f"documents carry one"
     )

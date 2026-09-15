@@ -97,6 +97,35 @@ def test_a_record_with_no_id_is_skipped_not_crashed(ogc_helper_module, tmp_path)
     assert h.prepare_record() is None
 
 
+def test_a_record_without_geometry_omits_the_key_entirely(ogc_helper_module, tmp_path):
+    """87% of the live corpus has no extracted coordinates, and pygeoapi serves
+    those as `"geometry": null`. Their AbstractDocumentHarvester.prepare_record
+    sets document['geometry'] unconditionally, and their schema $refs the
+    GeoJSON Geometry definition, which null does not satisfy - so passing the
+    null through fails validation for the majority of records. The OAI path
+    never hit this because oai/mapping.py omits the key when it is None."""
+    h = _harvester(ogc_helper_module, tmp_path, dict(ITEM, geometry=None))
+    document = h.prepare_record()
+    assert "geometry" not in document
+
+
+def test_a_document_without_geometry_passes_the_portal_validator(
+    ogc_helper_module, tmp_path, capsys
+):
+    from helper.Validator import Validator
+
+    features = [dict(ITEM, id="rec-no-geom", geometry=None)]
+    with StubOGC(features=features, mode="next") as stub:
+        h = ogc_helper_module.OGCAPIRecordsHarvester(
+            url=stub.base, collections=["c"], logfile=str(tmp_path / "h.log"))
+        h.harvest({}, exit_on_exception=False)
+
+    out = capsys.readouterr().out
+    documents = [json.loads(line) for line in out.splitlines() if line.strip().startswith("{")]
+    assert len(documents) == 1
+    assert Validator().validate(documents[0], return_validation=True) is True
+
+
 def test_harvested_documents_pass_the_portal_validator(ogc_helper_module, tmp_path, capsys):
     from helper.Validator import Validator
 
