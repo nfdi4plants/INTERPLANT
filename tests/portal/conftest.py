@@ -82,3 +82,34 @@ def awi_harvester_module():
         sys.modules.pop(spec.name, None)
         if inserted and helper_path in sys.path:
             sys.path.remove(helper_path)
+
+
+@pytest.fixture
+def ogc_helper_module():
+    """Import portal/ogc/OGCAPIRecordsHarvester.py as helper.OGCAPIRecordsHarvester.
+
+    Their helper/ is a namespace package (no __init__.py), so registering our
+    file under that dotted name lets the DataPLANT script's
+    `from helper.OGCAPIRecordsHarvester import ...` resolve to it, exactly as it
+    will once copied into their repo. Their Logger looks the class's module up
+    in sys.modules, so it must be registered before exec.
+    """
+    sys.dont_write_bytecode = True
+    helper_path = str(o2a_root() / "harvester")
+    inserted = helper_path not in sys.path
+    if inserted:
+        sys.path.insert(0, helper_path)
+
+    name = "helper.OGCAPIRecordsHarvester"
+    script = _REPO_ROOT / "portal" / "ogc" / "OGCAPIRecordsHarvester.py"
+    spec = importlib.util.spec_from_file_location(name, script)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+
+    try:
+        yield module
+    finally:
+        sys.modules.pop(name, None)
+        if inserted and helper_path in sys.path:
+            sys.path.remove(helper_path)
