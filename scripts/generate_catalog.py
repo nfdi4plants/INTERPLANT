@@ -25,7 +25,9 @@ _GENERATED_NOTE = (
     "# pygeoapi-config.base.yml and run `make catalog-gen`.\n"
 )
 LOCATIONS_DESCRIPTOR = DESCRIPTOR_DIR / "arc-locations.yaml"
-_LOCATION_PROPERTIES = ["record_id", "role", "label", "precision", "n_rows", "source"]
+_LOCATION_PROPERTIES = [
+    "record_id", "created", "role", "label", "precision", "n_rows", "source",
+]
 _SQL_NOTE = (
     "-- GENERATED FILE - do not edit. Edit catalog/collections/*.yaml and run\n"
     "-- `make catalog-gen`. Per-domain filter views over the base arc_records view.\n"
@@ -103,6 +105,7 @@ def build_resource(descriptor: dict) -> dict:
                 "id_field": "id",
                 "table": view,
                 "geom_field": "geom",
+                "time_field": "created",
                 "properties": list(_PROPERTIES),
             }
         ],
@@ -136,6 +139,7 @@ def build_locations_resource(descriptor: dict) -> dict:
                 "id_field": "id",
                 "table": "arc_locations",
                 "geom_field": "geom",
+                "time_field": "created",
                 "properties": list(_LOCATION_PROPERTIES),
             }
         ],

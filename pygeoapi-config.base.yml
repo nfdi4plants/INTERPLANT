@@ -79,6 +79,9 @@ resources:
         id_field: id
         table: arc_records
         geom_field: geom
+        # Required for ?datetime=. Undeclared, pygeoapi's SQL provider raises
+        # ProviderQueryError and the API turns that into a 500 on a legal request.
+        time_field: created
         properties:
           - title
           - description

@@ -51,7 +51,14 @@ SELECT
       (loc.loc->'point'->>1)::double precision
     ),
     4326
-  )                                                                AS geom
+  )                                                                AS geom,
+  -- Appended deliberately, and new columns must keep being appended here:
+  -- CREATE OR REPLACE VIEW cannot insert a column mid-list or rename one, so
+  -- an insertion breaks `apply_catalog_views` against any existing database
+  -- ("cannot change name of view column"). A point has no date of its own; it
+  -- inherits its ARC's, and this is the collection's time_field, without which
+  -- ?datetime= returns HTTP 500.
+  (r.payload->'properties'->>'created')::timestamptz               AS created
 FROM public.records r
 CROSS JOIN LATERAL jsonb_array_elements(
   COALESCE(r.payload->'properties'->'locations', '[]'::jsonb)

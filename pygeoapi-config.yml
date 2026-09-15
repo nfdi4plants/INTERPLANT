@@ -81,6 +81,9 @@ resources:
         id_field: id
         table: arc_records
         geom_field: geom
+        # Required for ?datetime=. Undeclared, pygeoapi's SQL provider raises
+        # ProviderQueryError and the API turns that into a 500 on a legal request.
+        time_field: created
         properties:
           - title
           - description
@@ -129,6 +132,7 @@ resources:
       id_field: id
       table: arc_records_genomics
       geom_field: geom
+      time_field: created
       properties:
       - title
       - description
@@ -175,6 +179,7 @@ resources:
       id_field: id
       table: arc_records_imaging
       geom_field: geom
+      time_field: created
       properties:
       - title
       - description
@@ -222,6 +227,7 @@ resources:
       id_field: id
       table: arc_records_metabolomics
       geom_field: geom
+      time_field: created
       properties:
       - title
       - description
@@ -269,6 +275,7 @@ resources:
       id_field: id
       table: arc_records_microbiome
       geom_field: geom
+      time_field: created
       properties:
       - title
       - description
@@ -315,6 +322,7 @@ resources:
       id_field: id
       table: arc_records_phenotyping
       geom_field: geom
+      time_field: created
       properties:
       - title
       - description
@@ -363,6 +371,7 @@ resources:
       id_field: id
       table: arc_records_proteomics
       geom_field: geom
+      time_field: created
       properties:
       - title
       - description
@@ -411,6 +420,7 @@ resources:
       id_field: id
       table: arc_records_transcriptomics
       geom_field: geom
+      time_field: created
       properties:
       - title
       - description
@@ -456,8 +466,10 @@ resources:
       id_field: id
       table: arc_locations
       geom_field: geom
+      time_field: created
       properties:
       - record_id
+      - created
       - role
       - label
       - precision
