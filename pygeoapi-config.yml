@@ -93,6 +93,8 @@ resources:
           - organism
           - keywords
           - arc_source_uri
+          - contacts
+          - externalIds
   dataplant-genomics:
     type: collection
     title: DataPLANT Genomics
@@ -142,6 +144,8 @@ resources:
       - organism
       - keywords
       - arc_source_uri
+      - contacts
+      - externalIds
   dataplant-imaging:
     type: collection
     title: DataPLANT Imaging
@@ -189,6 +193,8 @@ resources:
       - organism
       - keywords
       - arc_source_uri
+      - contacts
+      - externalIds
   dataplant-metabolomics:
     type: collection
     title: DataPLANT Metabolomics
@@ -237,6 +243,8 @@ resources:
       - organism
       - keywords
       - arc_source_uri
+      - contacts
+      - externalIds
   dataplant-microbiome:
     type: collection
     title: DataPLANT Microbiome
@@ -285,6 +293,8 @@ resources:
       - organism
       - keywords
       - arc_source_uri
+      - contacts
+      - externalIds
   dataplant-phenotyping:
     type: collection
     title: DataPLANT Phenotyping
@@ -332,6 +342,8 @@ resources:
       - organism
       - keywords
       - arc_source_uri
+      - contacts
+      - externalIds
   dataplant-proteomics:
     type: collection
     title: DataPLANT Proteomics
@@ -381,6 +393,8 @@ resources:
       - organism
       - keywords
       - arc_source_uri
+      - contacts
+      - externalIds
   dataplant-transcriptomics:
     type: collection
     title: DataPLANT Transcriptomics
@@ -430,6 +444,8 @@ resources:
       - organism
       - keywords
       - arc_source_uri
+      - contacts
+      - externalIds
   arc-locations:
     type: collection
     title: INTERPLANT ARC locations

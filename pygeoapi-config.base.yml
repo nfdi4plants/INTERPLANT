@@ -91,3 +91,5 @@ resources:
           - organism
           - keywords
           - arc_source_uri
+          - contacts
+          - externalIds

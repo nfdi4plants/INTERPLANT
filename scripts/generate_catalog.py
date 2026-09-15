@@ -35,6 +35,7 @@ _SQL_NOTE = (
 _PROPERTIES = [
     "title", "description", "created", "omics_domains",
     "experiment_context", "organism", "keywords", "arc_source_uri",
+    "contacts", "externalIds",
 ]
 # Placeholders, not literals: pygeoapi's loader expands ${VAR:-default} at
 # read time (pygeoapi/util.py). Dev needs no environment at all because the
