@@ -364,3 +364,32 @@ Claims that were checked and hold: `ogcapi-records-1/1.0/conf/sorting`
 (`sortby=title` and `sortby=-title` both order correctly) and `datetime`
 filtering, which was broken until `time_field` was declared and now
 discriminates properly on all nine collections.
+
+## arc-locations is a query surface, not a catalogue
+
+Measured on the live corpus 2026-09-15: 442 points, but they come from only
+**20 of 153 records**, and **387 of them (88%) come from a single ARC**
+(`dataplant-dormancy-nhutran-2025`). The median contributing ARC has one point.
+133 records carry no location at all.
+
+Two things follow, both now stated in the collection's own description so they
+reach clients through `/collections`:
+
+**Feature ids are not durable.** An id is `<record id>:<ordinal>`, the ordinal
+comes from the order the harvester emitted the locations in, and
+`apply_catalog_views` rebuilds the view after every nightly publish. A given id
+can therefore point at a different location tomorrow. Nothing citable should
+use one: cite the `arc-records` entry and reach its points with
+`?record_id=<id>`.
+
+That is also why this collection can never be a harvest source for any
+catalogue, AWI's included. A harvester's contract is stable identity across
+runs; theirs additionally deletes anything not re-seen within 5 days, so
+shifting ids would churn records in and out. Harvest `arc-records` items - one
+document per ARC - which is what OGC API Records items are for. Harvesting
+points would also *lose* the 87% of ARCs that have none.
+
+**The advertised extent is world-wide but the data is not.** The bbox stays
+`[-180,-90,180,90]` deliberately, so an empty result for a region means "no
+location extracted for any ARC here", not "no research data here". Query
+`arc-records` for the latter.

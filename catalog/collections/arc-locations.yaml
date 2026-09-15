@@ -4,7 +4,19 @@ description: |
   One point per extracted or derived ARC location. Where a Records entry
   carries a single representative geometry, this collection carries every
   point behind it, each tagged with its role and the precision of its
-  derivation. Teosinte appears here as its 276 collection sites.
+  derivation: a single study's collection sites can appear here as hundreds
+  of separate points.
+
+  This is a derived query surface, not a catalogue. Two consequences a client
+  needs to know. First, feature ids are NOT durable: an id has the form
+  "<record id>:<ordinal>", the ordinal comes from the order locations were
+  emitted in, and the view is rebuilt after every nightly harvest, so a given
+  id can refer to a different point tomorrow. Do not cite, bookmark or cache
+  a feature URL from this collection - cite the arc-records entry instead and
+  reach its points via ?record_id=. Second, the collection covers only the
+  minority of ARCs that carry any location at all, and is heavily skewed
+  towards the few that carry many, so an empty result for a bounding box does
+  not mean the region has no research data - query arc-records for that.
 keywords: [locations, geospatial, arc, dataplant]
 license: CC-BY-4.0
 axis: geo
