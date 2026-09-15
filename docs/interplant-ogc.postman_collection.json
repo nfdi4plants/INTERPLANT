@@ -1,0 +1,1814 @@
+{
+  "info": {
+    "name": "interplant-ogc",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "INTERPLANT OGC API (pygeoapi 0.23.4).\n\n{{url}} MUST include the /ogc path prefix - the service runs with SCRIPT_NAME=/ogc\nand rejects any request that does not start with it.\n\n  via SSH tunnel : http://localhost:8801/ogc\n  public         : https://www.plabipd.de/ogc   (live since 2026-09-15)\n\nSwitching between them changes only scheme+host; every path here is unchanged.\n\nResponse `links` advertise the public base URL, which is now live, so rel=next can be\nfollowed directly. Through the tunnel, followed links still leave the tunnel.\n\nFolder 06 pins limitations of pygeoapi 0.23.4 that we cannot fix. The q= entry is a\nTRAP - read its description before trusting any search result from this API."
+  },
+  "variable": [
+    {
+      "key": "url",
+      "value": "https://www.plabipd.de/ogc",
+      "description": "Public since 2026-09-15. Must include /ogc. For the tunnel use http://localhost:8801/ogc."
+    }
+  ],
+  "item": [
+    {
+      "name": "00 Core",
+      "item": [
+        {
+          "name": "Landing page",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Root. Service metadata and links."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Conformance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/conformance?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "conformance"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Conformance classes - see folder 06, it overstates."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "OpenAPI",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/openapi?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "openapi"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Generated OpenAPI 3 description."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Collections",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "All 9: 8 record collections + 1 feature collection."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('9 collections', function () {",
+                  "  pm.expect(pm.response.json().collections).to.have.lengthOf(9);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 Records - arc-records",
+      "item": [
+        {
+          "name": "Collection metadata",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Single collection description."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Queryables",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/queryables?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "queryables"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Declared filterable properties."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Items (default)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Default page; default_items=50."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('153 records', function () {",
+                  "  pm.expect(pm.response.json().numberMatched).to.eql(153);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Items - limit",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?limit=5&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Explicit page size."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Items - offset page 2",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?limit=50&offset=50&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "50"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Second page by offset. Prefer this over following rel=next while on the tunnel."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Items - limit over max",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?limit=99999&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "99999"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "max_items=1000, on_exceed=throttle: clamps instead of erroring."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Items - sortby asc",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?sortby=title&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "sortby",
+                  "value": "title"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Verified to really sort."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Items - sortby desc",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?sortby=-title&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "sortby",
+                  "value": "-title"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Descending."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Items - bbox Germany",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?bbox=5,47,15,55&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "bbox",
+                  "value": "5,47,15,55"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Spatial filter."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Single item",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items/dataplant-2024-devan-sai-et-al-pnas?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items",
+                "dataplant-2024-devan-sai-et-al-pnas"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "One record by id."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 Features - arc-locations",
+      "item": [
+        {
+          "name": "Collection metadata",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-locations?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-locations"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "The point collection."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Queryables",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-locations/queryables?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-locations",
+                "queryables"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Filterable point properties."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-locations/items?limit=10&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-locations",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "One Feature per extracted point."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Items - bbox Germany",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-locations/items?bbox=5,47,15,55&limit=10&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-locations",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "bbox",
+                  "value": "5,47,15,55"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "The query a map viewer actually issues."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Items - by record_id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-locations/items?record_id=dataplant-2024-devan-sai-et-al-pnas&limit=50&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-locations",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "record_id",
+                  "value": "dataplant-2024-devan-sai-et-al-pnas"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "All points of one ARC - the per-record deep link."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 Thematic collections",
+      "item": [
+        {
+          "name": "dataplant-genomics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/dataplant-genomics/items?limit=5&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "dataplant-genomics",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Per-domain view over arc_records (genomics). This is how omics filtering is meant to be done - ?omics_domains= returns 500, see folder 06."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "dataplant-imaging",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/dataplant-imaging/items?limit=5&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "dataplant-imaging",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Per-domain view over arc_records (imaging). This is how omics filtering is meant to be done - ?omics_domains= returns 500, see folder 06."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "dataplant-metabolomics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/dataplant-metabolomics/items?limit=5&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "dataplant-metabolomics",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Per-domain view over arc_records (metabolomics). This is how omics filtering is meant to be done - ?omics_domains= returns 500, see folder 06."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "dataplant-microbiome",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/dataplant-microbiome/items?limit=5&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "dataplant-microbiome",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Per-domain view over arc_records (microbiome). This is how omics filtering is meant to be done - ?omics_domains= returns 500, see folder 06."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "dataplant-phenotyping",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/dataplant-phenotyping/items?limit=5&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "dataplant-phenotyping",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Per-domain view over arc_records (phenotyping). This is how omics filtering is meant to be done - ?omics_domains= returns 500, see folder 06."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "dataplant-proteomics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/dataplant-proteomics/items?limit=5&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "dataplant-proteomics",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Per-domain view over arc_records (proteomics). This is how omics filtering is meant to be done - ?omics_domains= returns 500, see folder 06."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "dataplant-transcriptomics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/dataplant-transcriptomics/items?limit=5&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "dataplant-transcriptomics",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Per-domain view over arc_records (transcriptomics). This is how omics filtering is meant to be done - ?omics_domains= returns 500, see folder 06."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 Error handling",
+      "item": [
+        {
+          "name": "Unknown collection -> 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/does-not-exist?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "does-not-exist"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Clean 404, not a 500."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Unknown item -> 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items/NO-SUCH-ID?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items",
+                "NO-SUCH-ID"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Clean 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 datetime (fixed 2026-09-15)",
+      "item": [
+        {
+          "name": "datetime range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?datetime=2020-01-01/2030-01-01&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "datetime",
+                  "value": "2020-01-01/2030-01-01"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Returned 500 on all 9 collections until time_field was declared (commit bd6741e). If this is red, production is running the old config."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "datetime open start",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?datetime=../2030-01-01&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "datetime",
+                  "value": "../2030-01-01"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Open interval."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "datetime excludes non-matching",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?datetime=1900-01-01/1901-01-01&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "datetime",
+                  "value": "1900-01-01/1901-01-01"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Proves the filter DISCRIMINATES rather than just returning 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('filter actually excludes', function () {",
+                  "  pm.expect(pm.response.json().numberMatched).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "datetime on locations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-locations/items?datetime=2020-01-01/2030-01-01&limit=5&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-locations",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "datetime",
+                  "value": "2020-01-01/2030-01-01"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "arc_locations had no time column; points now inherit their ARC's created date."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 Known limitations - pygeoapi 0.23.4",
+      "item": [
+        {
+          "name": "q= is a SILENT NO-OP (TRAP)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?q=zzzznonexistentzzz&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "zzzznonexistentzzz"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "TRAP. PostgreSQLProvider.query accepts q and never uses it - there is no _get_q_filter. This nonsense term returns HTTP 200 with ALL 153 records. The status test passing means NOTHING. Never treat a 200 here as evidence that search works."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "var d = pm.response.json();",
+                  "pm.test('DOCUMENTS the no-op: q= did not filter', function () {",
+                  "  pm.expect(d.numberMatched).to.eql(153);",
+                  "});",
+                  "console.log('q=nonsense -> numberMatched=' + d.numberMatched + ' (unfiltered)');"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "array filter -> 500 (omics_domains)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?omics_domains=genomics&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "omics_domains",
+                  "value": "genomics"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "_get_property_filters emits scalar == against text[]. Not fixable at our layer: jsonb behaves identically (measured), CQL2 returns 400. Flip to 200 after a pygeoapi upgrade."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 500', function () { pm.response.to.have.status(500); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "array filter -> 500 (keywords)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?keywords=drought&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "keywords",
+                  "value": "drought"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Same cause. keywords is a core OGC API Records property."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 500', function () { pm.response.to.have.status(500); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "array filter -> 500 (organism)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items?organism=Arabidopsis%20thaliana&f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "organism",
+                  "value": "Arabidopsis%20thaliana"
+                },
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Same cause."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 500', function () { pm.response.to.have.status(500); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "conformance overstates the service",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/conformance?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "conformance"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Advertises ogcapi-features-4 create-replace-delete on a READ-ONLY deployment, and records-1 opensearch with no working q. See deploy/README.md."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "var cc = pm.response.json().conformsTo;",
+                  "pm.test('DOCUMENTS the false transactions claim', function () {",
+                  "  pm.expect(cc).to.include('http://www.opengis.net/spec/ogcapi-features-4/1.0/conf/create-replace-delete');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "07 Read-only guarantee",
+      "item": [
+        {
+          "name": "POST items -> 400 not editable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/geo+json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items"
+              ],
+              "query": []
+            },
+            "description": "Writes must be refused despite the advertised transactions class. Verified nothing is written and the record count is unchanged.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"type\": \"Feature\", \"id\": \"probe-xyz\", \"properties\": {\"title\": \"probe\"}, \"geometry\": null}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', function () { pm.response.to.have.status(400); });",
+                  "pm.test('refused as not editable', function () {",
+                  "  pm.expect(pm.response.text()).to.include('not editable');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "probe was not created",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/collections/arc-records/items/probe-xyz?f=json",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "collections",
+                "arc-records",
+                "items",
+                "probe-xyz"
+              ],
+              "query": [
+                {
+                  "key": "f",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Run immediately after the POST above."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}
