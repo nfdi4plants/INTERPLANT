@@ -3,6 +3,7 @@ server we did not write. Reachable offline: their fetch only special-cases
 file:// URLs, so an http stub exercises the real code path."""
 from __future__ import annotations
 
+from itertools import islice
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -41,6 +42,26 @@ def test_a_next_link_that_does_not_advance_stops_the_loop(ogc_helper_module, tmp
     with StubOGC(total=25, mode="stuck_next") as stub:
         with pytest.raises(RuntimeError, match="did not advance"):
             list(_harvester(ogc_helper_module, stub.base, tmp_path).iter_items("c"))
+
+
+def test_a_server_that_ignores_offset_and_sends_no_next_is_caught(ogc_helper_module, tmp_path):
+    """No rel=next and an ignored offset: the URL keeps changing (our own
+    fallback increments it), so the URL-repeat guard never fires, but every
+    page is really the same 10 records. Left unguarded this yields 30 items
+    for 10 unique ids and returns normally - a silent partial harvest that
+    the docstring promises never happens."""
+    with StubOGC(total=25, page_size=10, mode="ignores_offset") as stub:
+        with pytest.raises(RuntimeError, match="did not advance"):
+            list(_harvester(ogc_helper_module, stub.base, tmp_path).iter_items("c"))
+
+
+def test_a_rotating_next_link_that_never_moves_is_caught(ogc_helper_module, tmp_path):
+    """The next link's URL changes every time (defeating the URL-repeat guard)
+    but always resolves to the same page. Capped at 100 items so a run against
+    unfixed code fails fast instead of hanging."""
+    with StubOGC(total=25, page_size=10, mode="rotating_next") as stub:
+        with pytest.raises(RuntimeError, match="did not advance"):
+            list(islice(_harvester(ogc_helper_module, stub.base, tmp_path).iter_items("c"), 100))
 
 
 def test_a_next_link_to_another_host_is_refused(ogc_helper_module, tmp_path):

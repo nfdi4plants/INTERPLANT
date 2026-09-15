@@ -15,7 +15,9 @@ class StubOGC:
     def __init__(self, total=25, page_size=10, mode="next", features=None):
         self.total = total if features is None else len(features)
         self.page_size = page_size
-        self.mode = mode  # next | offset_only | stuck_next | foreign_next | fail_midway
+        # next | offset_only | stuck_next | foreign_next | fail_midway |
+        # ignores_offset | rotating_next
+        self.mode = mode
         self.omit_number_matched = False
         self.features = features
         self.requests: list[str] = []
@@ -54,6 +56,10 @@ class StubOGC:
         self.base = f"http://127.0.0.1:{self._server.server_port}"
 
     def _items(self, offset, limit):
+        # These two modes never honour the requested offset: every page is the
+        # first page, which is what makes them dangerous (no page ever moves on).
+        if self.mode in ("ignores_offset", "rotating_next"):
+            offset = 0
         if self.features is not None:
             return self.features[offset:offset + limit]
         return [
@@ -65,7 +71,13 @@ class StubOGC:
     def _links(self, offset, limit):
         links = [{"rel": "self", "href": f"{self.base}/collections/c/items"}]
         nxt = offset + limit
-        if self.mode == "offset_only" or nxt >= self.total:
+        if self.mode == "rotating_next":
+            # A next link is always sent, and its offset always increases, even
+            # though the page it points to (see _items above) never changes.
+            href = f"{self.base}/collections/c/items?f=json&limit={limit}&offset={nxt}"
+            links.append({"rel": "next", "href": href})
+            return links
+        if self.mode in ("offset_only", "ignores_offset") or nxt >= self.total:
             return links
         if self.mode == "stuck_next":
             href = f"{self.base}/collections/c/items?f=json&limit={limit}&offset={offset}"
