@@ -113,3 +113,18 @@ def ogc_helper_module():
         sys.modules.pop(name, None)
         if inserted and helper_path in sys.path:
             sys.path.remove(helper_path)
+
+
+@pytest.fixture
+def ogc_dataplant_module(ogc_helper_module):
+    """Import the DataPLANT OGC script; its helper import resolves to our file."""
+    script = _REPO_ROOT / "portal" / "ogc" / "harvest-repository-dataplant-arcs-ogc.py"
+    name = "dataplant_arc_ogc_harvester"
+    spec = importlib.util.spec_from_file_location(name, script)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    try:
+        yield module
+    finally:
+        sys.modules.pop(name, None)
