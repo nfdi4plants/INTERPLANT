@@ -10,7 +10,7 @@
 
 ## Where do we stand? (regularily updated)
 
-What's done (P0 → P1)
+What's done (P0 → P2)
 
 - P0 - Specs: all four specs + JSON schemas + vocabularies shipped (record-schema, collection-schema, portal-mapping/DocumentSchema, harvester).
 - Dev stack: Postgres 17 + PostGIS 3.6 + pygeoapi, CI shell - merged.
