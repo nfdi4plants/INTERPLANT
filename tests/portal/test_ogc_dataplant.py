@@ -47,8 +47,11 @@ def test_no_urn_uuid_means_the_record_is_dropped_not_url_keyed(ogc_dataplant_mod
 
 
 def test_ogc_and_oai_documents_share_a_unique_id(ogc_dataplant_module, load_json, tmp_path, capsys):
-    """End to end on the canonical fixture: what Task 1's view emits as
-    externalIds, harvested here, equals what the OAI mapper emits."""
+    """End to end on the canonical fixture, with the feature built by hand from
+    it: the subclass reads the urn:uuid externalId and the harvested uniqueId
+    equals the OAI mapper's uniqueId for the same record. The view side (that
+    arc-records actually emits this externalId) is covered separately by
+    tests/stack/test_arc_records_records_core.py."""
     record = load_json("examples/record-complete.json")
     oai_unique_id = map_record(record)["uniqueId"]
     feature = {"type": "Feature", "id": record["id"], "geometry": record.get("geometry"),
