@@ -335,8 +335,9 @@ the advertised `ogcapi-records-1/1.0/conf/opensearch` conformance class as false
 unconditionally, so `?omics_domains=imaging` becomes
 `omics_domains = 'imaging'` against a `text[]` and PostgreSQL raises
 `malformed array literal`. This affects `omics_domains`, `organism` and
-`keywords` - three of the eight advertised properties on every record
-collection.
+`keywords` (text[]) and `contacts` and `externalIds` (jsonb) - five of the
+ten advertised properties on every record collection. jsonb behaves exactly
+as text[] here.
 
 There is no workaround at our layer. It is not fixable by removing the column
 from the provider's `properties` list, because `get_fields` builds the

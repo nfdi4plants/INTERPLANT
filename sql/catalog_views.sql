@@ -16,7 +16,28 @@ SELECT
   CASE
     WHEN payload->'geometry' = 'null'::jsonb OR payload->'geometry' IS NULL THEN NULL
     ELSE ST_SetSRID(ST_GeomFromGeoJSON(payload->'geometry'), 4326)
-  END                                                              AS geom
+  END                                                              AS geom,
+  -- Appended, never inserted: CREATE OR REPLACE VIEW can only add columns at
+  -- the end. OGC API Records core `contacts` (contact.yaml: name or
+  -- organization required, identifier a string, roles an array of strings).
+  -- An ORCID becomes a resolvable identifier; creators are not mapped because
+  -- the harvester always emits creators as [] (harvester/build.py).
+  COALESCE((
+    SELECT jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
+      'name',         c->>'name',
+      'organization', c->>'affiliation',
+      'identifier',   CASE WHEN c ? 'orcid' THEN 'https://orcid.org/' || (c->>'orcid') END,
+      'roles',        jsonb_build_array(COALESCE(c->>'role', 'pointOfContact'))
+    )))
+    FROM jsonb_array_elements(COALESCE(payload->'properties'->'contacts', '[]'::jsonb)) c
+  ), '[]'::jsonb)                                                  AS contacts,
+  -- OGC API Records core `externalIds`. The value is the same uuid5 the OAI
+  -- path emits as uniqueId, so both paths give an ARC one identity in the
+  -- portal index.
+  jsonb_build_array(jsonb_build_object(
+    'scheme', 'urn:uuid',
+    'value',  payload->'properties'->>'uniqueId'
+  ))                                                               AS "externalIds"
 FROM public.records;
 
 -- One row per extracted or derived location point. Teosinte's 276 collection

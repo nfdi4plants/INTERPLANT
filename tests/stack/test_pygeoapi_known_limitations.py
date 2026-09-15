@@ -41,14 +41,16 @@ def test_free_text_search_excludes_non_matching_records(
 
 
 @pytest.mark.xfail(
-    reason="pygeoapi 0.23.4 _get_property_filters emits scalar == against a "
-    "text[] column, so PostgreSQL raises malformed array literal",
+    reason="pygeoapi 0.23.4 _get_property_filters emits scalar == against an "
+    "array or jsonb column, so PostgreSQL rejects it",
     strict=True,
 )
 @pytest.mark.parametrize("field,value", [
     ("omics_domains", "imaging"),
     ("organism", "Arabidopsis thaliana"),
     ("keywords", "drought"),
+    ("contacts", "Ada Lovelace"),
+    ("externalIds", "urn:uuid"),
 ])
 def test_filtering_on_an_array_property_does_not_return_500(
     pygeoapi_url: str, pygeoapi_reachable: bool, field: str, value: str
