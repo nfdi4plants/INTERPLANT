@@ -20,11 +20,7 @@ What's done (P0 → P2)
 - P1 - Batch harvest: `harvester harvest` enumerates all public ARCs, clones each (stateless temp clone), runs the shared pipeline, upserts into Postgres, and writes a JSON+Markdown audit artifact. `make harvest-all` runs it locally; a non-blocking nightly CI job validates the live upstream; a fixture gate protects the pipeline on every push.
 - P2 - Catalog API (omics): pygeoapi serves the records over OGC API - Records as `arc-records` (all records) plus 7 omics thematic collections (`dataplant-proteomics`, `-transcriptomics`, `-genomics`, `-metabolomics`, `-phenotyping`, `-imaging`, `-microbiome`). Collections are generated from `catalog/collections/*.yaml` descriptors via `make catalog-gen` (single source of truth) over flattening SQL views. Null geometry for now. `make catalog-up` brings up a populated serving stack.
 - P2 - Portal feed (OAI-PMH): a Flask service (`oai/`) serves the records as an OAI-PMH 2.0 data provider (`make oai-up`, http://localhost:8001/oai), mapping each record to AWI's DocumentSchema. Full 6-verb compliance, `oai_dc` + `documentschema` formats, resumption tokens. The DocumentSchema-in-XML encoding is provisional pending AWI confirmation.
-
-
-What's not done
-
-- P2 - Catalog API (remainder): experiment_context collections (blocked on the demoted classifier) and real geometry. OAI-PMH endpoint done; public HTTPS hosting + AWI registration are deployment/ops follow-ups.
+- P2 - Catalog API: experiment_context collections and real geometry. OAI-PMH endpoint done; public HTTPS hosting + AWI registration are deployment/ops follow-ups.
 - P4/P5: 11 L1 collection descriptors + narrative; overview pages / portal plugin.
 - registering as an Earth Data Portal content provider with AWI (o2a-support@awi.de) for sandbox access.
 
