@@ -112,7 +112,9 @@ def test_a_record_without_geometry_omits_the_key_entirely(ogc_helper_module, tmp
 def test_a_document_without_geometry_passes_the_portal_validator(
     ogc_helper_module, tmp_path, capsys
 ):
-    from helper.Validator import Validator
+    from tests.portal.conftest import portal_validator_class
+
+    Validator = portal_validator_class()
 
     features = [dict(ITEM, id="rec-no-geom", geometry=None)]
     with StubOGC(features=features, mode="next") as stub:
@@ -127,7 +129,9 @@ def test_a_document_without_geometry_passes_the_portal_validator(
 
 
 def test_harvested_documents_pass_the_portal_validator(ogc_helper_module, tmp_path, capsys):
-    from helper.Validator import Validator
+    from tests.portal.conftest import portal_validator_class
+
+    Validator = portal_validator_class()
 
     features = [dict(ITEM, id=f"rec{i}") for i in range(3)]
     with StubOGC(features=features, page_size=2, mode="next") as stub:

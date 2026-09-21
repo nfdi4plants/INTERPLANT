@@ -6,9 +6,12 @@ unless INTERPLANT_PORTAL_TESTS=1 and that clone is present.
 """
 from __future__ import annotations
 
+import importlib
 import importlib.util
+import json
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -23,6 +26,48 @@ def o2a_root() -> Path:
     return Path(os.environ.get("INTERPLANT_O2A_PATH", str(_DEFAULT_O2A)))
 
 
+# Upstream renamed `harvester/helper/` to `harvester/base/` (the harvester
+# classes) plus `harvester/utils/` (Utils, Validator, Logger, the license
+# resolver). Everything under portal/ imports from those two, so a clone that
+# still has only `helper/` cannot run these tests at all - the gate below
+# checks for `base/` rather than pretending to support both.
+_BASE_PKG = "base"
+_UTILS_PKG = "utils"
+
+
+def portal_validator_class():
+    """Their JSON Schema Validator, from whichever package the clone puts it in.
+
+    Call only with the clone on sys.path, i.e. from inside a test that already
+    took one of the module fixtures below.
+    """
+    return importlib.import_module(f"{_UTILS_PKG}.Validator").Validator
+
+
+def _neutralise_license_resolver() -> None:
+    """Stop their LicenseProcessor from fetching and caching the SPDX list.
+
+    AbstractDocumentHarvester.__init__ now constructs a LicenseProcessor
+    unconditionally, and LicenseResolver.load_spdx downloads
+    raw.githubusercontent.com into `cache/licenses.json` RELATIVE TO CWD on
+    first use - which under pytest is our repo root. Point both files at a
+    seeded temp copy so the emulation stays offline and writes nothing into
+    the working tree. An empty list is enough: our records carry no license,
+    so LicenseProcessor.process returns before resolving anything.
+
+    Must be called with the clone already on sys.path.
+    """
+    module = importlib.import_module(f"{_UTILS_PKG}.LicenseResolver")
+    cache_dir = Path(tempfile.mkdtemp(prefix="o2a-license-"))
+    cache_file = cache_dir / "licenses.json"
+    cache_file.write_text(json.dumps({"licenses": []}), encoding="utf-8")
+    module.LicenseResolver.cache_file = str(cache_file)
+    config = o2a_root() / "config" / "license-resolver.json"
+    module.LicenseResolver.config_file = (
+        str(config) if config.is_file() else str(cache_dir / "absent.json")
+    )
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Skip the emulation tests unless the gate is set and the clone is present.
 
@@ -30,10 +75,13 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     this must scope to its own directory. An unscoped loop would skip pure tests
     collected elsewhere - the blanket-skip bug fixed in ea1ccaa.
     """
-    if os.environ.get(_GATE) == "1" and (o2a_root() / "harvester" / "helper").is_dir():
+    if os.environ.get(_GATE) == "1" and (o2a_root() / "harvester" / _BASE_PKG).is_dir():
         return
     skip_marker = pytest.mark.skip(
-        reason=f"set {_GATE}=1 and INTERPLANT_O2A_PATH to a local o2a clone"
+        reason=(
+            f"set {_GATE}=1 and INTERPLANT_O2A_PATH to a local o2a clone "
+            f"that has harvester/{_BASE_PKG}/"
+        )
     )
     for item in items:
         if item.path.is_relative_to(_PORTAL_TEST_DIR):
@@ -68,6 +116,8 @@ def awi_harvester_module():
     if inserted:
         sys.path.insert(0, helper_path)
 
+    _neutralise_license_resolver()
+
     script = _REPO_ROOT / "portal" / "harvest-repository-dataplant-arcs.py"
     spec = importlib.util.spec_from_file_location("dataplant_arc_harvester", script)
     module = importlib.util.module_from_spec(spec)
@@ -86,11 +136,11 @@ def awi_harvester_module():
 
 @pytest.fixture
 def ogc_helper_module():
-    """Import portal/ogc/OGCAPIRecordsHarvester.py as helper.OGCAPIRecordsHarvester.
+    """Import portal/ogc/OGCAPIRecordsHarvester.py as <base>.OGCAPIRecordsHarvester.
 
-    Their helper/ is a namespace package (no __init__.py), so registering our
+    Their base/ is a namespace package (no __init__.py), so registering our
     file under that dotted name lets the DataPLANT script's
-    `from helper.OGCAPIRecordsHarvester import ...` resolve to it, exactly as it
+    `from base.OGCAPIRecordsHarvester import ...` resolve to it, exactly as it
     will once copied into their repo. Their Logger looks the class's module up
     in sys.modules, so it must be registered before exec.
     """
@@ -100,7 +150,9 @@ def ogc_helper_module():
     if inserted:
         sys.path.insert(0, helper_path)
 
-    name = "helper.OGCAPIRecordsHarvester"
+    _neutralise_license_resolver()
+
+    name = f"{_BASE_PKG}.OGCAPIRecordsHarvester"
     script = _REPO_ROOT / "portal" / "ogc" / "OGCAPIRecordsHarvester.py"
     spec = importlib.util.spec_from_file_location(name, script)
     module = importlib.util.module_from_spec(spec)
@@ -117,7 +169,7 @@ def ogc_helper_module():
 
 @pytest.fixture
 def ogc_dataplant_module(ogc_helper_module):
-    """Import the DataPLANT OGC script; its helper import resolves to our file."""
+    """Import the DataPLANT OGC script; its base import resolves to our file."""
     script = _REPO_ROOT / "portal" / "ogc" / "harvest-repository-dataplant-arcs-ogc.py"
     name = "dataplant_arc_ogc_harvester"
     spec = importlib.util.spec_from_file_location(name, script)

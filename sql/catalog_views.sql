@@ -22,12 +22,22 @@ SELECT
   -- organization required, identifier a string, roles an array of strings).
   -- An ORCID becomes a resolvable identifier; creators are not mapped because
   -- the harvester always emits creators as [] (harvester/build.py).
+  --
+  -- The default role is `author`, not `pointOfContact`. Two facts force it:
+  -- the harvester never sets `role` (harvester/isa_reader.py drops arctrl's
+  -- Person.Roles before a Contact is built), so this COALESCE decides the role
+  -- for EVERY contact of EVERY record; and the portal only renders persons
+  -- carrying the `author` role, so defaulting to pointOfContact made the whole
+  -- corpus's attribution invisible there. Treating an ARC's Investigation
+  -- Contacts block as its credit list is the reading DataPLANT's own ARC
+  -- guidance takes. This is an assertion, not derived data - the day the
+  -- harvester emits a real per-person role, `c->>'role'` wins over it.
   COALESCE((
     SELECT jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
       'name',         c->>'name',
       'organization', c->>'affiliation',
       'identifier',   CASE WHEN c ? 'orcid' THEN 'https://orcid.org/' || (c->>'orcid') END,
-      'roles',        jsonb_build_array(COALESCE(c->>'role', 'pointOfContact'))
+      'roles',        jsonb_build_array(COALESCE(c->>'role', 'author'))
     )))
     FROM jsonb_array_elements(COALESCE(payload->'properties'->'contacts', '[]'::jsonb)) c
   ), '[]'::jsonb)                                                  AS contacts,

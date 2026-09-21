@@ -121,7 +121,9 @@ def test_emitted_documents_carry_the_fleet_provenance_key(awi_harvester_module, 
 
 def test_emitted_documents_pass_the_portal_validator(awi_harvester_module, tmp_path, capsys):
     """Their Validator is deliberately stricter than their index server."""
-    from helper.Validator import Validator
+    from tests.portal.conftest import portal_validator_class
+
+    Validator = portal_validator_class()
 
     documents = _run(awi_harvester_module, tmp_path, [_record("rec00", 1)], capsys)
 

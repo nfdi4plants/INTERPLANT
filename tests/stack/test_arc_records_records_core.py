@@ -87,10 +87,12 @@ def test_contact_with_orcid_and_affiliation(seeded_records_core):
 
 
 def test_contact_without_orcid_or_role_omits_identifier_and_defaults_role(seeded_records_core):
+    """A contact with no role defaults to author, which is the only role the
+    portal renders. See the comment on the contacts column in catalog_views.sql."""
     contacts = _one(seeded_records_core,
                     "SELECT contacts FROM public.arc_records WHERE id = %s", ("test-rc-affil",))
     assert contacts == [{"name": "Grace Hopper", "organization": "Navy",
-                         "roles": ["pointOfContact"]}]
+                         "roles": ["author"]}]
 
 
 def test_no_contacts_is_an_empty_array_not_null(seeded_records_core):

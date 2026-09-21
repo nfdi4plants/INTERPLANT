@@ -25,7 +25,7 @@
 | `properties.experiment_context` | `keywords.contexts[]` | wrap as single `{type:"context", name, description:""}` |
 | `properties.organism` | `keywords.organisms[]` | wrap each as `{type:"organism", name, description:""}` |
 | `properties.project` | `keywords.projects[]` | wrap each as `{type:"project", name, description:""}` |
-| `properties.contacts[].role` | `persons.<role>[]` | one person per role bucket; ORCID moved into `identifiers.orcid` |
+| `properties.contacts[].role` | `persons.<role>[]` | one person per role bucket; ORCID moved into `identifiers.orcid`. The harvester never sets `role`, so on the OGC path `sql/catalog_views.sql` defaults every contact to `author` - the only role the portal renders. The OAI path still defaults to `pointOfContact`. |
 | `properties.creators` | `persons.author[]` | append to the `author` bucket |
 | `properties.assays[]` | `devices[]` | each assay → `{id, name: instrument_name || domain, type:"instrument", metadata:{domain}}` |
 | `properties.studies[]` | `events[]` | each study -> `{id, type:"study", begin, end, geometry}` (geometry is the study's own points when its locations name it, else the record geometry) |

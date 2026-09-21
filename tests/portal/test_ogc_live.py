@@ -70,7 +70,9 @@ def _harvest_ogc(ogc_dataplant_module, tmp_path, capsys) -> list[dict]:
 def test_live_harvest_is_complete_valid_and_shares_identity_with_oai(
     ogc_dataplant_module, tmp_path, capsys
 ):
-    from helper.Validator import Validator
+    from tests.portal.conftest import portal_validator_class
+
+    Validator = portal_validator_class()
 
     documents = _harvest_ogc(ogc_dataplant_module, tmp_path, capsys)
 
