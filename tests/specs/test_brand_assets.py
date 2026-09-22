@@ -80,3 +80,17 @@ def test_generated_outputs_are_template_ready(name: str):
 def test_check_mode_reports_in_sync():
     # After generation (committed files present), --check must pass.
     assert gen.main(["--check"]) == 0
+
+
+def test_header_logo_is_the_minimal_mark():
+    """Spec R1: the header shows the minimal square mark, not the wordmark."""
+    path = REPO_ROOT / "ogc" / "static" / "img" / "dataplant-logo.svg"
+    root = etree.fromstring(path.read_text(encoding="utf-8").encode("utf-8"))
+    assert root.get("viewBox") == "0 0 1622 1621"
+
+
+def test_only_used_sources_are_vendored():
+    """Spec D7: vendor only what a generated asset is built from."""
+    src = REPO_ROOT / "ogc" / "brand" / "src"
+    vendored = sorted(p.stem for p in src.glob("*.svg"))
+    assert vendored == sorted(gen.ASSETS)

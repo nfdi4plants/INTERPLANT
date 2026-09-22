@@ -30,8 +30,11 @@ _GENERATED_NOTE = (
 )
 
 # source stem -> (output filename, accessible title)
+# The header logo is the minimal mark (spec R1). It is a 650x1314 PNG wrapped
+# in SVG, 450 KB rather than the wordmark's 10 KB; accepted, it is cached after
+# the first page. The favicon stays the 11 KB vector square mark.
 ASSETS = {
-    "DataPLANT_logo_bg_transparent": ("dataplant-logo.svg", "DataPLANT"),
+    "DataPLANT_logo_minimal_square_bg_transparent": ("dataplant-logo.svg", "DataPLANT"),
     "DataPLANT_logo_square_bg_transparent": ("dataplant-mark.svg", "DataPLANT mark"),
 }
 

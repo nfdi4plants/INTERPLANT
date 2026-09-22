@@ -12,6 +12,12 @@ The upstream files are not usable as shipped: they declare
 DTD reference. The generator sets width/height from the viewBox, strips the
 doctype and editor metadata, and injects a `<title>` for screen readers.
 
+The header logo is `DataPLANT_logo_minimal_square_bg_transparent.svg`. Unlike
+the other upstream files it contains no vector paths: it is a 650x1314 PNG
+wrapped in SVG, about 450 KB. It was chosen because the lightblue mark reads
+on the darkblue header (4.6:1), where the transparent wordmark did not. The
+favicon is `DataPLANT_logo_square_bg_transparent.svg`, which is vector.
+
 ## License
 
 The logo files are (c) DataPLANT contributors, MIT licensed. The MIT notice
