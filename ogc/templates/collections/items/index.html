@@ -1,0 +1,50 @@
+{% extends "_base.html" %}
+{% from "_macros.html" import dp_tags %}
+{#- Links are absolute, built from the paths pygeoapi sets for this page
+    (api/itemtypes.py:667-670). Relative links broke: pygeoapi serves
+    .../items without a trailing slash, so ./<id> resolved to
+    .../<collection>/<id>, a 404 (spec R5). -#}
+{% set collection_title = data['links'] | selectattr('rel', 'equalto', 'collection') | map(attribute='title') | first | default('Items', true) %}
+
+{% block title %}{{ collection_title }}{% endblock %}
+
+{% block crumbs %}{{ super() }}
+/ <a href="{{ data['collections_path'] }}">{% trans %}Collections{% endtrans %}</a>
+/ <a href="{{ data['dataset_path'] }}">{{ collection_title | truncate(25) }}</a>
+/ <a href="{{ data['items_path'] }}">{% trans %}Items{% endtrans %}</a>
+{% endblock %}
+
+{% block body %}
+<section id="items">
+  <h1>{{ collection_title }}</h1>
+  <p class="dp-recordid">
+    {{ data['numberMatched'] }} {% trans %}records{% endtrans %},
+    {% trans %}showing{% endtrans %} {{ data['numberReturned'] }}
+  </p>
+
+  {% for feature in data['features'] %}
+  {% set fprops = feature['properties'] %}
+  <div class="dp-result">
+    <div class="dp-result__title">
+      <a href="{{ data['items_path'] }}/{{ feature['id'] }}">{{ fprops.get('title') or feature['id'] }}</a>
+    </div>
+    {% if fprops.get('description') %}
+    <div class="dp-result__desc">{{ fprops['description'] }}</div>
+    {% endif %}
+    <div class="mt-2">
+      {{ dp_tags(fprops.get('omics_domains') or [], 'dp-tag--omics') }}
+      {% if not feature['geometry'] %}<span class="dp-tag dp-tag--keyword">{% trans %}no location{% endtrans %}</span>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <nav class="d-flex justify-content-between mt-3">
+    <span>
+      {% for link in data['links'] %}{% if link['rel'] == 'prev' %}<a href="{{ link['href'] }}">&laquo; {% trans %}Prev{% endtrans %}</a>{% endif %}{% endfor %}
+    </span>
+    <span>
+      {% for link in data['links'] %}{% if link['rel'] == 'next' %}<a href="{{ link['href'] }}">{% trans %}Next{% endtrans %} &raquo;</a>{% endif %}{% endfor %}
+    </span>
+  </nav>
+</section>
+{% endblock %}

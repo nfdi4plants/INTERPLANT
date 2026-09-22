@@ -1,0 +1,7 @@
+{#- Shared template macros. Import with:
+    {% from "_macros.html" import dp_tags %}
+    Our template directory sits first on pygeoapi's search path, and pygeoapi
+    ships no _macros.html, so there is no name collision. -#}
+{% macro dp_tags(values, css_class) -%}
+  {% for value in values %}<span class="dp-tag {{ css_class }}">{{ value }}</span>{% endfor %}
+{%- endmacro %}

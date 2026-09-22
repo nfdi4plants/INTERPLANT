@@ -78,6 +78,75 @@ def seeded_locations(pg_dsn: str):
         yield conn
 
 
+# Raw payloads as the harvester stores them in public.records: the view
+# (sql/catalog_views.sql) reads `affiliation`, `orcid` and `uniqueId` and
+# renames them to organization, identifier and externalIds on the way out.
+_PAGE_RECORDS = {
+    "point": {
+        "id": "zz-stacktest-point",
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [6.7926, 51.1889]},
+        "properties": {
+            "title": "Stack test: single point",
+            "description": "Seeded by tests/stack/conftest.py.",
+            "created": "2026-09-22T00:00:00+00:00",
+            "omics_domains": ["proteomics"],
+            "experiment_context": "lab",
+            "organism": ["Arabidopsis thaliana"],
+            "keywords": [],
+            "arc_source_uri": "https://git.nfdi4plants.org/example/stacktest-point",
+            "uniqueId": "11111111-2222-5333-8444-555555555555",
+            "contacts": [
+                {"name": "Ada Lovelace", "affiliation": "FZJ",
+                 "orcid": "0000-0002-1825-0097"}
+            ],
+        },
+    },
+    "multipoint": {
+        "id": "zz-stacktest-multipoint",
+        "type": "Feature",
+        "geometry": {
+            "type": "MultiPoint",
+            "coordinates": [[11.27888, 51.826197], [101.13511, 12.73322]],
+        },
+        "properties": {
+            "title": "Stack test: multipoint",
+            "description": "Seeded by tests/stack/conftest.py.",
+            "created": "2026-09-22T00:00:00+00:00",
+            "omics_domains": ["genomics"],
+            "experiment_context": "lab",
+            "organism": [],
+            "keywords": [],
+            "arc_source_uri": "https://git.nfdi4plants.org/example/stacktest-multipoint",
+            "uniqueId": "66666666-7777-5888-9999-000000000000",
+            "contacts": [],
+        },
+    },
+}
+
+
+@pytest.fixture
+def seeded_record_pages(pg_dsn: str):
+    """Seed one Point and one MultiPoint record, and remove them afterwards.
+
+    Unlike seeded_locations this cleans up, because these rows appear on the
+    public items list of whatever dev stack runs the suite."""
+    ids = [record["id"] for record in _PAGE_RECORDS.values()]
+    with psycopg.connect(pg_dsn, autocommit=True) as conn:
+        with conn.cursor() as cur:
+            for record in _PAGE_RECORDS.values():
+                cur.execute(
+                    "INSERT INTO public.records (id, payload) VALUES (%s, %s) "
+                    "ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload",
+                    (record["id"], json.dumps(record)),
+                )
+        try:
+            yield {kind: record["id"] for kind, record in _PAGE_RECORDS.items()}
+        finally:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM public.records WHERE id = ANY(%s)", (ids,))
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Skip the stack tests (those under tests/stack/) unless the env gate is set.
 

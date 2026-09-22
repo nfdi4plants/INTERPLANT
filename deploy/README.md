@@ -312,6 +312,22 @@ status retired the container for the OAI endpoint.
   implicit, this becomes an unpatched public service - and the OGC API is
   public and unauthenticated.
 
+### HTML templates
+
+`ogc/templates` and `ogc/static` are bind-mounted read-only into the
+container. Both are tracked in git, so a deploy is `git pull` plus a restart;
+nothing is copied or built.
+
+`ogc/static/img/*.svg` is generated. After changing a logo source in
+`ogc/brand/src/`, run `make brand-assets` and commit the result, or
+`tests/specs/test_brand_assets.py::test_check_mode_reports_in_sync` fails CI.
+
+`server.templates.static` replaces Flask's static folder outright, so
+pygeoapi's own `default.css`, `logo.png` and `favicon.ico` no longer resolve.
+That is intentional: every reference to them lived in `_base.html`, which we
+now own. `pygeoapi.png` is vendored into `ogc/static/img/` so the
+"Powered by pygeoapi" credit keeps working.
+
 ## Known OGC API limitations (pygeoapi 0.23.4)
 
 Measured against the running service on 2026-09-15, before the endpoint went
