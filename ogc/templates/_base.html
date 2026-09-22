@@ -96,10 +96,7 @@
   </main>
   <footer class="dp-footer py-3 px-3 mt-4">
     <div class="container text-center">
-      <div>
-        {{ config['metadata']['provider']['name'] }} .
-        <a href="mailto:{{ config['metadata']['contact']['email'] }}">{{ config['metadata']['contact']['email'] }}</a>
-      </div>
+      <div>{{ config['metadata']['provider']['name'] }}</div>
       <div class="mt-2">
         {% trans %}Powered by {% endtrans %}
         <a title="pygeoapi" href="https://pygeoapi.io"><img src="{{ config['server']['url'] }}/static/img/pygeoapi.png" class="mx-1" alt="pygeoapi" style="height:24px;vertical-align: middle;" /></a>

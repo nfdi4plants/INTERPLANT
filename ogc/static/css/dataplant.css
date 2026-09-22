@@ -90,13 +90,18 @@ a:hover { color: var(--dp-darkblue); }
   padding: 1.25rem;
   margin-bottom: 1.5rem;
 }
+/* Same colour as h1 (--color-heading is darkblue). At 12.8px a weight of
+   400 rendered visibly lighter than the title, so the labels read as grey;
+   600 makes the shared colour visible (spec R4). */
 .dp-card__heading {
   font-size: 0.8rem;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--dp-darkblue);
   margin-bottom: 0.75rem;
 }
+.dp-card dt { color: var(--color-heading); }
 
 .dp-recordid {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
