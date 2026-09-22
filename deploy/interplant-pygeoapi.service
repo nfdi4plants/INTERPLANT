@@ -40,6 +40,14 @@ ExecStart=/usr/bin/docker run --rm --name interplant-pygeoapi \
     -e CONTAINER_PORT \
     -e SCRIPT_NAME \
     -v /opt/interplant/pygeoapi-config.yml:/pygeoapi/local.config.yml:ro \
+    # The HTML templates and their static assets are bind-mounted from the
+    # checkout rather than baked into a derived image, so deployment stays
+    # `git pull && systemctl restart` and the upstream tag stays pinned.
+    # server.templates.static REPLACES Flask's static folder, so this mount is
+    # what serves the CSS, the logos AND the vendored pygeoapi.png; without it
+    # every /ogc/static/ URL 404s.
+    -v /opt/interplant/ogc/templates:/interplant-templates:ro \
+    -v /opt/interplant/ogc/static:/interplant-static:ro \
     geopython/pygeoapi:0.23.4
 ExecStop=/usr/bin/docker stop interplant-pygeoapi
 Restart=on-failure
