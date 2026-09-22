@@ -6,6 +6,15 @@
 {% block desc %}{{ props.get('description', '') | string | truncate(250) }}{% endblock %}
 {% block tags %}{{ props.get('omics_domains', []) | join(',') }}{% endblock %}
 
+{% block extrahead %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css"
+          integrity="sha384-odo87pn1N9OSsaqUCAOYH8ICyVxDZ4wtbGpSYO1oyg6LxyOjDuTeXTrVLuxUtFzv"
+          crossorigin="anonymous"/>
+    <script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"
+            integrity="sha384-JguaQYjdUVs0XHRhkpHTNjd6j8IjEzgj5+1xeGYHCXQEaufKsYdtn9fgHVeVTLJu"
+            crossorigin="anonymous"></script>
+{% endblock %}
+
 {% macro dp_tags(values, css_class) -%}
   {% for value in values %}<span class="dp-tag {{ css_class }}">{{ value }}</span>{% endfor %}
 {%- endmacro %}
@@ -98,7 +107,14 @@
       <div class="dp-card">
         <div class="dp-card__heading">{% trans %}Location{% endtrans %}</div>
         {% block map %}
-        <div class="dp-map"><div id="items-map"></div></div>
+        <div class="dp-map{% if not data['geometry'] %} dp-map--nolocation{% endif %}">
+          <div id="items-map"></div>
+          {% if not data['geometry'] %}
+          <div class="dp-map__overlay">
+            <span>{% trans %}No location recorded for this dataset yet{% endtrans %}</span>
+          </div>
+          {% endif %}
+        </div>
         {% endblock %}
       </div>
 
@@ -137,6 +153,34 @@
 {% endblock %}
 
 {% block extrafoot %}
+<script>
+  (function () {
+    var map = L.map('items-map', {
+      {% if not data['geometry'] %}zoomControl: false, dragging: false, scrollWheelZoom: false,{% endif %}
+    });
+    map.addLayer(new L.TileLayer(
+      '{{ config['server']['map']['url'] }}', {
+        maxZoom: 18,
+        attribution: '{{ config['server']['map']['attribution'] | safe }}'
+      }
+    ));
+    {% if data['geometry'] %}
+    var items = new L.GeoJSON({{ data | to_json | safe }});
+    map.addLayer(items);
+    var bounds = items.getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, {maxZoom: 12});
+    } else {
+      map.setView([50, 10], 3);
+    }
+    {% else %}
+    // Deliberately a continental overview, too coarse to be mistaken for a
+    // real sampling site. The stock template left the map on a lake in
+    // Ontario for every record without a geometry.
+    map.setView([50, 10], 3);
+    {% endif %}
+  })();
+</script>
 <script>
   (function () {
     var box = document.getElementById('dp-abstract');

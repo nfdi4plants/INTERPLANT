@@ -149,3 +149,63 @@ def test_contributors_render_with_orcid_links(
         if c.get("identifier")
     )
     assert orcid in html
+
+
+NO_LOCATION_TEXT = "No location recorded for this dataset yet"
+
+
+def _find_record(pygeoapi_url: str, *, with_geometry: bool) -> dict | None:
+    features = requests.get(
+        f"{pygeoapi_url}/collections/{COLLECTION}/items",
+        params={"limit": 50, "f": "json"},
+        timeout=30,
+    ).json()["features"]
+    for feature in features:
+        if bool(feature.get("geometry")) is with_geometry:
+            return feature
+    return None
+
+
+def test_null_geometry_shows_overlay_and_no_fake_point(
+    pygeoapi_url: str, pygeoapi_reachable: bool
+):
+    if not pygeoapi_reachable:
+        pytest.skip("pygeoapi not reachable")
+    record = _find_record(pygeoapi_url, with_geometry=False)
+    if record is None:
+        pytest.skip("no null-geometry record in this stack")
+    html = _get(
+        f"{pygeoapi_url}/collections/{COLLECTION}/items/{record['id']}"
+    ).text
+    assert NO_LOCATION_TEXT in html
+    assert "dp-map--nolocation" in html
+    assert "[45, -75]" not in html, "stock template's Ontario fallback is still present"
+
+
+def test_geometry_record_has_no_overlay(
+    pygeoapi_url: str, pygeoapi_reachable: bool
+):
+    if not pygeoapi_reachable:
+        pytest.skip("pygeoapi not reachable")
+    record = _find_record(pygeoapi_url, with_geometry=True)
+    if record is None:
+        pytest.skip("no record with geometry in this stack")
+    html = _get(
+        f"{pygeoapi_url}/collections/{COLLECTION}/items/{record['id']}"
+    ).text
+    assert NO_LOCATION_TEXT not in html
+    assert "dp-map--nolocation" not in html
+
+
+def test_fitbounds_is_guarded(pygeoapi_url: str, pygeoapi_reachable: bool):
+    """Every fitBounds call must be behind an isValid() check. The absence of
+    this guard is the defect this task fixes."""
+    if not pygeoapi_reachable:
+        pytest.skip("pygeoapi not reachable")
+    record = _find_record(pygeoapi_url, with_geometry=True)
+    if record is None:
+        pytest.skip("no record with geometry in this stack")
+    html = _get(
+        f"{pygeoapi_url}/collections/{COLLECTION}/items/{record['id']}"
+    ).text
+    assert "isValid()" in html
