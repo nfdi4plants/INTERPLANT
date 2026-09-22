@@ -42,7 +42,11 @@ def test_abstract_toggle_labels_are_translatable(render):
 
 
 def test_tag_markup_lives_in_one_macro():
-    for name in ("collections/items/item.html", "collections/items/index.html", "collections/collection.html"):
+    for name in (
+        "collections/items/item.html",
+        "collections/items/index.html",
+        "collections/collection.html",
+    ):
         text = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
         assert 'import dp_tags' in text, name
         assert "{% macro" not in text, name
