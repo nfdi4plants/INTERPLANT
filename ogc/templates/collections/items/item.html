@@ -3,6 +3,9 @@
 {% set ptitle = props.get(data.get('title_field') or 'title') or data['id'] | string %}
 {% set collection_href = data['links'] | selectattr('rel', 'equalto', 'collection') | map(attribute='href') | first | default('', true) %}
 {% set items_href = collection_href ~ '/items' %}
+{#- The view always emits one externalIds entry, with value null when the
+    record has no uniqueId (spec R7); keep only entries that carry a value. -#}
+{% set ext_ids = (props.get('externalIds') or []) | selectattr('value') | list %}
 
 {% block title %}{{ ptitle }}{% endblock %}
 {% block desc %}{{ props.get('description', '') | string | truncate(250) }}{% endblock %}
@@ -123,10 +126,10 @@
       <div class="dp-card">
         <div class="dp-card__heading">{% trans %}Record{% endtrans %}</div>
         <dl class="mb-0">
-          {% if props.get('externalIds') %}
+          {% if ext_ids %}
           <dt>{% trans %}External identifiers{% endtrans %}</dt>
-          {% for ext in props['externalIds'] %}
-          <dd class="dp-recordid">{{ ext.get('scheme', '') }}:{{ ext.get('value', '') }}</dd>
+          {% for ext in ext_ids %}
+          <dd class="dp-recordid">{{ ext['scheme'] }}:{{ ext['value'] }}</dd>
           {% endfor %}
           {% endif %}
           <dt>{% trans %}Formats{% endtrans %}</dt>
@@ -224,7 +227,7 @@
   'name': ptitle,
   'description': props.get('description', ''),
   'url': self_html.href,
-  'identifier': (props.get('externalIds') or [{}])[0].get('value', data['id']),
+  'identifier': ext_ids[0]['value'] if ext_ids else data['id'],
   'dateCreated': props.get('created'),
   'keywords': (props.get('omics_domains') or []) + (props.get('organism') or []) + (props.get('keywords') or []),
   'license': config['metadata']['license']['url'],
@@ -245,10 +248,22 @@
     {'@type': 'DataDownload', 'encodingFormat': 'application/ld+json', 'contentUrl': jsonld_href.href}
   ]
 } %}
-{% if data['geometry'] %}
+{#- schema.org wants GeoCoordinates for a point and GeoShape.box as
+    "minLat minLon maxLat maxLon" for an extent. GeoJSON orders coordinates
+    [lon, lat], hence attribute=1 for latitude. Other geometry types emit no
+    spatialCoverage rather than an invalid one (spec R6). -#}
+{% set geom = data['geometry'] %}
+{% if geom and geom['type'] == 'Point' %}
 {% set dataset = dict(dataset, spatialCoverage={
   '@type': 'Place',
-  'geo': {'@type': 'GeoShape', 'box': data['geometry'] | to_json}
+  'geo': {'@type': 'GeoCoordinates', 'latitude': geom['coordinates'][1], 'longitude': geom['coordinates'][0]}
+}) %}
+{% elif geom and geom['type'] == 'MultiPoint' and geom['coordinates'] %}
+{% set lats = geom['coordinates'] | map(attribute=1) | list %}
+{% set lons = geom['coordinates'] | map(attribute=0) | list %}
+{% set dataset = dict(dataset, spatialCoverage={
+  '@type': 'Place',
+  'geo': {'@type': 'GeoShape', 'box': '%s %s %s %s' | format(lats | min, lons | min, lats | max, lons | max)}
 }) %}
 {% endif %}
 <script type="application/ld+json">{{ dataset | to_json | safe }}</script>
