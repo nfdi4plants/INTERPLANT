@@ -37,7 +37,6 @@ def test_collection_page_renders(render):
     assert "INTERPLANT ARC records" in html
 
 
-@pytest.mark.xfail(reason="spec R5: fixed in the next plan task", strict=True)
 def test_no_relative_links_in_any_template():
     """pygeoapi serves .../items without a trailing slash, so a relative
     href resolves one path segment too high (spec R5)."""

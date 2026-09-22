@@ -1,14 +1,21 @@
 {% extends "_base.html" %}
-{% block title %}{{ data['title'] or 'Items' }}{% endblock %}
+{#- Links are absolute, built from the paths pygeoapi sets for this page
+    (api/itemtypes.py:667-670). Relative links broke: pygeoapi serves
+    .../items without a trailing slash, so ./<id> resolved to
+    .../<collection>/<id>, a 404 (spec R5). -#}
+{% set collection_title = data['links'] | selectattr('rel', 'equalto', 'collection') | map(attribute='title') | first | default('Items', true) %}
+
+{% block title %}{{ collection_title }}{% endblock %}
 
 {% block crumbs %}{{ super() }}
 / <a href="{{ data['collections_path'] }}">{% trans %}Collections{% endtrans %}</a>
-/ <a href="../items">{% trans %}Items{% endtrans %}</a>
+/ <a href="{{ data['dataset_path'] }}">{{ collection_title | truncate(25) }}</a>
+/ <a href="{{ data['items_path'] }}">{% trans %}Items{% endtrans %}</a>
 {% endblock %}
 
 {% block body %}
 <section id="items">
-  <h1>{{ data['title'] or 'Items' }}</h1>
+  <h1>{{ collection_title }}</h1>
   <p class="dp-recordid">
     {{ data['numberMatched'] }} {% trans %}records{% endtrans %},
     {% trans %}showing{% endtrans %} {{ data['numberReturned'] }}
@@ -18,7 +25,7 @@
   {% set fprops = feature['properties'] %}
   <div class="dp-result">
     <div class="dp-result__title">
-      <a href="{{ data['id_field'] and './' ~ feature['id'] or './' ~ feature['id'] }}">{{ fprops.get('title') or feature['id'] }}</a>
+      <a href="{{ data['items_path'] }}/{{ feature['id'] }}">{{ fprops.get('title') or feature['id'] }}</a>
     </div>
     {% if fprops.get('description') %}
     <div class="dp-result__desc">{{ fprops['description'] }}</div>

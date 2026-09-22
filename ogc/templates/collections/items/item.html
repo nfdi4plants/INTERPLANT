@@ -1,6 +1,8 @@
 {% extends "_base.html" %}
 {% set props = data['properties'] %}
 {% set ptitle = props.get(data.get('title_field') or 'title') or data['id'] | string %}
+{% set collection_href = data['links'] | selectattr('rel', 'equalto', 'collection') | map(attribute='href') | first | default('', true) %}
+{% set items_href = collection_href ~ '/items' %}
 
 {% block title %}{{ ptitle }}{% endblock %}
 {% block desc %}{{ props.get('description', '') | string | truncate(250) }}{% endblock %}
@@ -26,8 +28,8 @@
 / <a href="{{ link['href'] }}">{{ link['title'] | truncate(25) }}</a>
   {% endif %}
 {% endfor %}
-/ <a href="../items">{% trans %}Items{% endtrans %}</a>
-/ <a href="./{{ data['id'] }}">{{ ptitle | truncate(25) }}</a>
+/ <a href="{{ items_href }}">{% trans %}Items{% endtrans %}</a>
+/ <a href="{{ items_href }}/{{ data['id'] }}">{{ ptitle | truncate(25) }}</a>
 {% endblock %}
 
 {% block body %}
@@ -144,8 +146,8 @@
 
   {% if data['prev'] or data['next'] %}
   <nav class="d-flex justify-content-between mt-3">
-    <span>{% if data['prev'] %}<a href="./{{ data['prev'] }}">&laquo; {% trans %}Prev{% endtrans %}</a>{% endif %}</span>
-    <span>{% if data['next'] %}<a href="./{{ data['next'] }}">{% trans %}Next{% endtrans %} &raquo;</a>{% endif %}</span>
+    <span>{% if data['prev'] %}<a href="{{ items_href }}/{{ data['prev'] }}">&laquo; {% trans %}Prev{% endtrans %}</a>{% endif %}</span>
+    <span>{% if data['next'] %}<a href="{{ items_href }}/{{ data['next'] }}">{% trans %}Next{% endtrans %} &raquo;</a>{% endif %}</span>
   </nav>
   {% endif %}
 
