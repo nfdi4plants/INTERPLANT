@@ -4,7 +4,15 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from .builders import COLLECTION_TPL, ITEM_TPL, ITEMS_TPL, collection_data, feature, item_data, items_data
+from .builders import (
+    COLLECTION_TPL,
+    ITEM_TPL,
+    ITEMS_TPL,
+    collection_data,
+    feature,
+    item_data,
+    items_data,
+)
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent.parent / "ogc" / "templates"
 
