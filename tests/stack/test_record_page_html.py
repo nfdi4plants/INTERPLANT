@@ -185,32 +185,28 @@ def test_null_geometry_shows_overlay_and_no_fake_point(
     assert "[45, -75]" not in html, "stock template's Ontario fallback is still present"
 
 
+@pytest.mark.parametrize("kind", ["point", "multipoint"])
 def test_geometry_record_has_no_overlay(
-    pygeoapi_url: str, pygeoapi_reachable: bool
+    pygeoapi_url: str, pygeoapi_reachable: bool, seeded_record_pages: dict, kind: str
 ):
     if not pygeoapi_reachable:
         pytest.skip("pygeoapi not reachable")
-    record = _find_record(pygeoapi_url, with_geometry=True)
-    if record is None:
-        pytest.skip("no record with geometry in this stack")
-    html = _get(
-        f"{pygeoapi_url}/collections/{COLLECTION}/items/{record['id']}"
-    ).text
+    record_id = seeded_record_pages[kind]
+    html = _get(f"{pygeoapi_url}/collections/{COLLECTION}/items/{record_id}").text
     assert NO_LOCATION_TEXT not in html
     assert "dp-map--nolocation" not in html
 
 
-def test_fitbounds_is_guarded(pygeoapi_url: str, pygeoapi_reachable: bool):
-    """Every fitBounds call must be behind an isValid() check. The absence of
-    this guard is the defect this task fixes."""
+@pytest.mark.parametrize("kind", ["point", "multipoint"])
+def test_fitbounds_is_guarded(
+    pygeoapi_url: str, pygeoapi_reachable: bool, seeded_record_pages: dict, kind: str
+):
+    """fitBounds must sit behind isValid(); its absence stranded the map on
+    45N/-75E for every record without a geometry (spec section 3.1)."""
     if not pygeoapi_reachable:
         pytest.skip("pygeoapi not reachable")
-    record = _find_record(pygeoapi_url, with_geometry=True)
-    if record is None:
-        pytest.skip("no record with geometry in this stack")
-    html = _get(
-        f"{pygeoapi_url}/collections/{COLLECTION}/items/{record['id']}"
-    ).text
+    record_id = seeded_record_pages[kind]
+    html = _get(f"{pygeoapi_url}/collections/{COLLECTION}/items/{record_id}").text
     assert "isValid()" in html
 
 
