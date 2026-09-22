@@ -53,7 +53,10 @@ a:hover { color: var(--dp-darkblue); }
   border-bottom: 3px solid var(--dp-mint);
 }
 .dp-header a { color: var(--dp-white); }
-.dp-header__logo { height: 40px; width: auto; display: block; }
+/* The mark fills about 80% of this box's height and 39% of its width: the
+   upstream minimal-mark SVG carries its own padding. 50px renders the
+   artwork at roughly 20x40 px, matching the previous wordmark's height. */
+.dp-header__logo { height: 50px; width: auto; display: block; }
 .dp-footer {
   background: var(--color-surface);
   border-top: 1px solid #d8d6d6;

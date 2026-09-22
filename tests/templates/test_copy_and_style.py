@@ -43,3 +43,8 @@ def test_card_labels_are_heavy_enough_to_read_as_heading_colour():
 
 def test_record_card_terms_use_the_heading_colour():
     assert "color: var(--color-heading)" in _css_rule(".dp-card dt")
+
+
+def test_header_logo_is_large_enough_to_read():
+    """The upstream mark carries padding, so a 40px box rendered it at 16x32."""
+    assert "height: 50px" in _css_rule(".dp-header__logo")
