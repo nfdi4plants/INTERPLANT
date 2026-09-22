@@ -1,0 +1,152 @@
+{% extends "_base.html" %}
+{% set props = data['properties'] %}
+{% set ptitle = props.get(data.get('title_field') or 'title') or data['id'] | string %}
+
+{% block title %}{{ ptitle }}{% endblock %}
+{% block desc %}{{ props.get('description', '') | string | truncate(250) }}{% endblock %}
+{% block tags %}{{ props.get('omics_domains', []) | join(',') }}{% endblock %}
+
+{% macro dp_tags(values, css_class) -%}
+  {% for value in values %}<span class="dp-tag {{ css_class }}">{{ value }}</span>{% endfor %}
+{%- endmacro %}
+
+{% block crumbs %}{{ super() }}
+/ <a href="{{ data['collections_path'] }}">{% trans %}Collections{% endtrans %}</a>
+{% for link in data['links'] %}
+  {% if link.rel == 'collection' %}
+/ <a href="{{ link['href'] }}">{{ link['title'] | truncate(25) }}</a>
+  {% endif %}
+{% endfor %}
+/ <a href="../items">{% trans %}Items{% endtrans %}</a>
+/ <a href="./{{ data['id'] }}">{{ ptitle | truncate(25) }}</a>
+{% endblock %}
+
+{% block body %}
+<section id="item">
+
+  <h1>{{ ptitle }}</h1>
+  <p class="dp-recordid">
+    {{ data['id'] }}
+    {% if props.get('created') %} &middot; {% trans %}created{% endtrans %} {{ (props['created'] | string)[:10] }}{% endif %}
+  </p>
+
+  {% if props.get('arc_source_uri') %}
+  <p><a class="dp-cta" href="{{ props['arc_source_uri'] }}">{% trans %}Open the ARC{% endtrans %}</a></p>
+  {% endif %}
+
+  {% if props.get('omics_domains') or props.get('organism') or props.get('experiment_context') or props.get('keywords') %}
+  <div class="dp-card">
+    {% if props.get('omics_domains') %}
+    <div class="mb-2">
+      <div class="dp-card__heading">{% trans %}Omics domains{% endtrans %}</div>
+      {{ dp_tags(props['omics_domains'], 'dp-tag--omics') }}
+    </div>
+    {% endif %}
+    {% if props.get('organism') %}
+    <div class="mb-2">
+      <div class="dp-card__heading">{% trans %}Organism{% endtrans %}</div>
+      {{ dp_tags(props['organism'], 'dp-tag--organism') }}
+    </div>
+    {% endif %}
+    {% if props.get('experiment_context') %}
+    <div class="mb-2">
+      <div class="dp-card__heading">{% trans %}Experiment context{% endtrans %}</div>
+      {{ dp_tags([props['experiment_context']], 'dp-tag--context') }}
+    </div>
+    {% endif %}
+    {% if props.get('keywords') %}
+    <div class="mb-2">
+      <div class="dp-card__heading">{% trans %}Keywords{% endtrans %}</div>
+      {{ dp_tags(props['keywords'], 'dp-tag--keyword') }}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="row">
+    <div class="col-lg-7 col-md-12">
+      {% if props.get('description') %}
+      <div class="dp-card">
+        <div class="dp-card__heading">{% trans %}Abstract{% endtrans %}</div>
+        <div class="dp-abstract dp-abstract--clamped" id="dp-abstract">{{ props['description'] }}</div>
+        <button class="dp-abstract__toggle mt-2" id="dp-abstract-toggle" type="button">{% trans %}Show more{% endtrans %}</button>
+      </div>
+      {% endif %}
+
+      {% if props.get('contacts') %}
+      <div class="dp-card">
+        <div class="dp-card__heading">{% trans %}Contributors{% endtrans %}</div>
+        {% for contact in props['contacts'] %}
+        <div class="dp-contributor">
+          <span class="dp-contributor__name">{{ contact.get('name', '') }}</span>
+          {% if contact.get('identifier') %}
+          <a href="{{ contact['identifier'] }}" title="ORCID">{{ contact['identifier'].split('/') | last }}</a>
+          {% endif %}
+          {% if contact.get('roles') %}
+          <span class="dp-contributor__role">{{ contact['roles'] | join(', ') }}</span>
+          {% endif %}
+          {% if contact.get('organization') %}
+          <div class="dp-contributor__org">{{ contact['organization'] }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="col-lg-5 col-md-12">
+      <div class="dp-card">
+        <div class="dp-card__heading">{% trans %}Location{% endtrans %}</div>
+        {% block map %}
+        <div class="dp-map"><div id="items-map"></div></div>
+        {% endblock %}
+      </div>
+
+      <div class="dp-card">
+        <div class="dp-card__heading">{% trans %}Record{% endtrans %}</div>
+        <dl class="mb-0">
+          {% if props.get('externalIds') %}
+          <dt>{% trans %}External identifiers{% endtrans %}</dt>
+          {% for ext in props['externalIds'] %}
+          <dd class="dp-recordid">{{ ext.get('scheme', '') }}:{{ ext.get('value', '') }}</dd>
+          {% endfor %}
+          {% endif %}
+          <dt>{% trans %}Formats{% endtrans %}</dt>
+          <dd>
+            {% for link in data['links'] %}
+              {% if link['rel'] == 'alternate' or link['rel'] == 'self' %}
+                {% if link['type'] == 'application/ld+json' %}<a href="{{ link['href'] }}">JSON-LD</a>
+                {% elif link['type'] == 'application/geo+json' %}<a href="{{ link['href'] }}">GeoJSON</a>
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  {% if data['prev'] or data['next'] %}
+  <nav class="d-flex justify-content-between mt-3">
+    <span>{% if data['prev'] %}<a href="./{{ data['prev'] }}">&laquo; {% trans %}Prev{% endtrans %}</a>{% endif %}</span>
+    <span>{% if data['next'] %}<a href="./{{ data['next'] }}">{% trans %}Next{% endtrans %} &raquo;</a>{% endif %}</span>
+  </nav>
+  {% endif %}
+
+</section>
+{% endblock %}
+
+{% block extrafoot %}
+<script>
+  (function () {
+    var box = document.getElementById('dp-abstract');
+    var toggle = document.getElementById('dp-abstract-toggle');
+    if (!box || !toggle) { return; }
+    if (box.scrollHeight <= box.clientHeight) { toggle.style.display = 'none'; return; }
+    toggle.addEventListener('click', function () {
+      var clamped = box.classList.toggle('dp-abstract--clamped');
+      toggle.textContent = clamped ? 'Show more' : 'Show less';
+    });
+  })();
+</script>
+{% endblock %}
