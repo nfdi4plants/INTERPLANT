@@ -26,7 +26,7 @@ help:
 	@echo "                           Bounded by DRYRUN_PARSE_TIMEOUT=$(DRYRUN_PARSE_TIMEOUT)s per ARC"
 	@echo "  make catalog-views       Apply the catalog serving views to the local Postgres"
 	@echo "  make catalog-gen         Regenerate catalog views + pygeoapi config from descriptors"
-	@echo "  make brand-assets  Regenerate ogc/static/img from ogc/brand/src"
+	@echo "  make brand-assets        Regenerate ogc/static/img from ogc/brand/src"
 	@echo "  make catalog-up          Up + harvest fixtures + apply views (serving stack)"
 	@echo "  make oai-up               Build + start the OAI-PMH endpoint (http://localhost:8001/oai)"
 	@echo "  make lint       Run ruff check"

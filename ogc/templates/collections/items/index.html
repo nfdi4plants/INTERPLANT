@@ -1,4 +1,5 @@
 {% extends "_base.html" %}
+{% from "_macros.html" import dp_tags %}
 {#- Links are absolute, built from the paths pygeoapi sets for this page
     (api/itemtypes.py:667-670). Relative links broke: pygeoapi serves
     .../items without a trailing slash, so ./<id> resolved to
@@ -31,7 +32,7 @@
     <div class="dp-result__desc">{{ fprops['description'] }}</div>
     {% endif %}
     <div class="mt-2">
-      {% for domain in fprops.get('omics_domains') or [] %}<span class="dp-tag dp-tag--omics">{{ domain }}</span>{% endfor %}
+      {{ dp_tags(fprops.get('omics_domains') or [], 'dp-tag--omics') }}
       {% if not feature['geometry'] %}<span class="dp-tag dp-tag--keyword">{% trans %}no location{% endtrans %}</span>{% endif %}
     </div>
   </div>

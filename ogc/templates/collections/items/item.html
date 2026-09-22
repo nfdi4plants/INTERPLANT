@@ -1,4 +1,5 @@
 {% extends "_base.html" %}
+{% from "_macros.html" import dp_tags %}
 {% set props = data['properties'] %}
 {% set ptitle = props.get(data.get('title_field') or 'title') or data['id'] | string %}
 {% set collection_href = data['links'] | selectattr('rel', 'equalto', 'collection') | map(attribute='href') | first | default('', true) %}
@@ -9,7 +10,6 @@
 
 {% block title %}{{ ptitle }}{% endblock %}
 {% block desc %}{{ props.get('description', '') | string | truncate(250) }}{% endblock %}
-{% block tags %}{{ props.get('omics_domains', []) | join(',') }}{% endblock %}
 
 {% block extrahead %}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css"
@@ -19,10 +19,6 @@
             integrity="sha384-JguaQYjdUVs0XHRhkpHTNjd6j8IjEzgj5+1xeGYHCXQEaufKsYdtn9fgHVeVTLJu"
             crossorigin="anonymous"></script>
 {% endblock %}
-
-{% macro dp_tags(values, css_class) -%}
-  {% for value in values %}<span class="dp-tag {{ css_class }}">{{ value }}</span>{% endfor %}
-{%- endmacro %}
 
 {% block crumbs %}{{ super() }}
 / <a href="{{ data['collections_path'] }}">{% trans %}Collections{% endtrans %}</a>
@@ -83,7 +79,9 @@
       <div class="dp-card">
         <div class="dp-card__heading">{% trans %}Abstract{% endtrans %}</div>
         <div class="dp-abstract dp-abstract--clamped" id="dp-abstract">{{ props['description'] }}</div>
-        <button class="dp-abstract__toggle mt-2" id="dp-abstract-toggle" type="button">{% trans %}Show more{% endtrans %}</button>
+        <button class="dp-abstract__toggle mt-2" id="dp-abstract-toggle" type="button"
+                data-more="{% trans %}Show more{% endtrans %}"
+                data-less="{% trans %}Show less{% endtrans %}">{% trans %}Show more{% endtrans %}</button>
       </div>
       {% endif %}
 
@@ -111,7 +109,6 @@
     <div class="col-lg-5 col-md-12">
       <div class="dp-card">
         <div class="dp-card__heading">{% trans %}Location{% endtrans %}</div>
-        {% block map %}
         <div class="dp-map{% if not data['geometry'] %} dp-map--nolocation{% endif %}">
           <div id="items-map"></div>
           {% if not data['geometry'] %}
@@ -120,7 +117,6 @@
           </div>
           {% endif %}
         </div>
-        {% endblock %}
       </div>
 
       <div class="dp-card">
@@ -194,7 +190,7 @@
     if (box.scrollHeight <= box.clientHeight) { toggle.style.display = 'none'; return; }
     toggle.addEventListener('click', function () {
       var clamped = box.classList.toggle('dp-abstract--clamped');
-      toggle.textContent = clamped ? 'Show more' : 'Show less';
+      toggle.textContent = clamped ? toggle.dataset.more : toggle.dataset.less;
     });
   })();
 </script>

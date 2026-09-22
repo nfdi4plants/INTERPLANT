@@ -1,4 +1,5 @@
 {% extends "_base.html" %}
+{% from "_macros.html" import dp_tags %}
 {% block title %}{{ data['title'] }}{% endblock %}
 
 {% block crumbs %}{{ super() }}
@@ -19,7 +20,7 @@
   {% if data['keywords'] %}
   <div class="dp-card">
     <div class="dp-card__heading">{% trans %}Keywords{% endtrans %}</div>
-    {% for keyword in data['keywords'] %}<span class="dp-tag dp-tag--keyword">{{ keyword }}</span>{% endfor %}
+    {{ dp_tags(data['keywords'], 'dp-tag--keyword') }}
   </div>
   {% endif %}
 
