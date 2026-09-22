@@ -7,9 +7,24 @@
 {#- The view always emits one externalIds entry, with value null when the
     record has no uniqueId (spec R7); keep only entries that carry a value. -#}
 {% set ext_ids = (props.get('externalIds') or []) | selectattr('value') | list %}
+{#- One description for the meta tags and the Dataset JSON-LD. Records whose
+    ARC has an empty investigation description (41 of 157 in production) get a
+    sentence composed only from facts the record carries, because schema.org
+    Dataset needs a 50-5000 character description. 'other' is dropped because
+    it says nothing. This text never renders as an abstract: the Abstract card
+    is still gated on the real description. -#}
+{% set summary_domains = (props.get('omics_domains') or []) | reject('equalto', 'other') | list %}
+{% set summary_organisms = props.get('organism') or [] %}
+{% set domains_text = (summary_domains[:-1] | join(', ') ~ ' and ' ~ summary_domains[-1]) if summary_domains | length > 1 else (summary_domains | join('')) %}
+{% set organisms_text = (summary_organisms[:-1] | join(', ') ~ ' and ' ~ summary_organisms[-1]) if summary_organisms | length > 1 else (summary_organisms | join('')) %}
+{% set summary = props.get('description') or (
+     ptitle ~ ' is an Annotated Research Context (ARC) published on the DataPLANT DataHUB'
+     ~ ((', covering ' ~ domains_text ~ ' data') if domains_text else '')
+     ~ ((' from ' if domains_text else ', with data from ') ~ organisms_text if organisms_text else '')
+     ~ '.') %}
 
 {% block title %}{{ ptitle }}{% endblock %}
-{% block desc %}{{ props.get('description', '') | string | truncate(250) }}{% endblock %}
+{% block desc %}{{ summary | truncate(250) }}{% endblock %}
 
 {% block extrahead %}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css"
@@ -221,7 +236,7 @@
   '@context': 'https://schema.org/',
   '@type': 'Dataset',
   'name': ptitle,
-  'description': props.get('description', ''),
+  'description': summary,
   'url': self_html.href,
   'identifier': ext_ids[0]['value'] if ext_ids else data['id'],
   'dateCreated': props.get('created'),
