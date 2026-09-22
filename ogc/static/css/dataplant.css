@@ -1,0 +1,179 @@
+/* DataPLANT theme for pygeoapi.
+   Tokens from docs/progress/dataplant-design.md. Loaded AFTER Bootstrap, so
+   it themes the default pages we do not override as well as our own.
+   Light mode only by design; see decision D5 in the spec. */
+
+:root {
+  --dp-white: #FEFEFE;
+  --dp-lightgray: #ECEBEB;
+  --dp-black: #3A3A3A;
+
+  --dp-mint: #1FC2A7;
+  --dp-lightblue: #4FB3D9;
+  --dp-darkblue: #2D3E50;
+  --dp-yellow: #FFC000;
+  --dp-olive: #B4CE82;
+  --dp-red: #C21F3A;
+
+  /* Accessible text variants. mint/lightblue/yellow/olive fail contrast on
+     white as text colors, so links and body text use these darker steps. */
+  --dp-mint-text: #137464;
+  --dp-lightblue-text: #2f6b82;
+  --dp-yellow-text: #806000;
+  --dp-olive-text: #5a6741;
+
+  --dp-mint-bg: #e9f9f6;
+  --dp-lightblue-bg: #edf7fb;
+  --dp-olive-bg: #f8faf3;
+
+  --color-bg: var(--dp-white);
+  --color-surface: var(--dp-lightgray);
+  --color-text: var(--dp-black);
+  --color-heading: var(--dp-darkblue);
+  --color-link: var(--dp-lightblue-text);
+  --color-nav-bg: var(--dp-darkblue);
+
+  --dp-font: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --dp-radius: 6px;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--dp-font);
+}
+
+h1, h2, h3, h4, h5, h6 { color: var(--color-heading); }
+a { color: var(--color-link); }
+a:hover { color: var(--dp-darkblue); }
+
+/* Header and footer chrome */
+.dp-header {
+  background: var(--color-nav-bg);
+  border-bottom: 3px solid var(--dp-mint);
+}
+.dp-header a { color: var(--dp-white); }
+.dp-header__logo { height: 40px; width: auto; display: block; }
+.dp-footer {
+  background: var(--color-surface);
+  border-top: 1px solid #d8d6d6;
+  color: var(--color-text);
+}
+
+.crumbs {
+  background: var(--dp-lightblue-bg);
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+/* Bootstrap component overrides, so non-overridden pages inherit the palette */
+.table thead th {
+  background: var(--dp-darkblue);
+  color: var(--dp-white);
+  border-color: var(--dp-darkblue);
+}
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: var(--dp-lightgray);
+}
+.btn-primary {
+  background-color: var(--dp-darkblue);
+  border-color: var(--dp-darkblue);
+  color: var(--dp-white);
+}
+.btn-primary:hover { background-color: #1f2b38; border-color: #1f2b38; }
+
+/* Record page components */
+.dp-card {
+  background: var(--dp-white);
+  border: 1px solid var(--dp-lightgray);
+  border-radius: var(--dp-radius);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.dp-card__heading {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dp-darkblue);
+  margin-bottom: 0.75rem;
+}
+
+.dp-recordid {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  color: #6c7885;
+}
+
+.dp-cta {
+  display: inline-block;
+  background: var(--dp-mint);
+  color: var(--dp-black);
+  font-weight: 600;
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--dp-radius);
+  text-decoration: none;
+}
+.dp-cta:hover { background: #199b86; color: var(--dp-black); }
+
+/* Tags. Fills never carry white text; see the contrast rule in the spec. */
+.dp-tag {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  margin: 0 0.35rem 0.35rem 0;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: var(--dp-black);
+}
+.dp-tag--omics { background: var(--dp-mint); }
+.dp-tag--organism { background: var(--dp-olive); font-style: italic; }
+.dp-tag--context { background: var(--dp-lightblue); }
+.dp-tag--keyword { background: var(--dp-lightgray); }
+
+.dp-abstract { line-height: 1.6; }
+.dp-abstract--clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 8;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dp-abstract__toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-link);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.dp-contributor { margin-bottom: 0.75rem; }
+.dp-contributor__name { font-weight: 600; }
+.dp-contributor__org { color: #6c7885; font-size: 0.9rem; }
+.dp-contributor__role {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dp-mint-text);
+}
+
+/* Map */
+.dp-map { position: relative; }
+#items-map { height: 340px; border-radius: var(--dp-radius); }
+.dp-map--nolocation #items-map { filter: grayscale(1) opacity(0.55); }
+.dp-map__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  z-index: 500;
+}
+.dp-map__overlay span {
+  background: var(--dp-white);
+  border: 1px solid var(--dp-lightgray);
+  border-radius: var(--dp-radius);
+  padding: 0.6rem 1rem;
+  color: var(--dp-black);
+  font-size: 0.95rem;
+}

@@ -21,6 +21,16 @@ server:
     default_items: 50
     max_items: 1000
     on_exceed: throttle
+  # Our Jinja overrides are PREPENDED to pygeoapi's search path
+  # ([custom, TEMPLATESDIR, '.']), so any template we do not ship falls back
+  # to the default. `static` is different: it REPLACES Flask's static folder
+  # outright (flask_app.py sets static_folder from this value), so pygeoapi's
+  # own /static/css/default.css and /static/img/*.png stop resolving. That is
+  # safe only because every /static reference lives in _base.html, which we
+  # own, and because we vendor pygeoapi.png to keep the credit working.
+  templates:
+    path: /interplant-templates
+    static: /interplant-static
   map:
     url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
