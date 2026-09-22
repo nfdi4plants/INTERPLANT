@@ -1,0 +1,42 @@
+{% extends "_base.html" %}
+{% block title %}{{ data['title'] or 'Items' }}{% endblock %}
+
+{% block crumbs %}{{ super() }}
+/ <a href="{{ data['collections_path'] }}">{% trans %}Collections{% endtrans %}</a>
+/ <a href="../items">{% trans %}Items{% endtrans %}</a>
+{% endblock %}
+
+{% block body %}
+<section id="items">
+  <h1>{{ data['title'] or 'Items' }}</h1>
+  <p class="dp-recordid">
+    {{ data['numberMatched'] }} {% trans %}records{% endtrans %},
+    {% trans %}showing{% endtrans %} {{ data['numberReturned'] }}
+  </p>
+
+  {% for feature in data['features'] %}
+  {% set fprops = feature['properties'] %}
+  <div class="dp-result">
+    <div class="dp-result__title">
+      <a href="{{ data['id_field'] and './' ~ feature['id'] or './' ~ feature['id'] }}">{{ fprops.get('title') or feature['id'] }}</a>
+    </div>
+    {% if fprops.get('description') %}
+    <div class="dp-result__desc">{{ fprops['description'] }}</div>
+    {% endif %}
+    <div class="mt-2">
+      {% for domain in fprops.get('omics_domains') or [] %}<span class="dp-tag dp-tag--omics">{{ domain }}</span>{% endfor %}
+      {% if not feature['geometry'] %}<span class="dp-tag dp-tag--keyword">{% trans %}no location{% endtrans %}</span>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <nav class="d-flex justify-content-between mt-3">
+    <span>
+      {% for link in data['links'] %}{% if link['rel'] == 'prev' %}<a href="{{ link['href'] }}">&laquo; {% trans %}Prev{% endtrans %}</a>{% endif %}{% endfor %}
+    </span>
+    <span>
+      {% for link in data['links'] %}{% if link['rel'] == 'next' %}<a href="{{ link['href'] }}">{% trans %}Next{% endtrans %} &raquo;</a>{% endif %}{% endfor %}
+    </span>
+  </nav>
+</section>
+{% endblock %}

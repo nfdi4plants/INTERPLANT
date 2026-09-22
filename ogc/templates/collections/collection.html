@@ -1,0 +1,37 @@
+{% extends "_base.html" %}
+{% block title %}{{ data['title'] }}{% endblock %}
+
+{% block crumbs %}{{ super() }}
+/ <a href="{{ data['collections_path'] }}">{% trans %}Collections{% endtrans %}</a>
+/ <a href="./{{ data['id'] }}">{{ data['title'] | truncate(25) }}</a>
+{% endblock %}
+
+{% block body %}
+<section id="collection">
+  <h1>{{ data['title'] }}</h1>
+  <p>{{ data['description'] }}</p>
+
+  <div class="dp-card">
+    <div class="dp-card__heading">{% trans %}Browse{% endtrans %}</div>
+    <a class="dp-cta" href="{{ config['server']['url'] }}/collections/{{ data['id'] }}/items">{% trans %}Browse records{% endtrans %}</a>
+  </div>
+
+  {% if data['keywords'] %}
+  <div class="dp-card">
+    <div class="dp-card__heading">{% trans %}Keywords{% endtrans %}</div>
+    {% for keyword in data['keywords'] %}<span class="dp-tag dp-tag--keyword">{{ keyword }}</span>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="dp-card">
+    <div class="dp-card__heading">{% trans %}Links{% endtrans %}</div>
+    <ul class="mb-0">
+      {% for link in data['links'] %}
+      {% if link['href'] %}
+      <li><a href="{{ link['href'] }}">{{ link['title'] or link['rel'] }}</a>{% if link['type'] %} ({{ link['type'] }}){% endif %}</li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

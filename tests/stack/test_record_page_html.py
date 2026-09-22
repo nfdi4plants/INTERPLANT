@@ -291,3 +291,18 @@ def test_spatial_coverage_only_when_geometry_present(
         _get(f"{pygeoapi_url}/collections/{COLLECTION}/items/{record['id']}").text
     )
     assert "spatialCoverage" not in dataset
+
+
+def test_items_index_uses_card_layout(pygeoapi_url: str, pygeoapi_reachable: bool):
+    if not pygeoapi_reachable:
+        pytest.skip("pygeoapi not reachable")
+    html = _get(f"{pygeoapi_url}/collections/{COLLECTION}/items", limit=5).text
+    assert "dp-result" in html
+    assert "<table" not in html, "the stock items table should be gone"
+
+
+def test_collection_page_is_themed(pygeoapi_url: str, pygeoapi_reachable: bool):
+    if not pygeoapi_reachable:
+        pytest.skip("pygeoapi not reachable")
+    html = _get(f"{pygeoapi_url}/collections/{COLLECTION}").text
+    assert "dp-card" in html
