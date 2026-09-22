@@ -1,6 +1,9 @@
 """HTML behaviour of the DataPLANT-branded pages, against the running stack."""
 from __future__ import annotations
 
+import json
+import re
+
 import pytest
 import requests
 
@@ -209,3 +212,82 @@ def test_fitbounds_is_guarded(pygeoapi_url: str, pygeoapi_reachable: bool):
         f"{pygeoapi_url}/collections/{COLLECTION}/items/{record['id']}"
     ).text
     assert "isValid()" in html
+
+
+def _extract_dataset_jsonld(html: str) -> dict:
+    blocks = re.findall(
+        r'<script type="application/ld\+json">(.*?)</script>', html, re.DOTALL
+    )
+    for block in blocks:
+        payload = json.loads(block)
+        if payload.get("@type") == "Dataset":
+            return payload
+    raise AssertionError(f"no Dataset JSON-LD block found ({len(blocks)} ld+json blocks)")
+
+
+def test_record_page_embeds_schema_org_dataset(
+    pygeoapi_url: str, pygeoapi_reachable: bool, item_id: str
+):
+    if not pygeoapi_reachable:
+        pytest.skip("pygeoapi not reachable")
+    url = f"{pygeoapi_url}/collections/{COLLECTION}/items/{item_id}"
+    item = requests.get(url, params={"f": "json"}, timeout=30).json()
+    dataset = _extract_dataset_jsonld(_get(url).text)
+
+    assert dataset["@context"] == "https://schema.org/"
+    assert dataset["name"] == item["properties"]["title"]
+    assert dataset["description"] == item["properties"]["description"]
+    assert dataset["url"].endswith("?f=html")
+    assert dataset["license"]
+    assert dataset["publisher"]["@type"] == "Organization"
+    assert any(d["encodingFormat"] == "application/geo+json" for d in dataset["distribution"])
+
+
+def test_dataset_creators_carry_orcid_ids(
+    pygeoapi_url: str, pygeoapi_reachable: bool
+):
+    if not pygeoapi_reachable:
+        pytest.skip("pygeoapi not reachable")
+    record = None
+    features = requests.get(
+        f"{pygeoapi_url}/collections/{COLLECTION}/items",
+        params={"limit": 50, "f": "json"},
+        timeout=30,
+    ).json()["features"]
+    for feature in features:
+        if any(c.get("identifier") for c in feature["properties"].get("contacts") or []):
+            record = feature
+            break
+    if record is None:
+        pytest.skip("no record with an ORCID in this stack")
+    dataset = _extract_dataset_jsonld(
+        _get(f"{pygeoapi_url}/collections/{COLLECTION}/items/{record['id']}").text
+    )
+    creators = dataset["creator"]
+    assert all(c["@type"] == "Person" for c in creators)
+    assert any(c.get("@id", "").startswith("https://orcid.org/") for c in creators)
+
+
+def test_record_page_has_exactly_one_jsonld_block(
+    pygeoapi_url: str, pygeoapi_reachable: bool, item_id: str
+):
+    """The base injector must be replaced, not supplemented, on item pages."""
+    if not pygeoapi_reachable:
+        pytest.skip("pygeoapi not reachable")
+    html = _get(f"{pygeoapi_url}/collections/{COLLECTION}/items/{item_id}").text
+    assert "XMLHttpRequest" not in html
+    assert html.count('<script type="application/ld+json"') == 1
+
+
+def test_spatial_coverage_only_when_geometry_present(
+    pygeoapi_url: str, pygeoapi_reachable: bool
+):
+    if not pygeoapi_reachable:
+        pytest.skip("pygeoapi not reachable")
+    record = _find_record(pygeoapi_url, with_geometry=False)
+    if record is None:
+        pytest.skip("no null-geometry record in this stack")
+    dataset = _extract_dataset_jsonld(
+        _get(f"{pygeoapi_url}/collections/{COLLECTION}/items/{record['id']}").text
+    )
+    assert "spatialCoverage" not in dataset

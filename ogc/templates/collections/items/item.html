@@ -194,3 +194,60 @@
   })();
 </script>
 {% endblock %}
+
+{#- Replaces the base template's client-side injector. pygeoapi's ?f=jsonld
+    types these records schema:Place and leaves title/description/contacts as
+    bare unmapped terms, so they vanish on RDF expansion; and dataset crawlers
+    do not reliably execute JavaScript. This block is server-rendered. -#}
+{% block jsonld %}
+{% set self_html = namespace(href='') %}
+{% set geojson = namespace(href='') %}
+{% set jsonld_href = namespace(href='') %}
+{% for link in data['links'] %}
+  {% if link['type'] == 'text/html' and link['rel'] in ['self', 'alternate'] %}{% set self_html.href = link['href'] %}
+  {% elif link['type'] == 'application/geo+json' %}{% set geojson.href = link['href'] %}
+  {% elif link['type'] == 'application/ld+json' %}{% set jsonld_href.href = link['href'] %}
+  {% endif %}
+{% endfor %}
+{% set creators = namespace(list=[]) %}
+{% for contact in props.get('contacts') or [] %}
+  {% set person = {'@type': 'Person', 'name': contact.get('name', '')} %}
+  {% if contact.get('identifier') %}{% set person = dict(person, **{'@id': contact['identifier']}) %}{% endif %}
+  {% if contact.get('organization') %}{% set person = dict(person, affiliation={'@type': 'Organization', 'name': contact['organization']}) %}{% endif %}
+  {% set creators.list = creators.list + [person] %}
+{% endfor %}
+{% set dataset = {
+  '@context': 'https://schema.org/',
+  '@type': 'Dataset',
+  'name': ptitle,
+  'description': props.get('description', ''),
+  'url': self_html.href,
+  'identifier': (props.get('externalIds') or [{}])[0].get('value', data['id']),
+  'dateCreated': props.get('created'),
+  'keywords': (props.get('omics_domains') or []) + (props.get('organism') or []) + (props.get('keywords') or []),
+  'license': config['metadata']['license']['url'],
+  'publisher': {
+    '@type': 'Organization',
+    'name': config['metadata']['provider']['name'],
+    'url': config['metadata']['provider']['url']
+  },
+  'creator': creators.list,
+  'isBasedOn': props.get('arc_source_uri'),
+  'includedInDataCatalog': {
+    '@type': 'DataCatalog',
+    'name': config['metadata']['identification']['title'],
+    'url': config['server']['url']
+  },
+  'distribution': [
+    {'@type': 'DataDownload', 'encodingFormat': 'application/geo+json', 'contentUrl': geojson.href},
+    {'@type': 'DataDownload', 'encodingFormat': 'application/ld+json', 'contentUrl': jsonld_href.href}
+  ]
+} %}
+{% if data['geometry'] %}
+{% set dataset = dict(dataset, spatialCoverage={
+  '@type': 'Place',
+  'geo': {'@type': 'GeoShape', 'box': data['geometry'] | to_json}
+}) %}
+{% endif %}
+<script type="application/ld+json">{{ dataset | to_json | safe }}</script>
+{% endblock %}
