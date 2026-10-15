@@ -11,8 +11,7 @@ organism cannot search across them. INTERPLANT reads them, turns each ARC into
 one structured catalog record, and publishes the records in a form the portal
 can harvest.
 
-The project is a DataPLANT 2026 Community Call project, run at FZJ IBG-3. The
-application and budget are in [`proposal/`](proposal/).
+The project is a DataPLANT 2026 Community Call project, run at FZJ IBG-3.
 
 ## Live service
 
@@ -75,7 +74,7 @@ flowchart LR
 
 ## Project
 
-![Timeline](proposal/Gantt_Chart_INTERPLANT.png)
+![Timeline](docs/Gantt_Chart_INTERPLANT.png)
 
 Status: the harvester, the OGC API - Records service (with branded HTML pages
 and a location collection) and the OAI-PMH fallback are in production, and
@@ -178,8 +177,7 @@ PostGIS service. A green pytest alone does not mean CI passes, so run
 | `ogc/` | Branded HTML templates, static files and brand sources for the OGC API |
 | `oai/` | Flask OAI-PMH endpoint |
 | `deploy/` | systemd units, `install.sh`, env example, deployment runbook |
-| `docs/` | Specs, diagrams, harvester handbook, Postman collection |
-| `proposal/` | Project application, budget, Gantt chart |
+| `docs/` | Specs, diagrams, harvester handbook, Postman collection, Gantt chart |
 | `tests/` | Test suites and fixtures |
 | `compose.yaml` | Local dev and CI stack |
 
