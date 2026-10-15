@@ -4,6 +4,8 @@ Classifies an assay into an omics_domain vocab key, emitting schema-enum values
 directly. Signal precedence (first match wins): measurement_type, then
 technology_type, then technology_platform, then the assay folder name. Vocab
 lives in omics_vocab.yaml so it is hand-editable.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

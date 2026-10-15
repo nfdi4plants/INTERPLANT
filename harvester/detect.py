@@ -9,6 +9,8 @@ harvest therefore stays whole-corpus and this module only gates it.
 GitLab's last_activity_at bumps on many event types, so this over-triggers
 rather than under-triggers, which is the safe direction. The caller's weekly
 floor covers anything it misses.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

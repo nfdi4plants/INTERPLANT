@@ -3,6 +3,8 @@
 Single source of truth: catalog/collections/*.yaml. Run `make catalog-gen` (or
 `python scripts/generate_catalog.py`) to refresh the committed generated files.
 `--check` regenerates in memory and exits non-zero if the committed files differ.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

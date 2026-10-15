@@ -6,6 +6,8 @@ a single namespaced element. Escaped text (not CDATA) is deliberate: ElementTree
 escapes natively, there is no ]]> failure mode, and `element.text` yields the same
 unescaped JSON a CDATA section would. This function is the one piece to swap once AWI
 confirms the exact contract.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

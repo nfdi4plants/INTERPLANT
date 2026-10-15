@@ -14,6 +14,8 @@ For each of the first 20 public ARCs at https://git.nfdi4plants.org, this script
       * on-disk layout                      (assays/*, dataset/, runs/, workflows/, LICENSE*)
 
 Run with: GIT_LFS_SKIP_SMUDGE=1 uv run python scripts/plan4_sources_probe.py
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

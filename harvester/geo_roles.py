@@ -30,6 +30,8 @@ does not contain.
 
 An ARC absent from this map gets role "unspecified". That is a correct,
 queryable answer, not a gap to be filled by guessing.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

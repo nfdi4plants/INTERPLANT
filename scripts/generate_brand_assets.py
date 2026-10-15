@@ -10,6 +10,8 @@ intrinsic size to lay out against inside the flex header, and they carry an
 external DTD reference that strict XML parsers try to fetch. This script
 fixes both, drops editor metadata so future logo diffs stay legible, and
 injects a title element so screen readers announce the logo.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

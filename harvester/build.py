@@ -14,6 +14,8 @@ Plan 4 enrichment status (as of Task 8):
                       wording appeared in <20% of real ARCs. Always the "lab" stub.
 - domain-specific extension fields (library_strategy, platform, ...): still skeleton
   defaults - deriving them from ARC assay metadata is out of scope for Plan 4.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

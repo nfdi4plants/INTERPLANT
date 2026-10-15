@@ -2,6 +2,8 @@
 
 Takes a BatchReport (duck-typed) and an output directory. The run_timestamp on the
 report drives the filenames, so this module performs no clock access.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

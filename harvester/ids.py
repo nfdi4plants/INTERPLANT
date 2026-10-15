@@ -2,6 +2,8 @@
 
 The exact convention is provisional (see open_questions.md). Keep this rule
 isolated so it can be swapped in one place when AWI confirms the format.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

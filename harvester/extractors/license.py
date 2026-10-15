@@ -1,4 +1,7 @@
-"""Extract a license string from a parsed Investigation or a LICENSE file."""
+"""Extract a license string from a parsed Investigation or a LICENSE file.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
+"""
 from __future__ import annotations
 
 from pathlib import Path

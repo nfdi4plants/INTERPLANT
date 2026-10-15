@@ -3,6 +3,8 @@
 `iter_public_arcs` paginates the GitLab projects API (per_page=100) and yields
 only those whose root contains isa.investigation.xlsx. With max_pages=None it
 paginates until the API returns an empty page (production use).
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

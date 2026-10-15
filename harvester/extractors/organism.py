@@ -1,4 +1,7 @@
-"""Extract the distinct organism list from a parsed Investigation."""
+"""Extract the distinct organism list from a parsed Investigation.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
+"""
 from __future__ import annotations
 
 from harvester.isa_reader import Investigation

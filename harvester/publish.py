@@ -4,6 +4,8 @@ The gate is deliberately pure - no database, no clock - because it is the part
 whose failure cases matter most and must be cheap to test. AWI takes a full dump
 of whatever public.records holds and expires entries on a 5-day TTL, so
 publishing a truncated corpus deletes real records from the portal.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

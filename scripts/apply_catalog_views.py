@@ -2,6 +2,8 @@
 
 Usage: python scripts/apply_catalog_views.py [DSN]
 Defaults to the local-stack DSN when no argument is given.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

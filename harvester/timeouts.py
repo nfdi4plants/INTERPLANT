@@ -21,6 +21,8 @@ limit; callers that need a bounded run ask for one. That now includes the
 production nightly (deploy/interplant-refresh.service passes --parse-timeout
 900), where it is a net against an unknown pathological ARC rather than a
 routine cap - the four known ones are excluded by path in harvester/exclusions.py.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

@@ -20,6 +20,8 @@ whether an exclusion was *correct*.
 
 Usage:
     python scripts/verify_collision_run.py harvest-runs/harvest-<stamp>.json
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

@@ -12,6 +12,8 @@ Evidence collected per ARC:
   - Whether an assays/ directory with isa.assay.xlsx files physically exists on disk
 
 Run with:  uv run python scripts/linkage_probe.py
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

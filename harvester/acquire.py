@@ -2,6 +2,8 @@
 
 `iter_live_arcs` / `iter_local_arcs` yield ArcIdentity. For live identities the
 caller clones via `clone_arc`; for local identities `local_dir` is already set.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

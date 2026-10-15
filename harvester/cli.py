@@ -7,6 +7,8 @@
 `harvest` always harvests and writes straight to public.records. `refresh` is
 the production entry point: it harvests only when the GitLab enumeration
 changed, stages the result, and publishes it atomically behind a gate.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

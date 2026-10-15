@@ -3,6 +3,8 @@
 Only this module imports psycopg. Records are read from the `records` table;
 the OAI datestamp is `ingested_at`. Paging uses the full-precision ingested_at
 (not the second-truncated display datestamp) to keep the cursor stable.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

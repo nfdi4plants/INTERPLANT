@@ -1,4 +1,7 @@
-"""Entry point: `python -m harvester ...`."""
+"""Entry point: `python -m harvester ...`.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
+"""
 from __future__ import annotations
 
 from harvester.cli import main

@@ -8,6 +8,8 @@ advertised in <baseURL> and <request>; unset, it is derived from the request.
 The advertised base URL is configuration rather than a ProxyFix-derived value
 because OAI-PMH treats it as the repository's stable identity, and the proxy in
 front of this service is not ours to configure.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

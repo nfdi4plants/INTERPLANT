@@ -17,6 +17,8 @@ Verified API notes (arctrl 3.0.5):
   OntologyAnnotation objects, not plain strings. Use _annotation_name() to
   extract the .Name field; do NOT call str() on them directly.
 - arc.Publications is a list of Publication objects with a .DOI attribute.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

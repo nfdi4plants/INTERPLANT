@@ -12,6 +12,8 @@ Usage:
   python arc_inventory.py --output my.jsonl  # custom output path
   python arc_inventory.py --resume           # skip already-processed project IDs
   python arc_inventory.py --summarize-only   # rebuild summary from existing JSONL (no fetch)
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 
 import argparse

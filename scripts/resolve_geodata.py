@@ -22,6 +22,8 @@ when a run resolves nothing new.
 
 Same pattern as scripts/pin_portal_schema.py: the committed copy is what the
 harvester reads, and refreshing it is a deliberate, reviewable act.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

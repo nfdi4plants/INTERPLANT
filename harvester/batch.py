@@ -2,6 +2,8 @@
 
 Per-ARC isolation: any failure is recorded on the ArcOutcome and the loop
 continues. The DB target is whatever connection the caller injects (None = dry-run).
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

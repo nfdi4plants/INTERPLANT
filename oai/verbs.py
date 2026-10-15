@@ -3,6 +3,8 @@
 Pure given a `source` object (RecordSource or a fake). Generates XML with
 ElementTree. Resumption/list verbs are added in a later step but dispatch is
 wired here so unknown verbs return badVerb.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

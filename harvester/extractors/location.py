@@ -8,6 +8,8 @@ all measured across the 232 public ARCs; see
 docs/progress/2026-09-09-location-coverage-report.md. Do not "simplify" the
 deny list or the format regex without re-measuring: an early pass using loose
 substring matching over-counted place names by a factor of four.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

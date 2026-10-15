@@ -3,6 +3,8 @@
 This is the ONE definition of the per-ARC pipeline, consumed by both the single
 `ingest` CLI command and the batch loop. Upsert happens only when a connection is
 supplied; with conn=None the pipeline runs through validation and stops (dry-run).
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

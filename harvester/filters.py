@@ -10,6 +10,8 @@ misstate corpus health.
 
 Both rules are literal, never fuzzy. A heuristic here would silently drop real
 research data, so the placeholder list grows only by evidence from a run report.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

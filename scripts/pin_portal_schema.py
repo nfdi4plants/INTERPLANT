@@ -1,6 +1,8 @@
 """Fetch the Earth Data Portal's DocumentSchema.json and pin it locally.
 
 Run this only when the upstream schema changes; the committed copy is what CI validates against.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

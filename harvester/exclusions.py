@@ -27,6 +27,8 @@ Matching is exact, never fuzzy, for the same reason filters.py keeps its
 placeholder list literal: a heuristic here would silently drop real research
 data. `harvester ingest` and `harvester harvest --local-dir` bypass live
 enumeration entirely, so any of these can still be ingested by hand on demand.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

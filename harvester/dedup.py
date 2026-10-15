@@ -10,6 +10,8 @@ first namespace > lexicographically first unique_id. unique_id is a uuid5 over
 the ARC source uri, so it is the only signal here that is unique per ARC,
 which is what makes the order total and the winner independent of arrival
 order.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

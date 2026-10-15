@@ -4,6 +4,8 @@ Heuristic (documented, not a hard ISA distinction):
   raw     = files under assays/<folder>/dataset/
   derived = other files under assays/<folder>/, excluding dataset/ and the
             isa.assay.xlsx metadata file.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

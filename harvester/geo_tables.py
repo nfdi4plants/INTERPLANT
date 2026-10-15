@@ -12,6 +12,8 @@ on-demand pattern scripts/pin_portal_schema.py uses for the portal schema.
 
 Named geo_tables (not geodata) so this module cannot collide with the
 harvester/geodata/ data directory.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

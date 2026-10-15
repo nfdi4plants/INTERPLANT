@@ -2,6 +2,8 @@
 
 Only this module imports `psycopg`. Callers receive an open connection or
 the module can connect from a DSN string.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 

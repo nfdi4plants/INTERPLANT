@@ -2,6 +2,8 @@
 
 Pinned by tests/specs/test_portal_mapping.py against portal-document-schema.json.
 Governed by docs/specs/portal-mapping.md.
+
+Author: Mohamed Abouzid m.abouzid@fz-juelich.de
 """
 from __future__ import annotations
 
