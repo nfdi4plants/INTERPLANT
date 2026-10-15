@@ -14,7 +14,7 @@ from typing import Any
 # adding a services.yaml entry for us. Provider is the source repository, datacenter
 # is the institution operating the service - the same split their
 # harvest-repository-fzj-publications.py uses. Kept in sync with
-# portal/services.yaml.fragment.
+# the AWI harvester services.yaml fragment (kept outside this repo).
 ORGANISATIONS: dict[str, list[dict[str, Any]]] = {
     "provider": [
         {

@@ -7,12 +7,16 @@ import re
 from pathlib import Path
 from xml.etree.ElementTree import fromstring
 
+import pytest
 import yaml
 
 from oai.mapping import ORGANISATIONS
 
 PORTAL = Path(__file__).resolve().parents[2] / "portal"
 OGC = PORTAL / "ogc"
+pytestmark = pytest.mark.skipif(
+    not PORTAL.is_dir(), reason="portal/ is kept outside the repo (local-only)"
+)
 C_NS = "http://www.awi.de/harvester/config"
 LIVE = "https://www.plabipd.de/ogc"
 

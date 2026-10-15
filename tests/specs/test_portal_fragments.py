@@ -9,11 +9,16 @@ import re
 from pathlib import Path
 from xml.etree.ElementTree import fromstring
 
+import pytest
 import yaml
 
 from oai.mapping import ORGANISATIONS
 
 PORTAL = Path(__file__).parent.parent.parent / "portal"
+pytestmark = pytest.mark.skipif(
+    not PORTAL.is_dir(), reason="portal/ is kept outside the repo (local-only)"
+)
+
 # Their config/harvest-repository-config.xml declares xmlns:c on the root element.
 C_NS = "http://www.awi.de/harvester/config"
 

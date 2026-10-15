@@ -40,5 +40,6 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 # Ships to AWI's harvester fleet; their house style (.format, single quotes,
-# no type hints) is deliberate. See portal/README.md.
+# no type hints) is deliberate. The folder is kept outside
+# the repo (local-only).
 "portal/*.py" = ["UP"]
