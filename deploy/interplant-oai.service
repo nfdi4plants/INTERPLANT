@@ -9,10 +9,11 @@ User=interplant
 Group=interplant
 WorkingDirectory=/opt/interplant
 EnvironmentFile=/etc/interplant/env
-# Binds the internal interface, not loopback: the TLS proxy for www.plabipd.de
-# runs on another host. Not every interface either; ufw admits only the proxy.
+# INTERPLANT_OAI_BIND (host:port) comes from the EnvironmentFile. It is the
+# internal interface, not loopback, because the TLS proxy runs on another host,
+# and not all interfaces, because ufw admits only the proxy.
 ExecStart=/opt/interplant/.venv/bin/gunicorn \
-    --bind 192.0.2.10:8000 \
+    --bind ${INTERPLANT_OAI_BIND} \
     --workers 2 \
     --access-logfile - \
     oai.app:app

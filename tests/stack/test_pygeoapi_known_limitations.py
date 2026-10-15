@@ -3,7 +3,7 @@
 Each test asserts the BEHAVIOUR WE WANT and is marked xfail, so today it
 reports XFAIL and after a pygeoapi upgrade that fixes it, XPASS - which is the
 signal to drop the xfail and update the "Known OGC API limitations" section of
-deploy/README.md.
+docs/ogc-api-notes.md.
 
 Do not "fix" these by weakening the assertion to match today's behaviour. The
 assertion is the specification; the xfail is the dated concession.

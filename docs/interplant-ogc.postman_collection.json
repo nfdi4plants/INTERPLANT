@@ -1697,7 +1697,7 @@
                 }
               ]
             },
-            "description": "Advertises ogcapi-features-4 create-replace-delete on a READ-ONLY deployment, and records-1 opensearch with no working q. See deploy/README.md."
+            "description": "Advertises ogcapi-features-4 create-replace-delete on a READ-ONLY deployment, and records-1 opensearch with no working q. See docs/ogc-api-notes.md."
           },
           "event": [
             {

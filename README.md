@@ -26,7 +26,7 @@ flowchart LR
     subgraph DP["DataPLANT (source - read only)"]
         ARCs[("Public ARCs<br/>git.nfdi4plants.org<br/>ISA-XLSX metadata")]
     end
-    subgraph VM["INTERPLANT - interplant-live VM"]
+    subgraph VM["INTERPLANT - production VM"]
         H["Harvester - nightly 02:00<br/>enumerate, filter, dedup<br/>parse ISA (arctrl)<br/>classify + enrich<br/>build + validate record"]
         S[("staging.records")]
         G{"Publish gate<br/>+ atomic swap"}
@@ -91,7 +91,7 @@ the portal ingests through OGC API - Records.
 ### Quickstart
 
 ```bash
-git clone git@gitlab.fz-juelich.de:ibg-3/data-management/projects/interplant.git
+git clone this repo
 cd interplant
 uv sync --dev
 make up           # Postgres + PostGIS and pygeoapi (docker compose)
@@ -183,7 +183,7 @@ PostGIS service. A green pytest alone does not mean CI passes, so run
 
 ## Production
 
-Production runs natively under systemd on `interplant-live` (units in
+Production runs natively under systemd on a VM (units in
 [`deploy/`](deploy/)). pygeoapi is the one containerised service. Install,
 upgrade, verification and what to do when the gate refuses a corpus are in
 [`deploy/README.md`](deploy/README.md).
@@ -201,6 +201,7 @@ longer sees after 5 days.
 - [`docs/diagrams/`](docs/diagrams/): architecture, data model, harvester pipeline and OAI flow diagrams
 - [`docs/harvester-handbook.md`](docs/harvester-handbook.md): portal and taxonomy notes
 - [`deploy/README.md`](deploy/README.md): production operations
+- [`docs/ogc-api-notes.md`](docs/ogc-api-notes.md): OGC API design notes, pygeoapi limitations
 - [`ogc/brand/README.md`](ogc/brand/README.md): branding of the OGC HTML pages
 
 ## License

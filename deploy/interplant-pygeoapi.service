@@ -11,15 +11,15 @@ EnvironmentFile=/etc/interplant/env
 # gunicorn reads SCRIPT_NAME from the environment of whatever it is serving,
 # and interplant-oai.service loads the same EnvironmentFile: a SCRIPT_NAME
 # line in /etc/interplant/env mounts the OAI endpoint under this value too,
-# and every https://www.plabipd.de/oai request then fails with "Configuration
-# problem: Request path '/oai' does not start with SCRIPT_NAME". That took the
-# public OAI endpoint - the one AWI harvests - down on 2026-09-14. Set after
+# and every public /oai request then fails with "Configuration
+# problem: Request path '/oai' does not start with SCRIPT_NAME". That has taken
+# the public OAI endpoint down once. Set after
 # EnvironmentFile= so it wins if the variable is ever set there again.
 Environment=SCRIPT_NAME=/ogc
 # The ONE service on this VM that runs in a container, and deliberately so:
 # pygeoapi pulls GDAL, rasterio, fiona and netCDF4, which is exactly the
 # "awkward dependency" case the native-install decision named as the thing
-# containers are for. See deploy/README.md. The tag is pinned, never latest,
+# containers are for. See docs/ogc-api-notes.md. The tag is pinned, never latest,
 # because nothing watches these images for CVEs and the service is public.
 # Bare `-e VAR` forwards each var from the unit's EnvironmentFile into the
 # container. The owner DSNs (INTERPLANT_DSN, INTERPLANT_PG_DSN) are

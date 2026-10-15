@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Install or upgrade INTERPLANT on interplant-live.
+# Install or upgrade INTERPLANT on the VM.
 #
 #   sudo ./install.sh [ref]     # ref defaults to main; pass a tag to roll back
 #
-# Run as a sudo-capable user, not as interplant. Idempotent: safe to
+# Run as a sudo-capable admin user, not as interplant. Idempotent: safe to
 # re-run. The VM pulls its own code from gitlab.fz-juelich.de using the
 # read-only deploy token at /etc/interplant/deploy-token.
 set -euo pipefail
@@ -116,14 +116,40 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 # CONTAINER_HOST/CONTAINER_PORT guard the image's silent fallback to the
 # formula `${VAR:=default}`, i.e. 0.0.0.0:80, while the firewall notes below
-# only admit 8001 (and the proxy expects it).
-for _key in INTERPLANT_PG_RO_PASSWORD CONTAINER_HOST CONTAINER_PORT; do
+# only admit 8001 (and the proxy expects it). INTERPLANT_OAI_BIND is the OAI
+# unit's gunicorn --bind; unset, systemd would pass a literal empty string.
+# This runs before any unit file is copied or any unit is restarted. Template
+# placeholders (CHANGE-ME, <...>) are refused too, since the env file is
+# copied from the example and a value left as-is would otherwise pass.
+for _key in INTERPLANT_PG_RO_PASSWORD CONTAINER_HOST CONTAINER_PORT INTERPLANT_OAI_BIND; do
     if ! grep -q "^${_key}=." "$ENVFILE"; then
         echo "MISSING $_key in $ENVFILE"
         echo "Set $_key (see deploy/interplant.env.example), then re-run install.sh."
         exit 1
     fi
+    _val=$(sed -n "s/^${_key}=//p" "$ENVFILE" | tail -n 1)
+    _val=${_val#\"}; _val=${_val%\"}; _val=${_val#\'}; _val=${_val%\'}
+    case "$_val" in
+        *CHANGE-ME*)
+            echo "PLACEHOLDER $_key in $ENVFILE is still CHANGE-ME."
+            echo "Set a real value, then re-run install.sh."
+            exit 1 ;;
+    esac
+    if [ "$_key" != "INTERPLANT_PG_RO_PASSWORD" ]; then
+        case "$_val" in
+            *"<"*)
+                echo "PLACEHOLDER $_key in $ENVFILE is still a template value ($_val)."
+                echo "Set a real value, then re-run install.sh."
+                exit 1 ;;
+        esac
+    fi
 done
+case "$(sed -n 's/^INTERPLANT_OAI_BIND=//p' "$ENVFILE" | tail -n 1 | tr -d "\"'")" in
+    0.0.0.0*)
+        echo "REFUSED INTERPLANT_OAI_BIND in $ENVFILE binds every interface."
+        echo "Use the internal interface address, e.g. 192.0.2.10:8000."
+        exit 1 ;;
+esac
 
 echo "== pygeoapi role =="
 # The catalog views call ST_* functions, so the extension must exist in
@@ -197,7 +223,7 @@ sudo systemctl restart interplant-pygeoapi.service
 sudo systemctl enable --now interplant-refresh.timer   # timer: --now is correct
 
 echo "== firewall =="
-echo "MANUAL STEP, not applied by this script. Once Marie supplies the proxy"
+echo "MANUAL STEP, not applied by this script. Once you know the proxy"
 echo "address, run these yourself:"
 echo "  sudo ufw allow from <PROXY_IP> to any port 8000 proto tcp"
 echo "  sudo ufw deny 8000"

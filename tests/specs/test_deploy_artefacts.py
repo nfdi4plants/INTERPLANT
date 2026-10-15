@@ -5,6 +5,7 @@ here are the only automated statement about them.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 DEPLOY = Path(__file__).resolve().parents[2] / "deploy"
@@ -24,9 +25,28 @@ def test_units_run_unprivileged():
 
 
 def test_the_endpoint_does_not_bind_all_interfaces():
-    text = (DEPLOY / "interplant-oai.service").read_text(encoding="utf-8")
-    assert "0.0.0.0" not in text, "bind the internal address, not every interface"
-    assert "192.0.2.10:8000" in text
+    unit = (DEPLOY / "interplant-oai.service").read_text(encoding="utf-8")
+    assert "--bind ${INTERPLANT_OAI_BIND}" in unit, (
+        "the bind address comes from the env file, not from the unit"
+    )
+    assert "0.0.0.0" not in unit, "bind the internal address, not every interface"
+    assert not re.search(r"--bind\s+\d+\.\d+\.\d+\.\d+", unit), (
+        "no hardcoded IP in the unit; it is site-specific"
+    )
+
+    env_example = (DEPLOY / "interplant.env.example").read_text(encoding="utf-8")
+    assert re.search(r"^INTERPLANT_OAI_BIND=.", env_example, re.M)
+    assert "INTERPLANT_OAI_BIND=0.0.0.0" not in env_example
+
+    install = (DEPLOY / "install.sh").read_text(encoding="utf-8")
+    guard = re.search(r"for _key in ([^;]*); do", install)
+    assert guard and "INTERPLANT_OAI_BIND" in guard.group(1).split(), (
+        "install.sh must require INTERPLANT_OAI_BIND before installing units"
+    )
+    assert "0.0.0.0*)" in install, "install.sh must refuse an all-interfaces bind"
+    assert guard.start() < install.index("== units =="), (
+        "the guard must run before any unit file is installed or restarted"
+    )
 
 
 def test_the_refresh_unit_calls_refresh_not_harvest():
@@ -193,7 +213,7 @@ def test_script_name_is_scoped_to_the_pygeoapi_unit_only():
     # Both units load /etc/interplant/env and gunicorn reads SCRIPT_NAME from
     # its environment, so a SCRIPT_NAME line in the shared file mounts the OAI
     # endpoint under the OGC prefix too and every /oai request fails with
-    # "Configuration problem". This took www.plabipd.de/oai - the endpoint AWI
+    # "Configuration problem". This took the public /oai endpoint - the one AWI
     # harvests - down on 2026-09-14.
     env_example = (DEPLOY / "interplant.env.example").read_text(encoding="utf-8")
     for line in env_example.splitlines():
